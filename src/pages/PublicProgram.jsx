@@ -243,7 +243,10 @@ export default function PublicProgram() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <DayTabs selectedDate={selectedDate} onSelect={selectDay} />
+      <DayTabs
+        selectedDate={placeFilter || favoritesOnly ? null : selectedDate}
+        onSelect={selectDay}
+      />
       <CategoryFilter selected={category} onSelect={setCategory} />
 
       <div className="border-b border-barrete/10 bg-creme/80">

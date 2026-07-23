@@ -43,8 +43,7 @@ export default function EventList({
 
   const groups = useMemo(() => {
     if (!groupByDay || !events.length) return null
-    const g = groupEventsByDay(events)
-    return g.length > 1 ? g : null
+    return groupEventsByDay(events)
   }, [events, groupByDay])
 
   if (loading) {
