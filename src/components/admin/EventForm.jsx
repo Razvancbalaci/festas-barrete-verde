@@ -140,7 +140,11 @@ export default function EventForm({ event, onSave, onCancel, t, uiT }) {
             value={form.local}
             onChange={(e) => update('local', e.target.value)}
             className={inputClass}
+            placeholder="Rua A, Rua B e Av. C"
           />
+          {t.placeHint ? (
+            <span className="mt-1 block text-xs text-ink/45">{t.placeHint}</span>
+          ) : null}
         </label>
 
         <label className="mb-3 block">

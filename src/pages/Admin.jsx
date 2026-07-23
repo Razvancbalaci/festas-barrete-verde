@@ -29,6 +29,9 @@ export default function Admin() {
   const [message, setMessage] = useState(null)
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [subCount, setSubCount] = useState(null)
+  const [notifyForm, setNotifyForm] = useState({ title: '', body: '' })
+  const [notifySending, setNotifySending] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -68,11 +71,24 @@ export default function Admin() {
     setLoading(false)
   }, [])
 
+  const fetchSubCount = useCallback(async () => {
+    const { count, error } = await supabase
+      .from('push_subscriptions')
+      .select('*', { count: 'exact', head: true })
+    if (error) {
+      console.error(error)
+      setSubCount(null)
+    } else {
+      setSubCount(count ?? 0)
+    }
+  }, [])
+
   useEffect(() => {
     if (!session) return
     if (tab === 'events') fetchEvents()
-    else fetchNegocios()
-  }, [session, tab, fetchEvents, fetchNegocios])
+    else if (tab === 'businesses') fetchNegocios()
+    else if (tab === 'notify') fetchSubCount()
+  }, [session, tab, fetchEvents, fetchNegocios, fetchSubCount])
 
   const grouped = useMemo(() => {
     const map = {}
@@ -154,6 +170,37 @@ export default function Admin() {
     }
   }
 
+  async function handleSendNotify(e) {
+    e.preventDefault()
+    if (!notifyForm.title.trim() || !notifyForm.body.trim()) {
+      setMessage({ type: 'err', text: a.errorRequired })
+      return
+    }
+    setNotifySending(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('send-push', {
+        body: {
+          title: notifyForm.title.trim(),
+          body: notifyForm.body.trim(),
+          url: '/',
+        },
+      })
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+      setMessage({
+        type: 'ok',
+        text: `${a.notifySuccess} (${data?.sent ?? 0}/${data?.total ?? 0})`,
+      })
+      setNotifyForm({ title: '', body: '' })
+      await fetchSubCount()
+    } catch (err) {
+      console.error(err)
+      setMessage({ type: 'err', text: a.notifyError })
+    } finally {
+      setNotifySending(false)
+    }
+  }
+
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -224,11 +271,11 @@ export default function Admin() {
           </div>
         )}
 
-        <div className="mb-5 flex gap-2 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-barrete/5">
+        <div className="mb-5 flex gap-1 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-barrete/5 sm:gap-2">
           <button
             type="button"
             onClick={() => setTab('events')}
-            className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+            className={`flex-1 rounded-xl px-2 py-2.5 text-xs font-semibold transition sm:px-3 sm:text-sm ${
               tab === 'events' ? 'bg-barrete text-white' : 'text-ink/60 hover:bg-creme'
             }`}
           >
@@ -237,16 +284,25 @@ export default function Admin() {
           <button
             type="button"
             onClick={() => setTab('businesses')}
-            className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+            className={`flex-1 rounded-xl px-2 py-2.5 text-xs font-semibold transition sm:px-3 sm:text-sm ${
               tab === 'businesses' ? 'bg-barrete text-white' : 'text-ink/60 hover:bg-creme'
             }`}
           >
             {a.tabBusinesses}
             {pending.length > 0 ? (
-              <span className="ml-1.5 rounded-full bg-vermelho px-1.5 py-0.5 text-[0.65rem] text-white">
+              <span className="ml-1 rounded-full bg-vermelho px-1.5 py-0.5 text-[0.65rem] text-white sm:ml-1.5">
                 {pending.length}
               </span>
             ) : null}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('notify')}
+            className={`flex-1 rounded-xl px-2 py-2.5 text-xs font-semibold transition sm:px-3 sm:text-sm ${
+              tab === 'notify' ? 'bg-barrete text-white' : 'text-ink/60 hover:bg-creme'
+            }`}
+          >
+            {a.tabNotify}
           </button>
         </div>
 
@@ -352,6 +408,60 @@ export default function Admin() {
               </div>
             )}
           </>
+        ) : tab === 'notify' ? (
+          <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-barrete/5 sm:p-6">
+            <h2 className="font-display text-lg font-semibold text-barrete">
+              {a.notifyTitle}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink/60">{a.notifyHint}</p>
+            <p className="mt-3 text-sm font-medium text-ink/80">
+              {a.notifyCount}:{' '}
+              <span className="font-bold text-barrete">
+                {subCount === null ? '—' : subCount}
+              </span>
+            </p>
+            <form onSubmit={handleSendNotify} className="mt-5 space-y-3">
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium">{a.notifySubject}</span>
+                <input
+                  type="text"
+                  value={notifyForm.title}
+                  onChange={(e) =>
+                    setNotifyForm((f) => ({ ...f, title: e.target.value }))
+                  }
+                  className="w-full rounded-xl border border-barrete/15 bg-creme px-3 py-2.5 text-sm outline-none focus:border-barrete/40"
+                  maxLength={80}
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium">{a.notifyBody}</span>
+                <textarea
+                  value={notifyForm.body}
+                  onChange={(e) =>
+                    setNotifyForm((f) => ({ ...f, body: e.target.value }))
+                  }
+                  className="min-h-[100px] w-full rounded-xl border border-barrete/15 bg-creme px-3 py-2.5 text-sm outline-none focus:border-barrete/40"
+                  maxLength={200}
+                  required
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={notifySending}
+                className="inline-flex items-center gap-2 rounded-xl bg-dourado px-4 py-2.5 text-sm font-semibold text-ink shadow-sm hover:brightness-105 disabled:opacity-60"
+              >
+                {notifySending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {a.notifySending}
+                  </>
+                ) : (
+                  a.notifySend
+                )}
+              </button>
+            </form>
+          </section>
         ) : loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-barrete" />

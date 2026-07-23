@@ -13,12 +13,37 @@ export const translations = {
     showDetails: 'Ver cartaz / detalhes',
     hideDetails: 'Fechar detalhes',
     corridaBadge: 'Na Praça de Touros · Bilheteira online',
+    routeNote:
+      'Este evento percorre várias ruas. Toca numa rua para a abrir no mapa:',
+    routePathNote:
+      'Os toiros percorrem várias ruas. Abre o percurso completo no mapa (início → fim):',
+    openRoute: 'Ver percurso no mapa',
+    streetBullCaution:
+      'Cuidado — passagem / largada de toiros. Mantém distância e segue as indicações no local.',
     safetyNote:
-      'Apenas serão admitidos nas esperas e recolhas de toiros os campinos e cavaleiros amadores autorizados pelo Aposento do Barrete Verde.',
+      'Apenas serão admitidos para as esperas e recolhas de toiros os campinos e cavaleiros amadores segurados e autorizados pelo Aposento do Barrete Verde de Alcochete. O Aposento não se responsabiliza por quaisquer acidentes ocorridos nos recintos das largadas e passagem de toiros.',
+    notify: {
+      title: 'Receber avisos',
+      body: 'Ativa notificações para saberes de alterações ao programa.',
+      enable: 'Ativar',
+      enabled: 'Notificações ativas',
+      denied: 'Permissão recusada nas definições do telemóvel.',
+      unsupported: 'O teu browser não suporta notificações.',
+      dismiss: 'Agora não',
+      error: 'Não foi possível ativar. Tenta de novo.',
+    },
     adminLink: 'Admin',
     businessesLink: 'Negócios locais',
     businessesShort: 'Negócios',
     alcochetano: 'Dia do Alcochetano',
+    install: {
+      title: 'Adicionar à página inicial',
+      android: 'Instala a app para acederes ao programa mais depressa.',
+      iosPrefix: 'Toca em',
+      iosSuffix: 'e depois em «Adicionar ao Ecrã Principal».',
+      cta: 'Instalar',
+      dismiss: 'Fechar',
+    },
     businesses: {
       title: 'Negócios locais',
       subtitle: 'Restaurantes e comércio de Alcochete durante as festas',
@@ -128,6 +153,19 @@ export const translations = {
       successReject: 'Candidatura removida.',
       noPending: 'Não há candidaturas por aprovar.',
       noApproved: 'Ainda não há negócios aprovados.',
+      tabNotify: 'Avisos',
+      notifyTitle: 'Enviar notificação',
+      notifyHint:
+        'Envia um aviso a quem ativou as notificações na app. Só funciona depois de configurares as chaves VAPID e a Edge Function (ver README).',
+      notifySubject: 'Título',
+      notifyBody: 'Mensagem',
+      notifySend: 'Enviar a todos',
+      notifySending: 'A enviar…',
+      notifySuccess: 'Notificação enviada.',
+      notifyError: 'Falha ao enviar. Verifica a Edge Function e as chaves VAPID.',
+      notifyCount: 'Dispositivos subscritos',
+      placeHint:
+        'Uma morada, ou várias ruas separadas por vírgulas (ex.: Rua A, Rua B e Av. C).',
     },
   },
   en: {
@@ -144,12 +182,37 @@ export const translations = {
     showDetails: 'Show poster / details',
     hideDetails: 'Hide details',
     corridaBadge: 'At the bullring · Online tickets',
+    routeNote:
+      'This event runs through several streets. Tap a street to open it on the map:',
+    routePathNote:
+      'The bulls run through several streets. Open the full route on the map (start → end):',
+    openRoute: 'View route on map',
+    streetBullCaution:
+      'Caution — bulls in the streets. Keep your distance and follow on-site instructions.',
     safetyNote:
-      'Only campinos and amateur riders authorised by the Aposento do Barrete Verde will be admitted to bull waits and collections.',
+      'Only insured campinos and amateur riders authorised by the Aposento do Barrete Verde de Alcochete will be admitted to bull waits and collections. The Aposento accepts no liability for accidents in bull-run or bull-passage areas.',
+    notify: {
+      title: 'Get alerts',
+      body: 'Enable notifications for programme updates.',
+      enable: 'Enable',
+      enabled: 'Notifications on',
+      denied: 'Permission denied in your device settings.',
+      unsupported: 'Your browser does not support notifications.',
+      dismiss: 'Not now',
+      error: 'Could not enable. Please try again.',
+    },
     adminLink: 'Admin',
     businessesLink: 'Local businesses',
     businessesShort: 'Local',
     alcochetano: "Alcochetano's Day",
+    install: {
+      title: 'Add to Home Screen',
+      android: 'Install the app for quicker access to the programme.',
+      iosPrefix: 'Tap',
+      iosSuffix: 'then «Add to Home Screen».',
+      cta: 'Install',
+      dismiss: 'Close',
+    },
     businesses: {
       title: 'Local businesses',
       subtitle: 'Restaurants and shops in Alcochete during the festivities',
@@ -258,6 +321,19 @@ export const translations = {
       successReject: 'Application removed.',
       noPending: 'No pending applications.',
       noApproved: 'No approved businesses yet.',
+      tabNotify: 'Alerts',
+      notifyTitle: 'Send notification',
+      notifyHint:
+        'Sends an alert to everyone who enabled notifications. Requires VAPID keys and the Edge Function (see README).',
+      notifySubject: 'Title',
+      notifyBody: 'Message',
+      notifySend: 'Send to all',
+      notifySending: 'Sending…',
+      notifySuccess: 'Notification sent.',
+      notifyError: 'Send failed. Check the Edge Function and VAPID keys.',
+      notifyCount: 'Subscribed devices',
+      placeHint:
+        'One venue, or several streets separated by commas (e.g. Street A, Street B and Av. C).',
     },
   },
   fr: {
@@ -274,12 +350,37 @@ export const translations = {
     showDetails: 'Voir l’affiche / détails',
     hideDetails: 'Fermer les détails',
     corridaBadge: 'À l’arène · Billets en ligne',
+    routeNote:
+      'Cet événement traverse plusieurs rues. Touchez une rue pour l’ouvrir sur la carte :',
+    routePathNote:
+      'Les taureaux traversent plusieurs rues. Ouvrez le parcours complet sur la carte (début → fin) :',
+    openRoute: 'Voir le parcours sur la carte',
+    streetBullCaution:
+      'Attention — taureaux dans les rues. Gardez vos distances et suivez les consignes sur place.',
     safetyNote:
-      'Seuls les campinos et cavaliers amateurs autorisés par l’Aposento do Barrete Verde seront admis aux attentes et ramassages de taureaux.',
+      'Seuls les campinos et cavaliers amateurs assurés et autorisés par l’Aposento do Barrete Verde d’Alcochete seront admis aux attentes et ramassages. L’Aposento décline toute responsabilité en cas d’accident dans les zones de lâchers et de passage de taureaux.',
+    notify: {
+      title: 'Recevoir des alertes',
+      body: 'Activez les notifications pour les changements de programme.',
+      enable: 'Activer',
+      enabled: 'Notifications activées',
+      denied: 'Permission refusée dans les réglages du téléphone.',
+      unsupported: 'Votre navigateur ne prend pas en charge les notifications.',
+      dismiss: 'Pas maintenant',
+      error: 'Activation impossible. Réessayez.',
+    },
     adminLink: 'Admin',
     businessesLink: 'Commerces locaux',
     businessesShort: 'Commerces',
     alcochetano: "Jour de l'Alcochetano",
+    install: {
+      title: "Ajouter à l'écran d'accueil",
+      android: "Installez l'app pour accéder plus vite au programme.",
+      iosPrefix: 'Appuyez sur',
+      iosSuffix: 'puis « Sur l’écran d’accueil ».',
+      cta: 'Installer',
+      dismiss: 'Fermer',
+    },
     businesses: {
       title: 'Commerces locaux',
       subtitle: 'Restaurants et commerces d’Alcochete pendant les fêtes',
@@ -388,6 +489,19 @@ export const translations = {
       successReject: 'Candidature supprimée.',
       noPending: 'Aucune candidature en attente.',
       noApproved: 'Pas encore de commerces approuvés.',
+      tabNotify: 'Alertes',
+      notifyTitle: 'Envoyer une notification',
+      notifyHint:
+        'Envoie une alerte à ceux qui ont activé les notifications. Nécessite les clés VAPID et l’Edge Function (voir README).',
+      notifySubject: 'Titre',
+      notifyBody: 'Message',
+      notifySend: 'Envoyer à tous',
+      notifySending: 'Envoi…',
+      notifySuccess: 'Notification envoyée.',
+      notifyError: 'Échec de l’envoi. Vérifiez l’Edge Function et les clés VAPID.',
+      notifyCount: 'Appareils abonnés',
+      placeHint:
+        'Un lieu, ou plusieurs rues séparées par des virgules (ex. : Rue A, Rue B et Av. C).',
     },
   },
 }

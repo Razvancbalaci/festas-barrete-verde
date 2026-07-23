@@ -88,9 +88,10 @@ Abre o endereço que aparece (normalmente `http://localhost:5173`).
 
 1. Faz upload do projeto para o GitHub (ou liga a pasta local ao Vercel).
 2. Em [vercel.com](https://vercel.com) → **Add New Project** → escolhe o repositório.
-3. Em **Environment Variables**, adiciona as mesmas duas variáveis do `.env`:
+3. Em **Environment Variables**, adiciona as mesmas variáveis do `.env`:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_VAPID_PUBLIC_KEY` (se fores usar notificações)
 4. Faz **Deploy**. Quando terminar, tens um link público (ex.: `https://festas-barrete-verde.vercel.app`).
 
 ### Opção B — Netlify
@@ -98,7 +99,7 @@ Abre o endereço que aparece (normalmente `http://localhost:5173`).
 1. Em [netlify.com](https://netlify.com) → **Add new site** → importa o repositório.
 2. Build command: `npm run build`
 3. Publish directory: `dist`
-4. Em **Site settings → Environment variables**, adiciona `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`.
+4. Em **Site settings → Environment variables**, adiciona `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` e (opcional) `VITE_VAPID_PUBLIC_KEY`.
 5. Faz o deploy.
 
 **Importante:** depois de alterar variáveis de ambiente, volta a fazer um deploy para elas entrarem em vigor.
@@ -119,9 +120,28 @@ Campos de cada evento:
 | Dia | 2026-08-10 |
 | Hora | 22:30 |
 | Título | Animação Musical com TOY |
-| Local | Palco S. João (opcional) |
+| Local | Uma morada, ou várias ruas separadas por vírgulas (o site abre cada rua no mapa) |
 | Categoria | Música, Toiros, Folclore, … |
 | Ordem | 0, 1, 2… (quando há vários à mesma hora) |
+
+---
+
+## Notificações push (opcional)
+
+Permite avisar quem instalou / autorizou notificações (Android Chrome; iPhone só com a app no Ecrã Principal, iOS 16.4+).
+
+1. Corre o SQL `push-subscriptions.sql` no Supabase.
+2. Gera chaves VAPID:
+   ```bash
+   npx web-push generate-vapid-keys
+   ```
+3. Coloca a **chave pública** em `.env` como `VITE_VAPID_PUBLIC_KEY` (e no Vercel/Netlify).
+4. Instala a [Supabase CLI](https://supabase.com/docs/guides/cli), liga o projeto e faz deploy da função:
+   ```bash
+   supabase functions deploy send-push
+   supabase secrets set VAPID_PUBLIC_KEY="..." VAPID_PRIVATE_KEY="..." VAPID_SUBJECT="mailto:teu@email.com"
+   ```
+5. No admin → separador **Avisos**, escreve título + mensagem e envia.
 
 ---
 

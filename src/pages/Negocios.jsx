@@ -15,9 +15,7 @@ import { useLang } from '../context/LangContext'
 import { BUSINESS_TYPES } from '../data/businessTypes'
 import Footer from '../components/Footer'
 
-function mapsUrl(morada) {
-  return `https://maps.google.com/?q=${encodeURIComponent(`${morada} Alcochete`)}`
-}
+import { mapsUrl } from '../lib/locations'
 
 const emptyForm = {
   nome: '',

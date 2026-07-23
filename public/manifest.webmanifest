@@ -1,0 +1,32 @@
+{
+  "name": "Festas do Barrete Verde e das Salinas 2026",
+  "short_name": "Barrete Verde",
+  "description": "Programa das Festas do Barrete Verde e das Salinas — Alcochete, 7 a 13 de Agosto 2026",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FAF8F2",
+  "theme_color": "#1B5E3F",
+  "lang": "pt",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

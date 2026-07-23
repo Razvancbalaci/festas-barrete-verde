@@ -1,12 +1,16 @@
 import { useState } from 'react'
-import { ChevronDown, MapPin, Ticket } from 'lucide-react'
+import { AlertTriangle, ChevronDown, MapPin, Route, Ticket } from 'lucide-react'
 import { CATEGORY_COLORS } from '../data/categories'
 import { useLang } from '../context/LangContext'
-
-function mapsUrl(local) {
-  const q = encodeURIComponent(`${local} Alcochete`)
-  return `https://maps.google.com/?q=${q}`
-}
+import {
+  isCorridaEvent,
+  isEntradaRouteEvent,
+  isStreetBullEvent,
+  mapsDirectionsUrl,
+  mapsUrl,
+  parseLocations,
+  displayPlace,
+} from '../lib/locations'
 
 /** Divide a descrição em secções (título em MAIÚSCULAS + linhas) */
 function parseDescricao(text) {
@@ -41,18 +45,101 @@ function parseDescricao(text) {
 
   return sections.map((s) => ({
     ...s,
-    items: s.items.filter((i, idx, arr) => i !== '' || (arr[idx - 1] && arr[idx - 1] !== '')),
+    items: s.items.filter(
+      (i, idx, arr) => i !== '' || (arr[idx - 1] && arr[idx - 1] !== '')
+    ),
   }))
+}
+
+function LocationBlock({ local, t, asRoute }) {
+  const streets = parseLocations(local)
+
+  if (streets.length === 0) {
+    return (
+      <p className="inline-flex max-w-full items-start gap-1.5 text-sm text-ink/65">
+        <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-tejo" aria-hidden />
+        <span className="leading-snug">{local}</span>
+      </p>
+    )
+  }
+
+  if (streets.length === 1) {
+    const label = displayPlace(streets[0])
+    return (
+      <a
+        href={mapsUrl(streets[0])}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex max-w-full items-start gap-1.5 text-sm text-tejo transition-colors hover:text-barrete"
+        title={t.openMaps}
+      >
+        <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+        <span className="leading-snug underline-offset-2 hover:underline">
+          {label}
+        </span>
+      </a>
+    )
+  }
+
+  // Entradas: um percurso início → fim no Maps
+  if (asRoute) {
+    return (
+      <div className="space-y-2">
+        <p className="text-xs leading-snug text-ink/55">{t.routePathNote}</p>
+        <a
+          href={mapsDirectionsUrl(streets)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-full bg-tejo/10 px-3 py-1.5 text-xs font-semibold text-tejo transition hover:bg-tejo/15"
+          title={t.openRoute}
+        >
+          <Route className="h-3.5 w-3.5" aria-hidden />
+          {t.openRoute}
+        </a>
+        <p className="text-[0.7rem] leading-relaxed text-ink/45">
+          {displayPlace(streets[0])}
+          <span className="mx-1 text-ink/30">→</span>
+          {displayPlace(streets[streets.length - 1])}
+        </p>
+      </div>
+    )
+  }
+
+  // Largadas e outros: rua a rua
+  return (
+    <div className="space-y-1.5">
+      <p className="flex items-start gap-1.5 text-xs leading-snug text-ink/55">
+        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-tejo" aria-hidden />
+        <span>{t.routeNote}</span>
+      </p>
+      <ul className="flex flex-col gap-1 pl-5">
+        {streets.map((street) => (
+          <li key={street}>
+            <a
+              href={mapsUrl(street)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-tejo underline-offset-2 transition-colors hover:text-barrete hover:underline"
+              title={`${t.openMaps}: ${displayPlace(street)}`}
+            >
+              {displayPlace(street)}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }
 
 export default function EventCard({ event, index }) {
   const { t } = useLang()
   const colors = CATEGORY_COLORS[event.categoria] || CATEGORY_COLORS.Institucional
-  const hasDetails = Boolean(event.descricao?.trim() || event.bilhetes_url || event.subtitulo)
-  const isCorrida =
-    event.categoria === 'Toiros' &&
-    (Boolean(event.bilhetes_url) ||
-      /corrida|recortadores/i.test(event.titulo || ''))
+  const hasDetails = Boolean(
+    event.descricao?.trim() || event.bilhetes_url || event.subtitulo
+  )
+  const isCorrida = isCorridaEvent(event)
+  const isStreetBull = isStreetBullEvent(event)
+  const asRoute = isEntradaRouteEvent(event)
   const [open, setOpen] = useState(false)
   const sections = parseDescricao(event.descricao)
 
@@ -61,7 +148,9 @@ export default function EventCard({ event, index }) {
       className={`animate-fade-up overflow-hidden rounded-2xl bg-white shadow-sm transition-shadow duration-200 hover:shadow-md ${
         isCorrida
           ? 'ring-2 ring-vermelho/25 shadow-vermelho/5'
-          : 'ring-1 ring-barrete/5 shadow-barrete/5'
+          : isStreetBull
+            ? 'ring-2 ring-dourado/40 shadow-dourado/10'
+            : 'ring-1 ring-barrete/5 shadow-barrete/5'
       }`}
       style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
     >
@@ -71,16 +160,36 @@ export default function EventCard({ event, index }) {
         </div>
       )}
 
+      {isStreetBull && (
+        <div className="flex items-start gap-2 bg-dourado/20 px-3.5 py-2 text-ink/90">
+          <AlertTriangle
+            className="mt-0.5 h-4 w-4 shrink-0 text-[#B45309]"
+            aria-hidden
+          />
+          <p className="text-[0.7rem] font-semibold leading-snug sm:text-xs">
+            {t.streetBullCaution}
+          </p>
+        </div>
+      )}
+
       <div className="p-4">
         <div className="flex gap-3">
           <div
             className={`flex w-14 shrink-0 flex-col items-center justify-center rounded-xl px-1 py-2 ${
-              isCorrida ? 'bg-vermelho/10' : 'bg-barrete/8'
+              isCorrida
+                ? 'bg-vermelho/10'
+                : isStreetBull
+                  ? 'bg-dourado/20'
+                  : 'bg-barrete/8'
             }`}
           >
             <span
               className={`font-display text-base font-bold leading-none sm:text-lg ${
-                isCorrida ? 'text-vermelho' : 'text-barrete'
+                isCorrida
+                  ? 'text-vermelho'
+                  : isStreetBull
+                    ? 'text-[#B45309]'
+                    : 'text-barrete'
               }`}
             >
               {event.hora}
@@ -94,7 +203,9 @@ export default function EventCard({ event, index }) {
                   {event.titulo}
                 </h3>
                 {event.subtitulo ? (
-                  <p className="mt-0.5 text-sm font-medium text-vermelho/90">{event.subtitulo}</p>
+                  <p className="mt-0.5 text-sm font-medium text-vermelho/90">
+                    {event.subtitulo}
+                  </p>
                 ) : null}
               </div>
               <span
@@ -106,18 +217,7 @@ export default function EventCard({ event, index }) {
             </div>
 
             {event.local ? (
-              <a
-                href={mapsUrl(event.local)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex max-w-full items-start gap-1.5 text-sm text-tejo transition-colors hover:text-barrete"
-                title={t.openMaps}
-              >
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-                <span className="leading-snug underline-offset-2 hover:underline">
-                  {event.local}
-                </span>
-              </a>
+              <LocationBlock local={event.local} t={t} asRoute={asRoute} />
             ) : null}
 
             {(event.bilhetes_url || hasDetails) && (
