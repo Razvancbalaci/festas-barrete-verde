@@ -19,6 +19,9 @@ export default defineConfig({
         'icon-192.png',
         'icon-512.png',
         'icon-512-maskable.png',
+        'og-image.png',
+        'robots.txt',
+        'sitemap.xml',
       ],
       manifest: false,
       injectManifest: {
