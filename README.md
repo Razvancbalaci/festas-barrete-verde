@@ -2,7 +2,7 @@
 
 Aplicação web do programa das festas de Alcochete (7 a 13 de agosto de 2026), com:
 
-- **Área pública** (`/`) — qualquer pessoa vê o programa (PT / EN / FR)
+- **Área pública** (`/`) — qualquer pessoa vê o programa (PT / EN / FR / ES)
 - **Back-office** (`/admin`) — só o administrador entra (login) e gere os eventos sem mexer no código
 
 Tecnologias: React, Vite, Tailwind CSS, Supabase.
@@ -159,7 +159,7 @@ Permite avisar quem instalou / autorizou notificações (Android Chrome; iPhone 
 ```
 src/
   components/     # Cabeçalho, tabs, cartões, filtros, admin…
-  context/        # Idioma (PT/EN/FR)
+  context/        # Idioma (PT/EN/FR/ES)
   data/           # Traduções, categorias, dias
   lib/supabase.js # Ligação à base de dados
   pages/          # Página pública e /admin
