@@ -23,12 +23,20 @@ const PLACE_ALIASES = {
   'junto à Igreja Matriz': '38.756124,-8.960280',
   'junto ao Pavilhão Municipal de Alcochete': '38.747627,-8.967168',
   'Jardim do Rossio': '38.754176,-8.964545',
+  'Antigo Armazém das Filmagens': '38.755190,-8.963924',
+}
+
+/** Rótulos amigáveis no ecrã (o Maps continua a usar PLACE_ALIASES) */
+const DISPLAY_LABELS = {
+  'Nacional 119': 'Nacional 119 (Praça de Touros)',
+  'EN 119': 'EN 119 (Praça de Touros)',
+  'N 119': 'N 119 (Praça de Touros)',
+  N119: 'N119 (Praça de Touros)',
 }
 
 export function displayPlace(name) {
   const key = name?.trim()
-  // No UI mantém o nome legível do cartaz; só o Maps usa alias/coords
-  return key
+  return DISPLAY_LABELS[key] || key
 }
 
 export function mapsPlace(name) {
