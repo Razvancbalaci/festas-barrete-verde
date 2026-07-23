@@ -215,14 +215,36 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey)
 
     const payload = await req.json().catch(() => ({}))
+    const cronOk = cronAuthorized(req)
+    const cronConfigured = Boolean(Deno.env.get('CRON_SECRET'))
+    const user = await requireUser(req, supabaseUrl, supabaseAnon)
+    const adminOk = isAllowedAdmin(user)
 
-    // processReminders: se CRON_SECRET estiver definido, exige esse header ou admin.
-    // Sem CRON_SECRET: permite o ticker da app (só processa due; não lê dados sensíveis para o cliente).
+    // Worker: avisos agendados + lembretes (cron com secret, ou admin)
+    if (payload.processSchedules) {
+      if (!cronOk && !adminOk) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      const results = await processBroadcastSchedules(admin)
+      const rem = await processEventReminders(admin)
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          processed: results.length,
+          results,
+          reminders: rem,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Só lembretes: cron/admin, ou anon se CRON_SECRET ainda não estiver definido
     if (payload.processReminders) {
-      const cronConfigured = Boolean(Deno.env.get('CRON_SECRET'))
       if (cronConfigured) {
-        const user = await requireUser(req, supabaseUrl, supabaseAnon)
-        if (!cronAuthorized(req) && !isAllowedAdmin(user)) {
+        if (!cronOk && !adminOk) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), {
             status: 401,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -236,27 +258,11 @@ Deno.serve(async (req) => {
       })
     }
 
-    const user = await requireUser(req, supabaseUrl, supabaseAnon)
-    if (!user || !isAllowedAdmin(user)) {
+    if (!adminOk) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
-    }
-
-    // Admin: avisos gerais agendados + lembretes
-    if (payload.processSchedules) {
-      const results = await processBroadcastSchedules(admin)
-      const rem = await processEventReminders(admin)
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          processed: results.length,
-          results,
-          reminders: rem,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
     }
 
     const { title, body, url } = payload
