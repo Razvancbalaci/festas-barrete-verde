@@ -4,6 +4,7 @@ const STREET_START =
 
 /**
  * Nomes do cartaz → sítio que o Google Maps encontra bem em Alcochete.
+ * Coordenadas: lat,lng (sem acrescentar ", Alcochete").
  */
 const PLACE_ALIASES = {
   'Nacional 119': 'Praça de Touros de Alcochete',
@@ -17,15 +18,26 @@ const PLACE_ALIASES = {
   'Palco S.João': 'Largo de São João 17, 2890-154 Alcochete',
   'Palco Coreto': 'Coreto de Alcochete, Alcochete',
   'Praça de Touros': 'Praça de Touros de Alcochete',
+  'em frente à sede': '38.755349,-8.963055',
+  'Sede do Aposento do Barrete Verde': '38.755349,-8.963055',
+  'junto à Igreja Matriz': '38.756124,-8.960280',
+  'junto ao Pavilhão Municipal de Alcochete': '38.747627,-8.967168',
+  'Jardim do Rossio': '38.754176,-8.964545',
 }
 
 export function displayPlace(name) {
   const key = name?.trim()
-  return PLACE_ALIASES[key] || key
+  // No UI mantém o nome legível do cartaz; só o Maps usa alias/coords
+  return key
 }
 
 export function mapsPlace(name) {
-  return displayPlace(name)
+  const key = name?.trim()
+  return PLACE_ALIASES[key] || key
+}
+
+function isLatLng(value) {
+  return /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(String(value).trim())
 }
 
 /**
@@ -67,15 +79,17 @@ export function parseLocations(local) {
 
 export function mapsUrl(place) {
   const resolved = mapsPlace(place)
-  const q = /Alcochete/i.test(resolved)
-    ? resolved
-    : `${resolved}, Alcochete`
+  const q =
+    isLatLng(resolved) || /Alcochete/i.test(resolved)
+      ? resolved
+      : `${resolved}, Alcochete`
   return `https://maps.google.com/?q=${encodeURIComponent(q)}`
 }
 
 function mapsQuery(place) {
   const resolved = mapsPlace(place)
-  return /Alcochete/i.test(resolved) ? resolved : `${resolved}, Alcochete`
+  if (isLatLng(resolved) || /Alcochete/i.test(resolved)) return resolved
+  return `${resolved}, Alcochete`
 }
 
 /** Percurso Google Maps: origem → waypoints → destino */
