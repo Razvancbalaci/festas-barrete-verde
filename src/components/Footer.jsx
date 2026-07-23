@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { MessageSquarePlus } from 'lucide-react'
 import { useLang } from '../context/LangContext'
 import FeedbackForm from './FeedbackForm'
@@ -27,14 +26,10 @@ export default function Footer() {
             </button>
           </div>
 
-          <div className="mt-6 flex items-center justify-center gap-4">
-            <span className="text-xs text-white/40">© 2026 Alcochete</span>
-            <Link
-              to="/admin"
-              className="text-xs text-white/35 transition-colors hover:text-white/70"
-            >
-              {t.adminLink}
-            </Link>
+          <div className="mt-6 flex items-center justify-center">
+            <span className="select-none text-[0.65rem] tracking-widest text-white/20" aria-hidden>
+              RB
+            </span>
           </div>
         </div>
       </footer>

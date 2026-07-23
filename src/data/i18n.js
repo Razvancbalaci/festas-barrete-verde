@@ -25,7 +25,7 @@ export const translations = {
     safetyNote:
       'Apenas serão admitidos para as esperas e recolhas de toiros os campinos e cavaleiros amadores segurados e autorizados pelo Aposento do Barrete Verde de Alcochete. O Aposento não se responsabiliza por quaisquer acidentes ocorridos nos recintos das largadas e passagem de toiros.',
     disclaimer:
-      'Este site é um projeto cívico e independente, feito por cidadãos para cidadãos. Não tem vínculo oficial com o Aposento do Barrete Verde nem com a Câmara Municipal de Alcochete, e não visa qualquer lucro ou interesse comercial.',
+      'Este site é um projeto cívico e independente, feito por cidadãos para cidadãos. Não tem vínculo oficial com o Aposento do Barrete Verde, com a Câmara Municipal de Alcochete nem com qualquer outro órgão administrativo, e não visa qualquer lucro ou interesse comercial.',
     offlineBanner: 'Estás offline — a mostrar o programa em cache, se disponível.',
     searchPlaceholder: 'Pesquisar artista, palco, evento…',
     today: 'Hoje',
@@ -311,7 +311,7 @@ export const translations = {
     safetyNote:
       'Only insured campinos and amateur riders authorised by the Aposento do Barrete Verde de Alcochete will be admitted to bull waits and collections. The Aposento accepts no liability for accidents in bull-run or bull-passage areas.',
     disclaimer:
-      'This website is an independent civic project, made by citizens for citizens. It has no official link to the Aposento do Barrete Verde or the Alcochete Town Hall, and seeks no profit or commercial interest.',
+      'This website is an independent civic project, made by citizens for citizens. It has no official link to the Aposento do Barrete Verde, the Alcochete Town Hall, or any other administrative body, and seeks no profit or commercial interest.',
     offlineBanner: 'You are offline — showing the cached programme if available.',
     searchPlaceholder: 'Search artist, stage, event…',
     today: 'Today',
@@ -595,7 +595,7 @@ export const translations = {
     safetyNote:
       'Seuls les campinos et cavaliers amateurs assurés et autorisés par l’Aposento do Barrete Verde d’Alcochete seront admis aux attentes et ramassages. L’Aposento décline toute responsabilité en cas d’accident dans les zones de lâchers et de passage de taureaux.',
     disclaimer:
-      'Ce site est un projet civique et indépendant, réalisé par des citoyens pour des citoyens. Il n’a aucun lien officiel avec l’Aposento do Barrete Verde ni avec la mairie d’Alcochete, et ne vise aucun profit ni intérêt commercial.',
+      'Ce site est un projet civique et indépendant, réalisé par des citoyens pour des citoyens. Il n’a aucun lien officiel avec l’Aposento do Barrete Verde, la mairie d’Alcochete ni aucun autre organe administratif, et ne vise aucun profit ni intérêt commercial.',
     offlineBanner: 'Vous êtes hors ligne — affichage du programme en cache si disponible.',
     searchPlaceholder: 'Rechercher artiste, scène, événement…',
     today: 'Aujourd’hui',
@@ -880,7 +880,7 @@ export const translations = {
     safetyNote:
       'Solo serán admitidos en las esperas y recogidas de toros los campinos y jinetes aficionados asegurados y autorizados por el Aposento do Barrete Verde de Alcochete. El Aposento no se responsabiliza de accidentes en los recintos de sueltas y paso de toros.',
     disclaimer:
-      'Este sitio es un proyecto cívico e independiente, hecho por ciudadanos para ciudadanos. No tiene vínculo oficial con el Aposento do Barrete Verde ni con el Ayuntamiento de Alcochete, y no busca lucro ni interés comercial.',
+      'Este sitio es un proyecto cívico e independiente, hecho por ciudadanos para ciudadanos. No tiene vínculo oficial con el Aposento do Barrete Verde, el Ayuntamiento de Alcochete ni ningún otro órgano administrativo, y no busca lucro ni interés comercial.',
     offlineBanner: 'Estás sin conexión — mostrando el programa en caché si está disponible.',
     searchPlaceholder: 'Buscar artista, escenario, evento…',
     today: 'Hoy',
