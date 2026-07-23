@@ -30,8 +30,9 @@ export default function Admin() {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [subCount, setSubCount] = useState(null)
-  const [notifyForm, setNotifyForm] = useState({ title: '', body: '' })
+  const [notifyForm, setNotifyForm] = useState({ title: '', body: '', scheduledFor: '' })
   const [notifySending, setNotifySending] = useState(false)
+  const [schedules, setSchedules] = useState([])
   const [feedbackList, setFeedbackList] = useState([])
   const unreadFeedback = useMemo(
     () => feedbackList.filter((item) => !item.lido).length,
@@ -103,13 +104,50 @@ export default function Admin() {
     if (withLoading) setLoading(false)
   }, [])
 
+  const fetchSchedules = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('push_schedules')
+      .select('*')
+      .order('scheduled_for', { ascending: true })
+    if (error) {
+      console.error(error)
+      setSchedules([])
+    } else {
+      setSchedules(data || [])
+    }
+  }, [])
+
+  const processDueSchedules = useCallback(async () => {
+    try {
+      await supabase.functions.invoke('send-push', {
+        body: { processSchedules: true },
+      })
+      await fetchSchedules()
+      await fetchSubCount()
+    } catch (err) {
+      console.error(err)
+    }
+  }, [fetchSchedules, fetchSubCount])
+
   useEffect(() => {
     if (!session) return
     if (tab === 'events') fetchEvents()
     else if (tab === 'businesses') fetchNegocios()
-    else if (tab === 'notify') fetchSubCount()
-    else if (tab === 'feedback') fetchFeedback(true)
-  }, [session, tab, fetchEvents, fetchNegocios, fetchSubCount, fetchFeedback])
+    else if (tab === 'notify') {
+      fetchSubCount()
+      fetchSchedules()
+      processDueSchedules()
+    } else if (tab === 'feedback') fetchFeedback(true)
+  }, [
+    session,
+    tab,
+    fetchEvents,
+    fetchNegocios,
+    fetchSubCount,
+    fetchSchedules,
+    processDueSchedules,
+    fetchFeedback,
+  ])
 
   // Contagem de feedback não lido (badge), mesmo noutro separador
   useEffect(() => {
@@ -240,13 +278,60 @@ export default function Admin() {
         type: 'ok',
         text: `${a.notifySuccess} (${data?.sent ?? 0}/${data?.total ?? 0})`,
       })
-      setNotifyForm({ title: '', body: '' })
+      setNotifyForm({ title: '', body: '', scheduledFor: '' })
       await fetchSubCount()
     } catch (err) {
       console.error(err)
       setMessage({ type: 'err', text: a.notifyError })
     } finally {
       setNotifySending(false)
+    }
+  }
+
+  async function handleScheduleNotify(e) {
+    e.preventDefault()
+    if (
+      !notifyForm.title.trim() ||
+      !notifyForm.body.trim() ||
+      !notifyForm.scheduledFor
+    ) {
+      setMessage({ type: 'err', text: a.errorRequired })
+      return
+    }
+    const when = new Date(notifyForm.scheduledFor)
+    if (Number.isNaN(when.getTime()) || when.getTime() <= Date.now()) {
+      setMessage({ type: 'err', text: a.errorRequired })
+      return
+    }
+    setNotifySending(true)
+    try {
+      const { error } = await supabase.from('push_schedules').insert({
+        title: notifyForm.title.trim(),
+        body: notifyForm.body.trim(),
+        scheduled_for: when.toISOString(),
+        status: 'pending',
+      })
+      if (error) throw error
+      setMessage({ type: 'ok', text: a.notifyScheduled })
+      setNotifyForm({ title: '', body: '', scheduledFor: '' })
+      await fetchSchedules()
+    } catch (err) {
+      console.error(err)
+      setMessage({ type: 'err', text: a.errorGeneric })
+    } finally {
+      setNotifySending(false)
+    }
+  }
+
+  async function cancelSchedule(id) {
+    const { error } = await supabase
+      .from('push_schedules')
+      .update({ status: 'cancelled' })
+      .eq('id', id)
+    if (error) {
+      setMessage({ type: 'err', text: a.errorGeneric })
+    } else {
+      await fetchSchedules()
     }
   }
 
@@ -509,21 +594,86 @@ export default function Admin() {
                   required
                 />
               </label>
-              <button
-                type="submit"
-                disabled={notifySending}
-                className="inline-flex items-center gap-2 rounded-xl bg-dourado px-4 py-2.5 text-sm font-semibold text-ink shadow-sm hover:brightness-105 disabled:opacity-60"
-              >
-                {notifySending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {a.notifySending}
-                  </>
-                ) : (
-                  a.notifySend
-                )}
-              </button>
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium">
+                  {a.notifyScheduledFor}
+                </span>
+                <input
+                  type="datetime-local"
+                  value={notifyForm.scheduledFor}
+                  onChange={(e) =>
+                    setNotifyForm((f) => ({ ...f, scheduledFor: e.target.value }))
+                  }
+                  className="w-full rounded-xl border border-barrete/15 bg-creme px-3 py-2.5 text-sm outline-none focus:border-barrete/40"
+                />
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="submit"
+                  disabled={notifySending}
+                  className="inline-flex items-center gap-2 rounded-xl bg-dourado px-4 py-2.5 text-sm font-semibold text-ink shadow-sm hover:brightness-105 disabled:opacity-60"
+                >
+                  {notifySending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {a.notifySending}
+                    </>
+                  ) : (
+                    a.notifySend
+                  )}
+                </button>
+                <button
+                  type="button"
+                  disabled={notifySending}
+                  onClick={handleScheduleNotify}
+                  className="inline-flex items-center gap-2 rounded-xl bg-barrete px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:brightness-105 disabled:opacity-60"
+                >
+                  {a.notifySchedule}
+                </button>
+              </div>
             </form>
+
+            <div className="mt-8 border-t border-barrete/10 pt-5">
+              <h3 className="font-display text-base font-semibold text-barrete">
+                {a.notifyScheduledList}
+              </h3>
+              {schedules.length === 0 ? (
+                <p className="mt-3 text-sm text-ink/45">{a.notifyNoScheduled}</p>
+              ) : (
+                <ul className="mt-3 flex flex-col gap-2">
+                  {schedules.map((job) => (
+                    <li
+                      key={job.id}
+                      className="rounded-xl bg-creme/80 px-3 py-3 ring-1 ring-barrete/10"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[0.65rem] font-semibold uppercase tracking-wide text-ink/50">
+                          {job.status === 'pending'
+                            ? a.notifyStatusPending
+                            : job.status === 'sent'
+                              ? a.notifyStatusSent
+                              : a.notifyStatusCancelled}
+                        </span>
+                        <span className="text-xs text-ink/45">
+                          {new Date(job.scheduled_for).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm font-semibold text-ink">{job.title}</p>
+                      <p className="text-xs text-ink/65">{job.body}</p>
+                      {job.status === 'pending' ? (
+                        <button
+                          type="button"
+                          onClick={() => cancelSchedule(job.id)}
+                          className="mt-2 text-xs font-semibold text-vermelho hover:underline"
+                        >
+                          {a.notifyCancelSchedule}
+                        </button>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </section>
         ) : tab === 'feedback' ? (
           loading ? (

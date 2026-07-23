@@ -13,7 +13,7 @@ export default function Footer() {
       <footer className="mt-auto border-t border-barrete/10 bg-barrete text-white">
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
           <p className="text-center text-sm leading-relaxed text-white/85">
-            {t.safetyNote}
+            {t.disclaimer}
           </p>
 
           <div className="mt-5 flex justify-center">

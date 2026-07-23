@@ -48,7 +48,7 @@ export default function DayTabs({ selectedDate, onSelect }) {
         </div>
 
         <Link
-          to="/negocios"
+          to="/comercio"
           className="flex shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl bg-dourado/90 px-2.5 py-2 text-ink shadow-sm transition hover:bg-dourado sm:px-3"
           title={t.businessesLink}
         >

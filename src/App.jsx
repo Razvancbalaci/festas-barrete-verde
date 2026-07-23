@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import { LangProvider } from './context/LangContext'
 import PublicProgram from './pages/PublicProgram'
 import Admin from './pages/Admin'
@@ -12,7 +12,8 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<PublicProgram />} />
-          <Route path="/negocios" element={<Negocios />} />
+          <Route path="/comercio" element={<Negocios />} />
+          <Route path="/negocios" element={<Navigate to="/comercio" replace />} />
           <Route path="/admin" element={<Admin />} />
         </Routes>
         <InstallPrompt />

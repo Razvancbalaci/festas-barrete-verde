@@ -4,7 +4,7 @@ import { CATEGORY_COLORS } from '../data/categories'
 import { useLang } from '../context/LangContext'
 import {
   isCorridaEvent,
-  isEntradaRouteEvent,
+  isRouteMapEvent,
   isStreetBullEvent,
   mapsDirectionsUrl,
   mapsUrl,
@@ -139,8 +139,9 @@ export default function EventCard({ event, index }) {
   )
   const isCorrida = isCorridaEvent(event)
   const isStreetBull = isStreetBullEvent(event)
-  const asRoute = isEntradaRouteEvent(event)
+  const asRoute = isRouteMapEvent(event)
   const [open, setOpen] = useState(false)
+  const [safetyOpen, setSafetyOpen] = useState(false)
   const sections = parseDescricao(event.descricao)
 
   return (
@@ -161,15 +162,30 @@ export default function EventCard({ event, index }) {
       )}
 
       {isStreetBull && (
-        <div className="flex items-start gap-2 bg-dourado/20 px-3.5 py-2 text-ink/90">
+        <button
+          type="button"
+          onClick={() => setSafetyOpen((v) => !v)}
+          className="flex w-full items-start gap-2 bg-dourado/20 px-3.5 py-2 text-left text-ink/90 transition hover:bg-dourado/30"
+          aria-expanded={safetyOpen}
+        >
           <AlertTriangle
             className="mt-0.5 h-4 w-4 shrink-0 text-[#B45309]"
             aria-hidden
           />
-          <p className="text-[0.7rem] font-semibold leading-snug sm:text-xs">
-            {t.streetBullCaution}
-          </p>
-        </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.7rem] font-semibold leading-snug sm:text-xs">
+              {t.streetBullCaution}
+              <span className="ml-1 font-medium text-[#B45309]/underline">
+                {safetyOpen ? t.hideSafety : t.showSafety}
+              </span>
+            </p>
+            {safetyOpen ? (
+              <p className="mt-2 text-[0.7rem] font-normal leading-relaxed text-ink/70">
+                {t.safetyNote}
+              </p>
+            ) : null}
+          </div>
+        </button>
       )}
 
       <div className="p-4">

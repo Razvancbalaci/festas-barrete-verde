@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -14,7 +14,6 @@ import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LangContext'
 import { BUSINESS_TYPES } from '../data/businessTypes'
 import Footer from '../components/Footer'
-
 import { mapsUrl } from '../lib/locations'
 
 const emptyForm = {
@@ -33,6 +32,7 @@ export default function Negocios() {
   const b = t.businesses
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(true)
+  const [typeFilter, setTypeFilter] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ ...emptyForm })
   const [error, setError] = useState('')
@@ -63,6 +63,11 @@ export default function Negocios() {
     }
   }, [])
 
+  const filtered = useMemo(() => {
+    if (!typeFilter) return list
+    return list.filter((n) => n.tipo === typeFilter)
+  }, [list, typeFilter])
+
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
@@ -71,7 +76,7 @@ export default function Negocios() {
     e.preventDefault()
     setError('')
     setSuccess('')
-    const required = ['nome', 'tipo', 'descricao', 'morada', 'telefone', 'email']
+    const required = ['nome', 'tipo', 'descricao', 'morada']
     if (required.some((k) => !String(form[k]).trim())) {
       setError(b.required)
       return
@@ -82,8 +87,8 @@ export default function Negocios() {
       tipo: form.tipo,
       descricao: form.descricao.trim(),
       morada: form.morada.trim(),
-      telefone: form.telefone.trim(),
-      email: form.email.trim(),
+      telefone: form.telefone.trim() || null,
+      email: form.email.trim() || null,
       website: form.website.trim() || null,
       horario: form.horario.trim() || null,
       aprovado: false,
@@ -139,28 +144,67 @@ export default function Negocios() {
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
         {success && (
-          <p className="mb-4 rounded-xl bg-barrete/10 px-4 py-3 text-sm font-medium text-barrete" role="status">
+          <p
+            className="mb-4 rounded-xl bg-barrete/10 px-4 py-3 text-sm font-medium text-barrete"
+            role="status"
+          >
             {success}
           </p>
         )}
+
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink/45">
+          {b.filterType}
+        </p>
+        <div className="mb-5 flex max-w-full flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setTypeFilter(null)}
+            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+              typeFilter === null
+                ? 'bg-barrete text-white shadow-sm'
+                : 'bg-white text-ink/70 shadow-sm hover:bg-barrete/5'
+            }`}
+          >
+            {b.filterAll}
+          </button>
+          {BUSINESS_TYPES.map((tipo) => {
+            const active = typeFilter === tipo
+            return (
+              <button
+                key={tipo}
+                type="button"
+                onClick={() => setTypeFilter(active ? null : tipo)}
+                className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+                  active
+                    ? 'bg-barrete text-white shadow-sm'
+                    : 'bg-white text-ink/70 shadow-sm hover:bg-barrete/5'
+                }`}
+              >
+                {b.types[tipo] || tipo}
+              </button>
+            )
+          })}
+        </div>
 
         {loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-barrete" />
           </div>
-        ) : list.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <p className="rounded-2xl bg-white px-6 py-12 text-center text-sm text-ink/50 ring-1 ring-barrete/5">
             {b.empty}
           </p>
         ) : (
           <ul className="flex flex-col gap-3">
-            {list.map((n) => (
+            {filtered.map((n) => (
               <li
                 key={n.id}
                 className="animate-fade-up rounded-2xl bg-white p-4 shadow-sm ring-1 ring-barrete/5"
               >
                 <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <h2 className="font-display text-lg font-semibold text-barrete">{n.nome}</h2>
+                  <h2 className="font-display text-lg font-semibold text-barrete">
+                    {n.nome}
+                  </h2>
                   <span className="rounded-full bg-dourado/20 px-2.5 py-0.5 text-[0.7rem] font-semibold text-ink/80">
                     {b.types[n.tipo] || n.tipo}
                   </span>
@@ -184,16 +228,22 @@ export default function Negocios() {
                   ) : null}
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <a
-                    href={`tel:${n.telefone.replace(/\s/g, '')}`}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-barrete px-3 py-1.5 text-xs font-bold text-white"
-                  >
-                    <Phone className="h-3.5 w-3.5" />
-                    {b.call}
-                  </a>
+                  {n.telefone ? (
+                    <a
+                      href={`tel:${String(n.telefone).replace(/\s/g, '')}`}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-barrete px-3 py-1.5 text-xs font-bold text-white"
+                    >
+                      <Phone className="h-3.5 w-3.5" />
+                      {b.call}
+                    </a>
+                  ) : null}
                   {n.website ? (
                     <a
-                      href={n.website.startsWith('http') ? n.website : `https://${n.website}`}
+                      href={
+                        n.website.startsWith('http')
+                          ? n.website
+                          : `https://${n.website}`
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 rounded-full bg-ink/5 px-3 py-1.5 text-xs font-semibold text-ink/70"
@@ -219,16 +269,27 @@ export default function Negocios() {
             onSubmit={handleSubmit}
             className="relative z-10 max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-creme p-5 shadow-xl animate-fade-up sm:rounded-2xl sm:p-6"
           >
-            <h2 className="font-display text-xl font-bold text-barrete">{b.promoteTitle}</h2>
+            <h2 className="font-display text-xl font-bold text-barrete">
+              {b.promoteTitle}
+            </h2>
             <p className="mt-1 mb-4 text-sm text-ink/60">{b.promoteHint}</p>
 
             <label className="mb-3 block">
               <span className="mb-1 block text-sm font-medium">{b.name} *</span>
-              <input className={inputClass} value={form.nome} onChange={(e) => update('nome', e.target.value)} required />
+              <input
+                className={inputClass}
+                value={form.nome}
+                onChange={(e) => update('nome', e.target.value)}
+                required
+              />
             </label>
             <label className="mb-3 block">
               <span className="mb-1 block text-sm font-medium">{b.type} *</span>
-              <select className={inputClass} value={form.tipo} onChange={(e) => update('tipo', e.target.value)}>
+              <select
+                className={inputClass}
+                value={form.tipo}
+                onChange={(e) => update('tipo', e.target.value)}
+              >
                 {BUSINESS_TYPES.map((tipo) => (
                   <option key={tipo} value={tipo}>
                     {b.types[tipo] || tipo}
@@ -237,7 +298,9 @@ export default function Negocios() {
               </select>
             </label>
             <label className="mb-3 block">
-              <span className="mb-1 block text-sm font-medium">{b.description} *</span>
+              <span className="mb-1 block text-sm font-medium">
+                {b.description} *
+              </span>
               <textarea
                 className={`${inputClass} resize-y`}
                 rows={3}
@@ -248,27 +311,59 @@ export default function Negocios() {
             </label>
             <label className="mb-3 block">
               <span className="mb-1 block text-sm font-medium">{b.address} *</span>
-              <input className={inputClass} value={form.morada} onChange={(e) => update('morada', e.target.value)} required />
+              <input
+                className={inputClass}
+                value={form.morada}
+                onChange={(e) => update('morada', e.target.value)}
+                required
+              />
             </label>
             <label className="mb-3 block">
-              <span className="mb-1 block text-sm font-medium">{b.phone} *</span>
-              <input className={inputClass} type="tel" value={form.telefone} onChange={(e) => update('telefone', e.target.value)} required />
+              <span className="mb-1 block text-sm font-medium">
+                {b.phone}{' '}
+                <span className="font-normal text-ink/40">({t.feedback.optional})</span>
+              </span>
+              <input
+                className={inputClass}
+                type="tel"
+                value={form.telefone}
+                onChange={(e) => update('telefone', e.target.value)}
+              />
             </label>
             <label className="mb-3 block">
-              <span className="mb-1 block text-sm font-medium">{b.email} *</span>
-              <input className={inputClass} type="email" value={form.email} onChange={(e) => update('email', e.target.value)} required />
+              <span className="mb-1 block text-sm font-medium">
+                {b.email}{' '}
+                <span className="font-normal text-ink/40">({t.feedback.optional})</span>
+              </span>
+              <input
+                className={inputClass}
+                type="email"
+                value={form.email}
+                onChange={(e) => update('email', e.target.value)}
+              />
             </label>
             <label className="mb-3 block">
               <span className="mb-1 block text-sm font-medium">{b.website}</span>
-              <input className={inputClass} value={form.website} onChange={(e) => update('website', e.target.value)} />
+              <input
+                className={inputClass}
+                value={form.website}
+                onChange={(e) => update('website', e.target.value)}
+              />
             </label>
             <label className="mb-5 block">
               <span className="mb-1 block text-sm font-medium">{b.hours}</span>
-              <input className={inputClass} value={form.horario} onChange={(e) => update('horario', e.target.value)} />
+              <input
+                className={inputClass}
+                value={form.horario}
+                onChange={(e) => update('horario', e.target.value)}
+              />
             </label>
 
             {error && (
-              <p className="mb-3 rounded-xl bg-vermelho/10 px-3 py-2 text-sm text-vermelho" role="alert">
+              <p
+                className="mb-3 rounded-xl bg-vermelho/10 px-3 py-2 text-sm text-vermelho"
+                role="alert"
+              >
                 {error}
               </p>
             )}

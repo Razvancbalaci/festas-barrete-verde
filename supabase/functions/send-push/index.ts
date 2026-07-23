@@ -11,6 +11,57 @@ const corsHeaders = {
     'authorization, x-client-info, apikey, content-type',
 }
 
+async function sendToAll(admin, title, body, url = '/') {
+  const vapidPublic = Deno.env.get('VAPID_PUBLIC_KEY')
+  const vapidPrivate = Deno.env.get('VAPID_PRIVATE_KEY')
+  const vapidSubject = Deno.env.get('VAPID_SUBJECT') || 'mailto:admin@example.com'
+
+  if (!vapidPublic || !vapidPrivate) {
+    throw new Error('VAPID keys not configured')
+  }
+
+  webpush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate)
+
+  const { data: subs, error: subError } = await admin
+    .from('push_subscriptions')
+    .select('id, endpoint, p256dh, auth')
+
+  if (subError) throw subError
+
+  const payload = JSON.stringify({
+    title: title.trim(),
+    body: body.trim(),
+    url: url || '/',
+  })
+
+  let sent = 0
+  const stale = []
+
+  await Promise.all(
+    (subs || []).map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: { p256dh: sub.p256dh, auth: sub.auth },
+          },
+          payload
+        )
+        sent += 1
+      } catch (err) {
+        const code = err?.statusCode
+        if (code === 404 || code === 410) stale.push(sub.id)
+      }
+    })
+  )
+
+  if (stale.length) {
+    await admin.from('push_subscriptions').delete().in('id', stale)
+  }
+
+  return { sent, total: subs?.length || 0, removed: stale.length }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -44,7 +95,42 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { title, body, url } = await req.json()
+    const payload = await req.json()
+    const admin = createClient(supabaseUrl, serviceKey)
+
+    // Processar avisos agendados em atraso / devidos
+    if (payload.processSchedules) {
+      const { data: due, error: dueError } = await admin
+        .from('push_schedules')
+        .select('*')
+        .eq('status', 'pending')
+        .lte('scheduled_for', new Date().toISOString())
+        .order('scheduled_for', { ascending: true })
+        .limit(20)
+
+      if (dueError) throw dueError
+
+      const results = []
+      for (const job of due || []) {
+        try {
+          const r = await sendToAll(admin, job.title, job.body, '/')
+          await admin
+            .from('push_schedules')
+            .update({ status: 'sent', sent_at: new Date().toISOString() })
+            .eq('id', job.id)
+          results.push({ id: job.id, ...r })
+        } catch (err) {
+          results.push({ id: job.id, error: String(err?.message || err) })
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ ok: true, processed: results.length, results }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const { title, body, url } = payload
     if (!title?.trim() || !body?.trim()) {
       return new Response(JSON.stringify({ error: 'title and body required' }), {
         status: 400,
@@ -52,61 +138,11 @@ Deno.serve(async (req) => {
       })
     }
 
-    const vapidPublic = Deno.env.get('VAPID_PUBLIC_KEY')
-    const vapidPrivate = Deno.env.get('VAPID_PRIVATE_KEY')
-    const vapidSubject = Deno.env.get('VAPID_SUBJECT') || 'mailto:admin@example.com'
+    const result = await sendToAll(admin, title, body, url)
 
-    if (!vapidPublic || !vapidPrivate) {
-      return new Response(JSON.stringify({ error: 'VAPID keys not configured' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    webpush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate)
-
-    const admin = createClient(supabaseUrl, serviceKey)
-    const { data: subs, error: subError } = await admin
-      .from('push_subscriptions')
-      .select('id, endpoint, p256dh, auth')
-
-    if (subError) throw subError
-
-    const payload = JSON.stringify({
-      title: title.trim(),
-      body: body.trim(),
-      url: url || '/',
+    return new Response(JSON.stringify({ ok: true, ...result }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
-
-    let sent = 0
-    const stale = []
-
-    await Promise.all(
-      (subs || []).map(async (sub) => {
-        try {
-          await webpush.sendNotification(
-            {
-              endpoint: sub.endpoint,
-              keys: { p256dh: sub.p256dh, auth: sub.auth },
-            },
-            payload
-          )
-          sent += 1
-        } catch (err) {
-          const code = err?.statusCode
-          if (code === 404 || code === 410) stale.push(sub.id)
-        }
-      })
-    )
-
-    if (stale.length) {
-      await admin.from('push_subscriptions').delete().in('id', stale)
-    }
-
-    return new Response(
-      JSON.stringify({ ok: true, sent, total: subs?.length || 0, removed: stale.length }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
   } catch (err) {
     console.error(err)
     return new Response(JSON.stringify({ error: String(err?.message || err) }), {
