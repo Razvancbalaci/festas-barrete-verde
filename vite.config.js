@@ -14,9 +14,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: [
         'favicon.svg',
+        'favicon.png',
         'apple-touch-icon.png',
         'icon-192.png',
         'icon-512.png',
+        'icon-512-maskable.png',
       ],
       manifest: false,
       injectManifest: {

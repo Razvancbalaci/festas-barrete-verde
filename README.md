@@ -106,6 +106,15 @@ Abre o endereço que aparece (normalmente `http://localhost:5173`).
 
 ---
 
+## Feedback do público
+
+No rodapé do site há **Problema ou sugestão**. As mensagens ficam no admin → separador **Feedback**.
+
+1. Corre o SQL `feedback.sql` no Supabase.
+2. Faz deploy (ou espera o Vercel).
+
+---
+
 ## Como gerir o programa (sem código)
 
 1. Abre a app → no rodapé clica **Admin**.
