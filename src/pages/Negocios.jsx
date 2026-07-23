@@ -343,7 +343,10 @@ export default function Negocios() {
               />
             </label>
             <label className="mb-3 block">
-              <span className="mb-1 block text-sm font-medium">{b.website}</span>
+              <span className="mb-1 block text-sm font-medium">
+                {b.website}{' '}
+                <span className="font-normal text-ink/40">({t.feedback.optional})</span>
+              </span>
               <input
                 className={inputClass}
                 value={form.website}
@@ -351,7 +354,10 @@ export default function Negocios() {
               />
             </label>
             <label className="mb-5 block">
-              <span className="mb-1 block text-sm font-medium">{b.hours}</span>
+              <span className="mb-1 block text-sm font-medium">
+                {b.hours}{' '}
+                <span className="font-normal text-ink/40">({t.feedback.optional})</span>
+              </span>
               <input
                 className={inputClass}
                 value={form.horario}
