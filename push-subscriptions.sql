@@ -36,9 +36,10 @@ create policy "Anyone can delete subscriptions"
   to anon, authenticated
   using (true);
 
--- Só admin autenticado lê a lista (para contagem / envio via Edge Function com service role)
+-- SELECT necessário para updates por endpoint (e contagem no admin)
 drop policy if exists "Auth can read subscriptions" on push_subscriptions;
-create policy "Auth can read subscriptions"
+drop policy if exists "Anyone can read subscriptions" on push_subscriptions;
+create policy "Anyone can read subscriptions"
   on push_subscriptions for select
-  to authenticated
+  to anon, authenticated
   using (true);

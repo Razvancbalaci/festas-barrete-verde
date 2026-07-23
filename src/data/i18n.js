@@ -29,8 +29,11 @@ export const translations = {
       enabled: 'Notificações ativas',
       denied: 'Permissão recusada nas definições do telemóvel.',
       unsupported: 'O teu browser não suporta notificações.',
+      iosInstall:
+        'No iPhone, adiciona primeiro a app ao Ecrã Principal (Partilhar → Adicionar) e abre pelo ícone. Depois ativa os avisos.',
       dismiss: 'Agora não',
-      error: 'Não foi possível ativar. Tenta de novo.',
+      error:
+        'Não foi possível ativar. Confirma que correste o SQL push-subscriptions no Supabase e tenta de novo.',
     },
     adminLink: 'Admin',
     businessesLink: 'Negócios locais',
@@ -198,8 +201,11 @@ export const translations = {
       enabled: 'Notifications on',
       denied: 'Permission denied in your device settings.',
       unsupported: 'Your browser does not support notifications.',
+      iosInstall:
+        'On iPhone, add the app to the Home Screen first (Share → Add), open it from the icon, then enable alerts.',
       dismiss: 'Not now',
-      error: 'Could not enable. Please try again.',
+      error:
+        'Could not enable. Make sure you ran the push-subscriptions SQL in Supabase, then try again.',
     },
     adminLink: 'Admin',
     businessesLink: 'Local businesses',
@@ -366,8 +372,11 @@ export const translations = {
       enabled: 'Notifications activées',
       denied: 'Permission refusée dans les réglages du téléphone.',
       unsupported: 'Votre navigateur ne prend pas en charge les notifications.',
+      iosInstall:
+        'Sur iPhone, ajoutez d’abord l’app à l’écran d’accueil (Partager → Sur l’écran d’accueil), ouvrez-la via l’icône, puis activez les alertes.',
       dismiss: 'Pas maintenant',
-      error: 'Activation impossible. Réessayez.',
+      error:
+        'Activation impossible. Vérifiez que le SQL push-subscriptions a été exécuté dans Supabase, puis réessayez.',
     },
     adminLink: 'Admin',
     businessesLink: 'Commerces locaux',
