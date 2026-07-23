@@ -20,6 +20,10 @@ function isIos() {
   return iOS || iPadOS
 }
 
+function isAndroid() {
+  return /Android/i.test(navigator.userAgent || '')
+}
+
 function wasDismissed() {
   try {
     return localStorage.getItem(STORAGE_KEY) === '1'
@@ -34,6 +38,7 @@ export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [visible, setVisible] = useState(false)
   const [iosMode, setIosMode] = useState(false)
+  const [androidMode, setAndroidMode] = useState(false)
   const readyRef = useRef(false)
 
   useEffect(() => {
@@ -43,7 +48,9 @@ export default function InstallPrompt() {
     }
 
     const ios = isIos()
+    const android = isAndroid()
     setIosMode(ios)
+    setAndroidMode(android)
 
     const onBeforeInstall = (e) => {
       e.preventDefault()
@@ -55,8 +62,8 @@ export default function InstallPrompt() {
 
     const timer = window.setTimeout(() => {
       readyRef.current = true
-      if (ios) setVisible(true)
-      // Android: o listener acima mostra quando o evento existir
+      // iOS e Android: mostrar sempre o ritual (no Android + botão Chrome se existir)
+      if (ios || android) setVisible(true)
       setDeferredPrompt((current) => {
         if (current) setVisible(true)
         return current
@@ -71,7 +78,7 @@ export default function InstallPrompt() {
   }, [pathname])
 
   if (!visible || pathname.startsWith('/admin')) return null
-  if (!iosMode && !deferredPrompt) return null
+  if (!iosMode && !androidMode && !deferredPrompt) return null
 
   const dismiss = () => {
     setVisible(false)
@@ -130,11 +137,12 @@ export default function InstallPrompt() {
                 {copy.iosSuffix}
               </>
             ) : (
-              copy.android
+              copy.androidRitual
             )}
           </p>
 
-          {!iosMode && (
+          {/* Chrome: botão nativo Instalar, além do ritual ⋮ */}
+          {!iosMode && deferredPrompt ? (
             <button
               type="button"
               onClick={install}
@@ -143,7 +151,7 @@ export default function InstallPrompt() {
               <Download className="h-3.5 w-3.5" aria-hidden />
               {copy.cta}
             </button>
-          )}
+          ) : null}
         </div>
 
         <button

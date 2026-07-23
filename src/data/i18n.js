@@ -26,6 +26,56 @@ export const translations = {
       'Apenas serão admitidos para as esperas e recolhas de toiros os campinos e cavaleiros amadores segurados e autorizados pelo Aposento do Barrete Verde de Alcochete. O Aposento não se responsabiliza por quaisquer acidentes ocorridos nos recintos das largadas e passagem de toiros.',
     disclaimer:
       'Este site é um projeto cívico e independente, feito por cidadãos para cidadãos. Não tem vínculo oficial com o Aposento do Barrete Verde nem com a Câmara Municipal de Alcochete, e não visa qualquer lucro ou interesse comercial.',
+    offlineBanner: 'Estás offline — a mostrar o programa em cache, se disponível.',
+    searchPlaceholder: 'Pesquisar artista, palco, evento…',
+    today: 'Hoje',
+    now: 'Agora',
+    favoritesOnly: 'Favoritos',
+    favoritesEmpty: 'Ainda não marcaste favoritos. Toca na estrela num evento.',
+    share: 'Partilhar',
+    shareCopied: 'Link copiado!',
+    mapLink: 'Mapa',
+    mapLinkShort: 'Mapa',
+    favoriteAdd: 'Adicionar aos favoritos',
+    favoriteRemove: 'Remover dos favoritos',
+    remind: 'Lembrar 30 min antes',
+    remindOn: 'Lembrete activo',
+    remindNeedPermission: 'Permite notificações para receber o lembrete.',
+    remindNeedInstall:
+      'Adiciona a app à página inicial e abre pelo ícone para activar lembretes (como os avisos).',
+    remindLocalOnly:
+      'Lembrete guardado só neste telemóvel (falta correr o SQL event-reminders no Supabase / redeploy send-push).',
+    remindHint:
+      'Com push activo, o aviso chega mesmo com a app fechada (30 min antes).',
+    reminders: {
+      title: 'Festas Alcochete',
+      body: 'Um evento que marcaste começa em breve.',
+    },
+    map: {
+      title: 'Mapa das festas',
+      subtitle: 'Palcos, pontos e feira — mapa e satélite',
+      back: 'Voltar ao programa',
+      legendStage: 'Palcos',
+      legendPlace: 'Pontos',
+      legendBulls: 'Toiros / Praça',
+      legendFair: 'Feira',
+      layerMap: 'Mapa',
+      layerSatellite: 'Satélite',
+      hint: 'Podes aproximar, afastar e tocar nos marcadores. Usa Satélite para ver o terreno actual.',
+      places: {
+        sede: 'Sede do Aposento',
+        igreja: 'Igreja Matriz',
+        pavilhao: 'Pavilhão Municipal',
+        rossio: 'Jardim do Rossio',
+        armazem: 'Antigo Armazém das Filmagens',
+        palcoSalineiro: 'Palco Salineiro',
+        palcoForcado: 'Palco Forcado',
+        palcoSJoao: 'Palco S. João',
+        palcoCoreto: 'Palco Coreto',
+        pracaTouros: 'Praça de Touros',
+        feiraCarrosseis: 'Feira dos Carrosséis',
+      },
+    },
     notify: {
       title: 'Receber avisos',
       body: 'Ativa notificações para saberes de alterações ao programa.',
@@ -35,6 +85,12 @@ export const translations = {
       unsupported: 'O teu browser não suporta notificações.',
       iosInstall:
         'No iPhone, adiciona primeiro a app ao Ecrã Principal (Partilhar → Adicionar) e abre pelo ícone. Depois ativa os avisos.',
+      androidInstall:
+        'No Android, adiciona primeiro a app à página inicial (botão Instalar, ou ⋮ → Instalar app / Adicionar à página inicial) e abre pelo ícone. Depois ativa os avisos.',
+      androidBrowser:
+        'Abre o site no Chrome (não dentro do Instagram/Facebook/WhatsApp). Depois adiciona à página inicial e ativa os avisos.',
+      testTitle: 'Festas Alcochete',
+      testBody: 'Notificações activas neste telemóvel.',
       dismiss: 'Agora não',
       error:
         'Não foi possível ativar. Confirma que correste o SQL push-subscriptions no Supabase e tenta de novo.',
@@ -62,7 +118,12 @@ export const translations = {
     },
     install: {
       title: 'Adicionar à página inicial',
-      android: 'Instala a app para acederes ao programa mais depressa.',
+      android:
+        'Instala a app para acederes ao programa e receberes avisos como no iPhone.',
+      androidRitual:
+        'No Chrome: toca no botão Instalar abaixo (se aparecer) ou em ⋮ → «Instalar app» / «Adicionar à página inicial». Depois abre pelo ícone — como no iPhone.',
+      androidManual:
+        'No Chrome: toca em ⋮ → «Instalar app» ou «Adicionar à página inicial». Depois abre pelo ícone para ativar avisos.',
       iosPrefix: 'Toca em',
       iosSuffix: 'e depois em «Adicionar ao Ecrã Principal».',
       cta: 'Instalar',
@@ -235,6 +296,56 @@ export const translations = {
       'Only insured campinos and amateur riders authorised by the Aposento do Barrete Verde de Alcochete will be admitted to bull waits and collections. The Aposento accepts no liability for accidents in bull-run or bull-passage areas.',
     disclaimer:
       'This website is an independent civic project, made by citizens for citizens. It has no official link to the Aposento do Barrete Verde or the Alcochete Town Hall, and seeks no profit or commercial interest.',
+    offlineBanner: 'You are offline — showing the cached programme if available.',
+    searchPlaceholder: 'Search artist, stage, event…',
+    today: 'Today',
+    now: 'Now',
+    favoritesOnly: 'Favorites',
+    favoritesEmpty: 'No favorites yet. Tap the star on an event.',
+    share: 'Share',
+    shareCopied: 'Link copied!',
+    mapLink: 'Map',
+    mapLinkShort: 'Map',
+    favoriteAdd: 'Add to favorites',
+    favoriteRemove: 'Remove from favorites',
+    remind: 'Remind 30 min before',
+    remindOn: 'Reminder on',
+    remindNeedPermission: 'Allow notifications to get the reminder.',
+    remindNeedInstall:
+      'Add the app to the Home screen and open it from the icon to enable reminders (same as alerts).',
+    remindLocalOnly:
+      'Reminder saved on this phone only (run the event-reminders SQL / redeploy send-push).',
+    remindHint:
+      'With push enabled, the alert arrives even if the app is closed (30 min before).',
+    reminders: {
+      title: 'Festas Alcochete',
+      body: 'An event you saved is about to start.',
+    },
+    map: {
+      title: 'Festival map',
+      subtitle: 'Stages, landmarks and fair — map and satellite',
+      back: 'Back to the programme',
+      legendStage: 'Stages',
+      legendPlace: 'Places',
+      legendBulls: 'Bulls / arena',
+      legendFair: 'Fair',
+      layerMap: 'Map',
+      layerSatellite: 'Satellite',
+      hint: 'Pinch to zoom and tap markers. Use Satellite to see the current terrain.',
+      places: {
+        sede: 'Aposento HQ',
+        igreja: 'Parish church',
+        pavilhao: 'Municipal pavilion',
+        rossio: 'Rossio garden',
+        armazem: 'Old film warehouse',
+        palcoSalineiro: 'Salineiro stage',
+        palcoForcado: 'Forcado stage',
+        palcoSJoao: 'S. João stage',
+        palcoCoreto: 'Bandstand stage',
+        pracaTouros: 'Bullring',
+        feiraCarrosseis: 'Carousel fair',
+      },
+    },
     notify: {
       title: 'Get alerts',
       body: 'Enable notifications for programme updates.',
@@ -244,6 +355,12 @@ export const translations = {
       unsupported: 'Your browser does not support notifications.',
       iosInstall:
         'On iPhone, add the app to the Home Screen first (Share → Add), open it from the icon, then enable alerts.',
+      androidInstall:
+        'On Android, add the app to the Home screen first (Install button, or ⋮ → Install app / Add to Home screen), open it from the icon, then enable alerts.',
+      androidBrowser:
+        'Open the site in Chrome (not inside Instagram/Facebook/WhatsApp). Then add it to the Home screen and enable alerts.',
+      testTitle: 'Festas Alcochete',
+      testBody: 'Notifications are on for this phone.',
       dismiss: 'Not now',
       error:
         'Could not enable. Make sure you ran the push-subscriptions SQL in Supabase, then try again.',
@@ -271,7 +388,11 @@ export const translations = {
     },
     install: {
       title: 'Add to Home Screen',
-      android: 'Install the app for quicker access to the programme.',
+      android: 'Install the app for quicker access and alerts, like on iPhone.',
+      androidRitual:
+        'In Chrome: tap Install below (if shown) or ⋮ → «Install app» / «Add to Home screen». Then open from the icon — same idea as iPhone.',
+      androidManual:
+        'In Chrome: tap ⋮ → «Install app» or «Add to Home screen». Then open from the icon to enable alerts.',
       iosPrefix: 'Tap',
       iosSuffix: 'then «Add to Home Screen».',
       cta: 'Install',
@@ -443,6 +564,56 @@ export const translations = {
       'Seuls les campinos et cavaliers amateurs assurés et autorisés par l’Aposento do Barrete Verde d’Alcochete seront admis aux attentes et ramassages. L’Aposento décline toute responsabilité en cas d’accident dans les zones de lâchers et de passage de taureaux.',
     disclaimer:
       'Ce site est un projet civique et indépendant, réalisé par des citoyens pour des citoyens. Il n’a aucun lien officiel avec l’Aposento do Barrete Verde ni avec la mairie d’Alcochete, et ne vise aucun profit ni intérêt commercial.',
+    offlineBanner: 'Vous êtes hors ligne — affichage du programme en cache si disponible.',
+    searchPlaceholder: 'Rechercher artiste, scène, événement…',
+    today: 'Aujourd’hui',
+    now: 'Maintenant',
+    favoritesOnly: 'Favoris',
+    favoritesEmpty: 'Pas encore de favoris. Touchez l’étoile sur un événement.',
+    share: 'Partager',
+    shareCopied: 'Lien copié !',
+    mapLink: 'Carte',
+    mapLinkShort: 'Carte',
+    favoriteAdd: 'Ajouter aux favoris',
+    favoriteRemove: 'Retirer des favoris',
+    remind: 'Rappeler 30 min avant',
+    remindOn: 'Rappel actif',
+    remindNeedPermission: 'Autorisez les notifications pour recevoir le rappel.',
+    remindNeedInstall:
+      'Ajoutez l’app à l’écran d’accueil et ouvrez-la via l’icône pour activer les rappels (comme les alertes).',
+    remindLocalOnly:
+      'Rappel enregistré seulement sur ce téléphone (SQL event-reminders / redeploy send-push manquant).',
+    remindHint:
+      'Avec le push activé, l’alerte arrive même si l’app est fermée (30 min avant).',
+    reminders: {
+      title: 'Festas Alcochete',
+      body: 'Un événement que vous avez enregistré commence bientôt.',
+    },
+    map: {
+      title: 'Carte des fêtes',
+      subtitle: 'Scènes, lieux et fête foraine — carte et satellite',
+      back: 'Retour au programme',
+      legendStage: 'Scènes',
+      legendPlace: 'Lieux',
+      legendBulls: 'Taureaux / arène',
+      legendFair: 'Fête foraine',
+      layerMap: 'Carte',
+      layerSatellite: 'Satellite',
+      hint: 'Zoomez et touchez les marqueurs. Utilisez Satellite pour voir le terrain actuel.',
+      places: {
+        sede: 'Siège de l’Aposento',
+        igreja: 'Église Matriz',
+        pavilhao: 'Pavillon municipal',
+        rossio: 'Jardin du Rossio',
+        armazem: 'Ancien entrepôt des films',
+        palcoSalineiro: 'Scène Salineiro',
+        palcoForcado: 'Scène Forcado',
+        palcoSJoao: 'Scène S. João',
+        palcoCoreto: 'Scène kiosque',
+        pracaTouros: 'Arène',
+        feiraCarrosseis: 'Fête foraine des carrousels',
+      },
+    },
     notify: {
       title: 'Recevoir des alertes',
       body: 'Activez les notifications pour les changements de programme.',
@@ -452,6 +623,12 @@ export const translations = {
       unsupported: 'Votre navigateur ne prend pas en charge les notifications.',
       iosInstall:
         'Sur iPhone, ajoutez d’abord l’app à l’écran d’accueil (Partager → Sur l’écran d’accueil), ouvrez-la via l’icône, puis activez les alertes.',
+      androidInstall:
+        'Sur Android, ajoutez d’abord l’app à l’écran d’accueil (bouton Installer, ou ⋮ → Installer l’application / Ajouter à l’écran d’accueil), ouvrez-la via l’icône, puis activez les alertes.',
+      androidBrowser:
+        'Ouvrez le site dans Chrome (pas dans Instagram/Facebook/WhatsApp). Puis ajoutez-le à l’écran d’accueil et activez les alertes.',
+      testTitle: 'Festas Alcochete',
+      testBody: 'Notifications activées sur ce téléphone.',
       dismiss: 'Pas maintenant',
       error:
         'Activation impossible. Vérifiez que le SQL push-subscriptions a été exécuté dans Supabase, puis réessayez.',
@@ -479,7 +656,12 @@ export const translations = {
     },
     install: {
       title: "Ajouter à l'écran d'accueil",
-      android: "Installez l'app pour accéder plus vite au programme.",
+      android:
+        "Installez l'app pour un accès plus rapide et les alertes, comme sur iPhone.",
+      androidRitual:
+        'Dans Chrome : appuyez sur Installer ci-dessous (si affiché) ou ⋮ → « Installer l’application » / « Ajouter à l’écran d’accueil ». Puis ouvrez via l’icône — comme sur iPhone.',
+      androidManual:
+        'Dans Chrome : appuyez sur ⋮ → « Installer l’application » ou « Ajouter à l’écran d’accueil ». Puis ouvrez via l’icône pour activer les alertes.',
       iosPrefix: 'Appuyez sur',
       iosSuffix: 'puis « Sur l’écran d’accueil ».',
       cta: 'Installer',
@@ -651,6 +833,56 @@ export const translations = {
       'Solo serán admitidos en las esperas y recogidas de toros los campinos y jinetes aficionados asegurados y autorizados por el Aposento do Barrete Verde de Alcochete. El Aposento no se responsabiliza de accidentes en los recintos de sueltas y paso de toros.',
     disclaimer:
       'Este sitio es un proyecto cívico e independiente, hecho por ciudadanos para ciudadanos. No tiene vínculo oficial con el Aposento do Barrete Verde ni con el Ayuntamiento de Alcochete, y no busca lucro ni interés comercial.',
+    offlineBanner: 'Estás sin conexión — mostrando el programa en caché si está disponible.',
+    searchPlaceholder: 'Buscar artista, escenario, evento…',
+    today: 'Hoy',
+    now: 'Ahora',
+    favoritesOnly: 'Favoritos',
+    favoritesEmpty: 'Aún no hay favoritos. Toca la estrella en un evento.',
+    share: 'Compartir',
+    shareCopied: '¡Enlace copiado!',
+    mapLink: 'Mapa',
+    mapLinkShort: 'Mapa',
+    favoriteAdd: 'Añadir a favoritos',
+    favoriteRemove: 'Quitar de favoritos',
+    remind: 'Recordar 30 min antes',
+    remindOn: 'Recordatorio activo',
+    remindNeedPermission: 'Permite notificaciones para recibir el recordatorio.',
+    remindNeedInstall:
+      'Añade la app a la pantalla de inicio y ábrela desde el icono para activar recordatorios (igual que los avisos).',
+    remindLocalOnly:
+      'Recordatorio guardado solo en este teléfono (falta el SQL event-reminders / redeploy send-push).',
+    remindHint:
+      'Con push activo, el aviso llega aunque la app esté cerrada (30 min antes).',
+    reminders: {
+      title: 'Festas Alcochete',
+      body: 'Un evento que guardaste empieza pronto.',
+    },
+    map: {
+      title: 'Mapa de las fiestas',
+      subtitle: 'Escenarios, puntos y feria — mapa y satélite',
+      back: 'Volver al programa',
+      legendStage: 'Escenarios',
+      legendPlace: 'Puntos',
+      legendBulls: 'Toros / plaza',
+      legendFair: 'Feria',
+      layerMap: 'Mapa',
+      layerSatellite: 'Satélite',
+      hint: 'Puedes acercar y tocar los marcadores. Usa Satélite para ver el terreno actual.',
+      places: {
+        sede: 'Sede del Aposento',
+        igreja: 'Iglesia Matriz',
+        pavilhao: 'Pabellón Municipal',
+        rossio: 'Jardín del Rossio',
+        armazem: 'Antiguo almacén de filmaciones',
+        palcoSalineiro: 'Palco Salineiro',
+        palcoForcado: 'Palco Forcado',
+        palcoSJoao: 'Palco S. João',
+        palcoCoreto: 'Palco Coreto',
+        pracaTouros: 'Plaza de Toros',
+        feiraCarrosseis: 'Feria de los carruseles',
+      },
+    },
     notify: {
       title: 'Recibir avisos',
       body: 'Activa las notificaciones para enterarte de cambios en el programa.',
@@ -660,6 +892,12 @@ export const translations = {
       unsupported: 'Tu navegador no admite notificaciones.',
       iosInstall:
         'En el iPhone, añade primero la app a la pantalla de inicio (Compartir → Añadir) y ábrela desde el icono. Después activa los avisos.',
+      androidInstall:
+        'En Android, añade primero la app a la pantalla de inicio (botón Instalar, o ⋮ → Instalar app / Añadir a la pantalla de inicio) y ábrela desde el icono. Después activa los avisos.',
+      androidBrowser:
+        'Abre el sitio en Chrome (no dentro de Instagram/Facebook/WhatsApp). Luego añádelo a la pantalla de inicio y activa los avisos.',
+      testTitle: 'Festas Alcochete',
+      testBody: 'Notificaciones activas en este teléfono.',
       dismiss: 'Ahora no',
       error:
         'No se pudo activar. Confirma que ejecutaste el SQL push-subscriptions en Supabase e inténtalo de nuevo.',
@@ -687,7 +925,12 @@ export const translations = {
     },
     install: {
       title: 'Añadir a la pantalla de inicio',
-      android: 'Instala la app para acceder al programa más rápido.',
+      android:
+        'Instala la app para acceder más rápido y recibir avisos, como en el iPhone.',
+      androidRitual:
+        'En Chrome: toca Instalar abajo (si aparece) o ⋮ → «Instalar app» / «Añadir a la pantalla de inicio». Luego ábrela desde el icono — igual que en el iPhone.',
+      androidManual:
+        'En Chrome: toca ⋮ → «Instalar app» o «Añadir a la pantalla de inicio». Luego ábrela desde el icono para activar avisos.',
       iosPrefix: 'Toca',
       iosSuffix: 'y luego «Añadir a la pantalla de inicio».',
       cta: 'Instalar',

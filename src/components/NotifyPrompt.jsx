@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { Bell, BellRing, X } from 'lucide-react'
 import { useLang } from '../context/LangContext'
 import { supabase } from '../lib/supabase'
-import { pushSupported, urlBase64ToUint8Array } from '../lib/push'
+import { pushSupported, urlBase64ToUint8Array, isAndroid, isInAppBrowser } from '../lib/push'
 
 const DISMISS_KEY = 'fbv-notify-dismissed'
 const INSTALL_KEY = 'fbv-install-dismissed'
@@ -55,7 +55,7 @@ export default function NotifyPrompt() {
   const { pathname } = useLocation()
   const [visible, setVisible] = useState(false)
   const [lift, setLift] = useState(false)
-  const [status, setStatus] = useState('idle') // idle | loading | on | denied | unsupported | error | iosInstall
+  const [status, setStatus] = useState('idle') // idle | loading | on | denied | unsupported | error | iosInstall | androidInstall | androidBrowser
   const [errorDetail, setErrorDetail] = useState('')
   const n = t.notify
 
@@ -88,7 +88,9 @@ export default function NotifyPrompt() {
 
     async function ensureSavedIfGranted() {
       if (Notification.permission !== 'granted') return false
-      if (isIos() && !isStandalone()) return false
+      // iOS e Android: avisos só depois de instalada / aberta pelo ícone
+      if ((isIos() || isAndroid()) && !isStandalone()) return false
+      if (isInAppBrowser()) return false
       try {
         const reg = await navigator.serviceWorker.ready
         let sub = await reg.pushManager.getSubscription()
@@ -107,7 +109,6 @@ export default function NotifyPrompt() {
 
     const timer = window.setTimeout(async () => {
       if (cancelled) return
-      // Já tinha permissão: tenta guardar em silêncio; só mostra banner se falhar
       if (Notification.permission === 'granted') {
         const ok = await ensureSavedIfGranted()
         if (!ok && !cancelled) setVisible(true)
@@ -148,6 +149,16 @@ export default function NotifyPrompt() {
         return
       }
 
+      if (isAndroid() && !isStandalone()) {
+        setStatus('androidInstall')
+        return
+      }
+
+      if (isInAppBrowser()) {
+        setStatus('androidBrowser')
+        return
+      }
+
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') {
         setStatus('denied')
@@ -163,14 +174,22 @@ export default function NotifyPrompt() {
 
       let reg = await navigator.serviceWorker.getRegistration()
       if (!reg) {
-        // Em produção o SW é registado no boot; dá um pouco de margem
-        await new Promise((r) => setTimeout(r, 500))
+        await new Promise((r) => setTimeout(r, 800))
         reg = await navigator.serviceWorker.ready
       } else {
         reg = await navigator.serviceWorker.ready
       }
 
+      // Android: recriar a subscrição evita endpoints FCM “mortos”
       let sub = await reg.pushManager.getSubscription()
+      if (sub && isAndroid()) {
+        try {
+          await sub.unsubscribe()
+        } catch {
+          /* ignore */
+        }
+        sub = null
+      }
       if (!sub) {
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
@@ -191,6 +210,17 @@ export default function NotifyPrompt() {
         return
       }
 
+      // Teste local imediato (confirma permissão + SW no Android)
+      try {
+        await reg.showNotification(n.testTitle || 'Festas Alcochete', {
+          body: n.testBody || 'Notificações activas neste telemóvel.',
+          icon: '/icon-192.png',
+          tag: 'fbv-push-test',
+        })
+      } catch {
+        /* ignore — push remota pode mesmo assim funcionar */
+      }
+
       setStatus('on')
       window.setTimeout(dismiss, 1800)
     } catch (err) {
@@ -207,11 +237,15 @@ export default function NotifyPrompt() {
         ? n.unsupported
         : status === 'iosInstall'
           ? n.iosInstall
-          : status === 'error'
-            ? n.error
-            : status === 'on'
-              ? null
-              : n.body
+          : status === 'androidInstall'
+            ? n.androidInstall
+            : status === 'androidBrowser'
+              ? n.androidBrowser
+              : status === 'error'
+                ? n.error
+                : status === 'on'
+                  ? null
+                  : n.body
 
   return (
     <div
@@ -246,7 +280,9 @@ export default function NotifyPrompt() {
           {status !== 'on' &&
             status !== 'denied' &&
             status !== 'unsupported' &&
-            status !== 'iosInstall' && (
+            status !== 'iosInstall' &&
+            status !== 'androidInstall' &&
+            status !== 'androidBrowser' && (
               <button
                 type="button"
                 onClick={enable}

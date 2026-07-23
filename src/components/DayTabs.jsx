@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Store } from 'lucide-react'
+import { Map, Store } from 'lucide-react'
 import { FESTIVAL_DAYS } from '../data/days'
 import { useLang } from '../context/LangContext'
 
@@ -46,6 +46,17 @@ export default function DayTabs({ selectedDate, onSelect }) {
             })}
           </div>
         </div>
+
+        <Link
+          to="/mapa"
+          className="flex shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl bg-tejo/90 px-2.5 py-2 text-white shadow-sm transition hover:bg-tejo sm:px-3"
+          title={t.mapLink}
+        >
+          <Map className="h-4 w-4" aria-hidden />
+          <span className="text-[0.6rem] font-bold leading-tight tracking-wide">
+            {t.mapLinkShort}
+          </span>
+        </Link>
 
         <Link
           to="/comercio"

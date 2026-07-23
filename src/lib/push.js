@@ -19,3 +19,15 @@ export function pushSupported() {
     'Notification' in window
   )
 }
+
+export function isAndroid() {
+  return /Android/i.test(navigator.userAgent || '')
+}
+
+/** WebViews / browsers in-app (Instagram, FB, etc.) — push costuma falhar. */
+export function isInAppBrowser() {
+  const ua = navigator.userAgent || ''
+  return /FBAN|FBAV|Instagram|Line\/|Twitter|MicroMessenger|Snapchat|TikTok|GSA\//i.test(
+    ua
+  )
+}

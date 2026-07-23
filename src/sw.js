@@ -19,9 +19,10 @@ registerRoute(
 )
 
 self.addEventListener('push', (event) => {
+  const origin = self.location.origin
   let payload = {
     title: 'Barrete Verde',
-    body: '',
+    body: 'Nova actualização das festas.',
     url: '/',
   }
 
@@ -32,17 +33,22 @@ self.addEventListener('push', (event) => {
     }
   } catch {
     try {
-      payload.body = event.data?.text() || ''
+      const text = event.data?.text()
+      if (text) payload.body = text
     } catch {
       /* ignore */
     }
   }
 
+  // Android/Chrome exige notificação visível em cada push; ícones absolutos evitam falhas.
   event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: payload.body,
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
+    self.registration.showNotification(payload.title || 'Barrete Verde', {
+      body: payload.body || '',
+      icon: `${origin}/icon-192.png`,
+      badge: `${origin}/icon-192.png`,
+      tag: 'fbv-push',
+      renotify: true,
+      vibrate: [120, 60, 120],
       data: { url: payload.url || '/' },
     })
   )
