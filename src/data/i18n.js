@@ -276,6 +276,13 @@ export const translations = {
       notifyStatusPending: 'Pendente',
       notifyStatusSent: 'Enviada',
       notifyStatusCancelled: 'Cancelada',
+      notifyAutoGenerate: 'Gerar alertas do programa',
+      notifyAutoHint:
+        'Cria avisos automáticos: 15 min antes de largadas/entradas, 1 h antes de corridas, 15 min antes de actuações no Palco S. João. Podes voltar a gerar se o programa mudar.',
+      notifyAutoSuccess: 'Alertas automáticos actualizados',
+      notifyAutoEmpty: 'Não há alertas futuros a gerar (programa vazio ou tudo já passou).',
+      notifyTest5Min: 'Teste em 5 min',
+      notifyTest5MinOk: 'Teste agendado para daqui a 5 minutos. Mantém este separador Avisos aberto (ou volta cá daqui a 5 min).',
       placeHint:
         'Uma morada, ou várias ruas separadas por vírgulas (ex.: Rua A, Rua B e Av. C).',
       tabFeedback: 'Feedback',
@@ -560,6 +567,13 @@ export const translations = {
       notifyStatusPending: 'Pending',
       notifyStatusSent: 'Sent',
       notifyStatusCancelled: 'Cancelled',
+      notifyAutoGenerate: 'Generate programme alerts',
+      notifyAutoHint:
+        'Creates automatic alerts: 15 min before street bull events, 1 h before bullfights, 15 min before S. João stage shows. Re-run if the programme changes.',
+      notifyAutoSuccess: 'Automatic alerts updated',
+      notifyAutoEmpty: 'No future alerts to generate (empty programme or everything already past).',
+      notifyTest5Min: 'Test in 5 min',
+      notifyTest5MinOk: 'Test scheduled in 5 minutes. Keep this Alerts tab open (or come back in 5 min).',
       placeHint:
         'One venue, or several streets separated by commas (e.g. Street A, Street B and Av. C).',
       tabFeedback: 'Feedback',
@@ -845,6 +859,13 @@ export const translations = {
       notifyStatusPending: 'En attente',
       notifyStatusSent: 'Envoyée',
       notifyStatusCancelled: 'Annulée',
+      notifyAutoGenerate: 'Générer les alertes du programme',
+      notifyAutoHint:
+        'Crée des alertes auto : 15 min avant lâchers/entrées, 1 h avant corridas, 15 min avant le plateau S. João. À régénérer si le programme change.',
+      notifyAutoSuccess: 'Alertes automatiques mises à jour',
+      notifyAutoEmpty: 'Aucune alerte future à générer.',
+      notifyTest5Min: 'Test dans 5 min',
+      notifyTest5MinOk: 'Test planifié dans 5 minutes. Gardez cet onglet ouvert.',
       placeHint:
         'Un lieu, ou plusieurs rues séparées par des virgules (ex. : Rue A, Rue B et Av. C).',
       tabFeedback: 'Avis',
@@ -1131,6 +1152,13 @@ export const translations = {
       notifyStatusPending: 'Pendiente',
       notifyStatusSent: 'Enviada',
       notifyStatusCancelled: 'Cancelada',
+      notifyAutoGenerate: 'Generar alertas del programa',
+      notifyAutoHint:
+        'Crea avisos automáticos: 15 min antes de sueltas/entradas, 1 h antes de corridas, 15 min antes del Palco S. João. Vuelve a generar si cambia el programa.',
+      notifyAutoSuccess: 'Alertas automáticas actualizadas',
+      notifyAutoEmpty: 'No hay alertas futuras que generar.',
+      notifyTest5Min: 'Prueba en 5 min',
+      notifyTest5MinOk: 'Prueba programada en 5 minutos. Mantén esta pestaña abierta.',
       placeHint:
         'Una dirección, o varias calles separadas por comas (ej.: Calle A, Calle B y Av. C).',
       tabFeedback: 'Feedback',

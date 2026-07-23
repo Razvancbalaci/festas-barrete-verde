@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LangContext'
 import { FESTIVAL_DAYS } from '../data/days'
 import { CATEGORY_COLORS } from '../data/categories'
+import { buildAutoAlertJobs } from '../lib/autoAlerts'
 import LoginForm from '../components/admin/LoginForm'
 import EventForm from '../components/admin/EventForm'
 
@@ -32,6 +33,7 @@ export default function Admin() {
   const [subCount, setSubCount] = useState(null)
   const [notifyForm, setNotifyForm] = useState({ title: '', body: '', scheduledFor: '' })
   const [notifySending, setNotifySending] = useState(false)
+  const [autoAlertBusy, setAutoAlertBusy] = useState(false)
   const [schedules, setSchedules] = useState([])
   const [feedbackList, setFeedbackList] = useState([])
   const unreadFeedback = useMemo(
@@ -148,6 +150,15 @@ export default function Admin() {
     processDueSchedules,
     fetchFeedback,
   ])
+
+  // Enquanto estás em Avisos, processa agendados a cada 30s (útil para testes sem cron)
+  useEffect(() => {
+    if (!session || tab !== 'notify') return
+    const id = window.setInterval(() => {
+      processDueSchedules()
+    }, 30_000)
+    return () => window.clearInterval(id)
+  }, [session, tab, processDueSchedules])
 
   // Contagem de feedback não lido (badge), mesmo noutro separador
   useEffect(() => {
@@ -332,6 +343,110 @@ export default function Admin() {
       setMessage({ type: 'err', text: a.errorGeneric })
     } else {
       await fetchSchedules()
+    }
+  }
+
+  async function handleTestNotify5Min() {
+    setNotifySending(true)
+    try {
+      const when = new Date(Date.now() + 5 * 60 * 1000)
+      const { error } = await supabase.from('push_schedules').insert({
+        title: 'Teste · Festas Alcochete',
+        body: 'Se vês isto no telemóvel, as notificações estão a funcionar.',
+        scheduled_for: when.toISOString(),
+        status: 'pending',
+      })
+      if (error) throw error
+      setMessage({ type: 'ok', text: a.notifyTest5MinOk })
+      await fetchSchedules()
+      // tenta processar já (ainda não está due) e o intervalo trata aos 5 min
+      await processDueSchedules()
+    } catch (err) {
+      console.error(err)
+      setMessage({ type: 'err', text: a.errorGeneric })
+    } finally {
+      setNotifySending(false)
+    }
+  }
+
+  async function handleGenerateAutoAlerts() {
+    setAutoAlertBusy(true)
+    try {
+      const { data: allEvents, error: evErr } = await supabase
+        .from('eventos')
+        .select('id, dia, hora, titulo, local, categoria, bilhetes_url')
+      if (evErr) throw evErr
+
+      const jobs = buildAutoAlertJobs(allEvents || [])
+      if (!jobs.length) {
+        setMessage({ type: 'ok', text: a.notifyAutoEmpty })
+        return
+      }
+
+      const keys = new Set(jobs.map((j) => j.dedupe_key))
+
+      const { data: existingAuto, error: exErr } = await supabase
+        .from('push_schedules')
+        .select('id, dedupe_key, status')
+        .not('dedupe_key', 'is', null)
+      if (exErr) throw exErr
+
+      const byKey = new Map(
+        (existingAuto || [])
+          .filter((r) => r.dedupe_key)
+          .map((r) => [r.dedupe_key, r])
+      )
+
+      for (const job of jobs) {
+        const prev = byKey.get(job.dedupe_key)
+        if (prev?.id) {
+          const { error } = await supabase
+            .from('push_schedules')
+            .update({
+              title: job.title,
+              body: job.body,
+              scheduled_for: job.scheduled_for,
+              status: 'pending',
+              sent_at: null,
+            })
+            .eq('id', prev.id)
+          if (error) throw error
+        } else {
+          const { error } = await supabase.from('push_schedules').insert({
+            title: job.title,
+            body: job.body,
+            scheduled_for: job.scheduled_for,
+            status: 'pending',
+            dedupe_key: job.dedupe_key,
+          })
+          if (error) throw error
+        }
+      }
+
+      const obsolete = (existingAuto || []).filter(
+        (r) =>
+          r.status === 'pending' &&
+          r.dedupe_key &&
+          !keys.has(r.dedupe_key)
+      )
+      for (const row of obsolete) {
+        const { error } = await supabase
+          .from('push_schedules')
+          .update({ status: 'cancelled' })
+          .eq('id', row.id)
+        if (error) throw error
+      }
+
+      setMessage({
+        type: 'ok',
+        text: `${a.notifyAutoSuccess} (${jobs.length})`,
+      })
+      await fetchSchedules()
+    } catch (err) {
+      console.error(err)
+      setMessage({ type: 'err', text: a.errorGeneric })
+    } finally {
+      setAutoAlertBusy(false)
     }
   }
 
@@ -632,6 +747,36 @@ export default function Admin() {
                 </button>
               </div>
             </form>
+
+            <div className="mt-8 border-t border-barrete/10 pt-5">
+              <h3 className="font-display text-base font-semibold text-barrete">
+                {a.notifyAutoGenerate}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-ink/60">{a.notifyAutoHint}</p>
+              <button
+                type="button"
+                disabled={autoAlertBusy || notifySending}
+                onClick={handleGenerateAutoAlerts}
+                className="mt-3 inline-flex items-center gap-2 rounded-xl bg-tejo px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:brightness-105 disabled:opacity-60"
+              >
+                {autoAlertBusy ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {a.notifySending}
+                  </>
+                ) : (
+                  a.notifyAutoGenerate
+                )}
+              </button>
+              <button
+                type="button"
+                disabled={autoAlertBusy || notifySending}
+                onClick={handleTestNotify5Min}
+                className="mt-3 ml-2 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-barrete shadow-sm ring-1 ring-barrete/20 hover:bg-barrete/5 disabled:opacity-60"
+              >
+                {a.notifyTest5Min}
+              </button>
+            </div>
 
             <div className="mt-8 border-t border-barrete/10 pt-5">
               <h3 className="font-display text-base font-semibold text-barrete">
