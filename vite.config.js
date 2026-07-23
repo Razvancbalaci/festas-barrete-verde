@@ -22,6 +22,7 @@ export default defineConfig({
         'og-image.png',
         'robots.txt',
         'sitemap.xml',
+        'google6eb5c1ba2c31c81f.html',
       ],
       manifest: false,
       injectManifest: {
