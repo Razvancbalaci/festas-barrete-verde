@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Search, Star } from 'lucide-react'
+import { MapPin, Search, Star, X } from 'lucide-react'
 import { FESTIVAL_DAYS } from '../data/days'
+import {
+  eventMatchesPlace,
+  getMapPlace,
+} from '../data/mapPlaces'
 import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LangContext'
 import { eventDateTime, useFavorites } from '../hooks/useLocalExtras'
@@ -73,6 +77,12 @@ export default function PublicProgram() {
 
   const paramDia = searchParams.get('dia')
   const paramEvento = searchParams.get('evento')
+  const paramLocal = searchParams.get('local')
+
+  const placeFilter = useMemo(
+    () => (paramLocal ? getMapPlace(paramLocal) : null),
+    [paramLocal]
+  )
 
   const [selectedDate, setSelectedDate] = useState(() => {
     if (paramDia && FESTIVAL_DAYS.some((d) => d.date === paramDia)) return paramDia
@@ -94,6 +104,12 @@ export default function PublicProgram() {
     [selectedDate]
   )
 
+  const clearPlaceFilter = useCallback(() => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('local')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
+
   const selectDay = useCallback(
     (date) => {
       setSelectedDate(date)
@@ -102,6 +118,7 @@ export default function PublicProgram() {
       const next = new URLSearchParams(searchParams)
       next.set('dia', date)
       next.delete('evento')
+      next.delete('local')
       setSearchParams(next, { replace: true })
       setHighlightId(null)
     },
@@ -121,6 +138,7 @@ export default function PublicProgram() {
     const next = new URLSearchParams(searchParams)
     next.set('dia', day)
     next.delete('evento')
+    next.delete('local')
     setSearchParams(next, { replace: true })
   }, [todayInFestival, todayIso, selectedDate, searchParams, setSearchParams])
 
@@ -146,6 +164,25 @@ export default function PublicProgram() {
       return
     }
 
+    // Filtro por local do mapa: todos os dias das festas
+    if (placeFilter) {
+      const days = FESTIVAL_DAYS.map((d) => d.date)
+      const { data, error } = await supabase
+        .from('eventos')
+        .select('*')
+        .in('dia', days)
+      if (error) {
+        console.error(error)
+        setEvents([])
+      } else {
+        setEvents(
+          sortEvents((data || []).filter((e) => eventMatchesPlace(e, placeFilter)))
+        )
+      }
+      setLoading(false)
+      return
+    }
+
     const { data, error } = await supabase
       .from('eventos')
       .select('*')
@@ -158,15 +195,13 @@ export default function PublicProgram() {
       setEvents(sortEvents(data))
     }
     setLoading(false)
-    // favKey stabilises the favIds dependency (array identity changes each render)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- favIds via favKey
-  }, [selectedDate, favoritesOnly, favKey])
+  }, [selectedDate, favoritesOnly, favKey, placeFilter])
 
   useEffect(() => {
     fetchEvents()
   }, [fetchEvents])
 
-  // Partilha / URL: scroll ao evento
   useEffect(() => {
     if (!paramEvento || loading) return
     const el = document.getElementById(`evento-${paramEvento}`)
@@ -176,9 +211,8 @@ export default function PublicProgram() {
     }
   }, [paramEvento, loading, events])
 
-  // Agora: destacar e scroll ao próximo / em curso
   useEffect(() => {
-    if (!showNow || loading || paramEvento) return
+    if (!showNow || loading || paramEvento || placeFilter) return
     const target = findNextOrCurrentEvent(events)
     if (!target) {
       setHighlightId(null)
@@ -187,7 +221,7 @@ export default function PublicProgram() {
     setHighlightId(target.id)
     const el = document.getElementById(`evento-${target.id}`)
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }, [showNow, loading, events, paramEvento])
+  }, [showNow, loading, events, paramEvento, placeFilter])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -199,8 +233,12 @@ export default function PublicProgram() {
   }, [events, category, query])
 
   const hasExtraFilter = Boolean(
-    category || favoritesOnly || query.trim() || showNow
+    category || favoritesOnly || query.trim() || showNow || placeFilter
   )
+
+  const placeLabel = placeFilter
+    ? t.map?.places?.[placeFilter.nameKey] || placeFilter.name
+    : null
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -229,7 +267,10 @@ export default function PublicProgram() {
                 type="button"
                 onClick={goToday}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                  selectedDate === todayIso && !showNow && !favoritesOnly
+                  selectedDate === todayIso &&
+                  !showNow &&
+                  !favoritesOnly &&
+                  !placeFilter
                     ? 'bg-barrete text-white'
                     : 'bg-white text-ink/70 ring-1 ring-barrete/10 hover:bg-barrete/5'
                 }`}
@@ -261,6 +302,7 @@ export default function PublicProgram() {
                 setFavoritesOnly((v) => !v)
                 setShowNow(false)
                 setHighlightId(null)
+                if (!favoritesOnly) clearPlaceFilter()
               }}
               className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                 favoritesOnly
@@ -274,6 +316,18 @@ export default function PublicProgram() {
                 <span className="tabular-nums opacity-80">({favCount})</span>
               ) : null}
             </button>
+            {placeFilter ? (
+              <button
+                type="button"
+                onClick={clearPlaceFilter}
+                className="inline-flex items-center gap-1 rounded-full bg-tejo/15 px-3 py-1.5 text-xs font-semibold text-tejo ring-1 ring-tejo/20"
+              >
+                <MapPin className="h-3.5 w-3.5" aria-hidden />
+                {placeLabel}
+                <X className="h-3.5 w-3.5" aria-hidden />
+                <span className="sr-only">{t.placeFilterClear}</span>
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -282,6 +336,10 @@ export default function PublicProgram() {
         {favoritesOnly ? (
           <h2 className="mb-4 font-display text-lg font-semibold text-barrete sm:text-xl">
             {t.favoritesOnly}
+          </h2>
+        ) : placeFilter ? (
+          <h2 className="mb-4 font-display text-lg font-semibold text-barrete sm:text-xl">
+            {t.placeFilter}: {placeLabel}
           </h2>
         ) : dayMeta ? (
           <h2 className="mb-4 font-display text-lg font-semibold text-barrete sm:text-xl">
@@ -298,7 +356,9 @@ export default function PublicProgram() {
           loading={loading}
           hasFilter={hasExtraFilter}
           favoritesEmpty={favoritesOnly && favIds.length === 0}
+          placeEmpty={Boolean(placeFilter) && !loading && filtered.length === 0 && !query.trim() && !category}
           highlightId={highlightId}
+          groupByDay={Boolean(placeFilter || favoritesOnly)}
         />
       </main>
 

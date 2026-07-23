@@ -1,8 +1,11 @@
+import { Contrast } from 'lucide-react'
 import { LANGS } from '../data/i18n'
 import { useLang } from '../context/LangContext'
+import { useA11y } from '../context/A11yContext'
 
 export default function Header() {
   const { lang, setLang, t } = useLang()
+  const { a11y, toggleA11y } = useA11y()
 
   return (
     <header className="relative overflow-hidden border-b border-barrete/10">
@@ -23,7 +26,21 @@ export default function Header() {
       />
 
       <div className="relative mx-auto max-w-3xl px-4 pb-8 pt-5 sm:px-6">
-        <div className="mb-6 flex justify-end">
+        <div className="mb-6 flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={toggleA11y}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+              a11y
+                ? 'bg-dourado text-ink shadow-sm'
+                : 'bg-white/15 text-white/90 backdrop-blur-sm hover:bg-white/25'
+            }`}
+            aria-pressed={a11y}
+            title={a11y ? t.a11yOff : t.a11yOn}
+          >
+            <Contrast className="h-3.5 w-3.5" aria-hidden />
+            {a11y ? t.a11yShortOn : t.a11yShort}
+          </button>
           <div
             className="inline-flex rounded-full bg-white/15 p-1 backdrop-blur-sm"
             role="group"

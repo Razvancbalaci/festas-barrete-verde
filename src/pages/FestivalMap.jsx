@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { Link } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Contrast } from 'lucide-react'
 import { useLang } from '../context/LangContext'
+import { useA11y } from '../context/A11yContext'
 import { MAP_CENTER, MAP_PLACES, MAP_ZOOM } from '../data/mapPlaces'
 import { getMapLayers } from '../lib/mapTiles'
 import Footer from '../components/Footer'
@@ -44,6 +45,7 @@ function FitBounds({ places }) {
 
 export default function FestivalMap() {
   const { t } = useLang()
+  const { a11y, toggleA11y } = useA11y()
   const m = t.map
   const layers = useMemo(() => getMapLayers(), [])
   const [basemap, setBasemap] = useState('streets')
@@ -53,13 +55,29 @@ export default function FestivalMap() {
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-barrete/10 bg-gradient-to-br from-barrete to-barrete-light text-white">
         <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
-          <Link
-            to="/"
-            className="mb-3 inline-flex items-center gap-1.5 text-sm text-white/75 hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {m.back}
-          </Link>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 text-sm text-white/75 hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {m.back}
+            </Link>
+            <button
+              type="button"
+              onClick={toggleA11y}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                a11y
+                  ? 'bg-dourado text-ink'
+                  : 'bg-white/15 text-white/90 hover:bg-white/25'
+              }`}
+              aria-pressed={a11y}
+              title={a11y ? t.a11yOff : t.a11yOn}
+            >
+              <Contrast className="h-3.5 w-3.5" aria-hidden />
+              {a11y ? t.a11yShortOn : t.a11yShort}
+            </button>
+          </div>
           <h1 className="font-display text-2xl font-bold">{m.title}</h1>
           <p className="mt-1 text-sm text-white/80">{m.subtitle}</p>
           <ul className="mt-3 flex flex-wrap gap-3 text-[0.7rem] font-semibold uppercase tracking-wide text-white/85">
@@ -125,7 +143,17 @@ export default function FestivalMap() {
             {MAP_PLACES.map((p) => (
               <Marker key={p.id} position={[p.lat, p.lng]} icon={pinIcon(p.kind)}>
                 <Popup>
-                  <strong>{m.places?.[p.nameKey] || p.name}</strong>
+                  <div className="min-w-[10rem] space-y-2 text-sm">
+                    <strong className="block text-ink">
+                      {m.places?.[p.nameKey] || p.name}
+                    </strong>
+                    <Link
+                      to={`/?local=${encodeURIComponent(p.id)}`}
+                      className="inline-flex font-semibold text-tejo underline-offset-2 hover:underline"
+                    >
+                      {m.seeEvents}
+                    </Link>
+                  </div>
                 </Popup>
               </Marker>
             ))}

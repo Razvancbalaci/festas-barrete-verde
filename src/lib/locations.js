@@ -7,18 +7,14 @@ const STREET_START =
  * Coordenadas: lat,lng (sem acrescentar ", Alcochete").
  */
 const PLACE_ALIASES = {
-  'Nacional 119': '38.75561,-8.95553',
-  'EN 119': '38.75561,-8.95553',
-  'N 119': '38.75561,-8.95553',
-  N119: '38.75561,-8.95553',
-  'Palco Salineiro': 'Largo da República 1, 2890-307 Alcochete',
-  'Palco Forcado': 'O Forcado, Largo João da Horta, 2890-047 Alcochete',
-  'Palco S. João': 'Largo de São João 17, 2890-154 Alcochete',
-  'Palco São João': 'Largo de São João 17, 2890-154 Alcochete',
-  'Palco S.João': 'Largo de São João 17, 2890-154 Alcochete',
-  'Palco Coreto': 'Coreto de Alcochete, Alcochete',
-  'Praça de Touros': '38.75561,-8.95553',
-  'Praça de Touros de Alcochete': '38.75561,-8.95553',
+  'Palco Salineiro': '38.755822,-8.962264',
+  'Palco Forcado': '38.755314,-8.962095',
+  'Palco S. João': '38.756038,-8.960828',
+  'Palco São João': '38.756038,-8.960828',
+  'Palco S.João': '38.756038,-8.960828',
+  'Palco Coreto': '38.756493,-8.959684',
+  'Praça de Touros': '38.755608,-8.95553',
+  'Praça de Touros de Alcochete': '38.755608,-8.95553',
   'Feira dos Carrosséis': '38.750396,-8.968931',
   'Av. D. Manuel I': '38.753737,-8.965142',
   'Avenida D. Manuel I': '38.753737,-8.965142',
@@ -30,6 +26,10 @@ const PLACE_ALIASES = {
   'junto ao Pavilhão Municipal de Alcochete': '38.747627,-8.967168',
   'Jardim do Rossio': '38.754176,-8.964545',
   'Antigo Armazém das Filmagens': '38.755190,-8.963924',
+  'Nacional 119': '38.755608,-8.95553',
+  'EN 119': '38.755608,-8.95553',
+  'N 119': '38.755608,-8.95553',
+  N119: '38.755608,-8.95553',
 }
 
 /** Rótulos amigáveis no ecrã (o Maps continua a usar PLACE_ALIASES) */
@@ -127,9 +127,10 @@ export function mapsDirectionsUrl(streets) {
   return `https://www.google.com/maps/dir/?${params.toString()}`
 }
 
-/** Percurso no mapa (entradas + prova do boi) */
+/** Percurso no Maps: entradas, prova do boi, ou 3+ vias no `local`. */
 export function isRouteMapEvent(event) {
-  return /entrada|boi da guia/i.test(event.titulo || '')
+  if (/entrada|boi da guia/i.test(event.titulo || '')) return true
+  return parseLocations(event.local).length >= 3
 }
 
 /** @deprecated use isRouteMapEvent */

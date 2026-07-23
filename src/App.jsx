@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import { LangProvider, useLang } from './context/LangContext'
+import { A11yProvider } from './context/A11yContext'
 import { useReminderTicker } from './hooks/useLocalExtras'
 import PublicProgram from './pages/PublicProgram'
 import FestivalMap from './pages/FestivalMap'
@@ -24,16 +25,18 @@ function AppExtras() {
 export default function App() {
   return (
     <LangProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<PublicProgram />} />
-          <Route path="/mapa" element={<FestivalMap />} />
-          <Route path="/comercio" element={<Negocios />} />
-          <Route path="/negocios" element={<Navigate to="/comercio" replace />} />
-          <Route path="/admin" element={<Admin />} />
-        </Routes>
-        <AppExtras />
-      </BrowserRouter>
+      <A11yProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<PublicProgram />} />
+            <Route path="/mapa" element={<FestivalMap />} />
+            <Route path="/comercio" element={<Negocios />} />
+            <Route path="/negocios" element={<Navigate to="/comercio" replace />} />
+            <Route path="/admin" element={<Admin />} />
+          </Routes>
+          <AppExtras />
+        </BrowserRouter>
+      </A11yProvider>
     </LangProvider>
   )
 }

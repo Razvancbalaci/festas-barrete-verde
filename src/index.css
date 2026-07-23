@@ -21,6 +21,38 @@ html {
   overflow-x: hidden;
 }
 
+/* Modo acessibilidade: texto maior + contraste mais forte */
+html.a11y {
+  font-size: 117%;
+  --color-creme: #ffffff;
+  --color-ink: #0a0a0a;
+  --color-barrete: #0f3d28;
+  --color-barrete-light: #145c3a;
+  --color-vermelho: #9b1c1c;
+  --color-dourado: #b45309;
+  --color-tejo: #075985;
+}
+
+html.a11y body {
+  background-image: none;
+  background-color: #ffffff;
+  color: #0a0a0a;
+}
+
+html.a11y .text-ink\/35,
+html.a11y .text-ink\/45,
+html.a11y .text-ink\/50,
+html.a11y .text-ink\/55,
+html.a11y .text-ink\/65,
+html.a11y .text-ink\/70,
+html.a11y .text-ink\/80,
+html.a11y .text-white\/75,
+html.a11y .text-white\/80,
+html.a11y .text-white\/85 {
+  color: inherit;
+  opacity: 0.92;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
