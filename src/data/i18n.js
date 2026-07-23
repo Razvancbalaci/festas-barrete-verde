@@ -54,6 +54,9 @@ export const translations = {
       'Lembrete guardado só neste telemóvel (falta correr o SQL event-reminders no Supabase / redeploy send-push).',
     remindHint:
       'Com push activo, o aviso chega mesmo com a app fechada (30 min antes).',
+    remindTooSoon:
+      'Este evento começa dentro de menos de 30 minutos — já não dá para agendar o lembrete.',
+    remindCancelError: 'Não foi possível cancelar o lembrete. Tenta novamente.',
     reminders: {
       title: 'Festas Alcochete',
       body: 'Um evento que marcaste começa em breve.',
@@ -66,10 +69,14 @@ export const translations = {
       legendPlace: 'Pontos',
       legendBulls: 'Toiros / Praça',
       legendFair: 'Feira',
+      legendWc: 'WC',
       layerMap: 'Mapa',
       layerSatellite: 'Satélite',
       hint: 'Podes aproximar, afastar e tocar nos marcadores. Usa Satélite para ver o terreno actual. Em cada pin podes ver os eventos desse local.',
       seeEvents: 'Ver eventos neste local',
+      goThere: 'Ir a pé (Google Maps)',
+      portableWcSoon:
+        'Casas de banho portáteis: localização ainda a confirmar — vamos adicioná-las ao mapa em breve.',
       places: {
         sede: 'Sede do Aposento',
         igreja: 'Igreja Matriz',
@@ -82,6 +89,7 @@ export const translations = {
         palcoCoreto: 'Palco Coreto',
         pracaTouros: 'Praça de Touros',
         feiraCarrosseis: 'Feira dos Carrosséis',
+        wcPublico: 'Instalações sanitárias públicas',
       },
     },
     notify: {
@@ -221,7 +229,7 @@ export const translations = {
       time: 'Hora',
       eventTitle: 'Título',
       place: 'Local (opcional)',
-      subtitle: 'Subtítulo (opcional)',
+      eventSubtitle: 'Subtítulo (opcional)',
       description: 'Detalhes (opcional)',
       descriptionHint:
         'Usa títulos em MAIÚSCULAS para secções, ex.: CAVALEIROS, FORCADOS, GANADARIA',
@@ -332,6 +340,9 @@ export const translations = {
       'Reminder saved on this phone only (run the event-reminders SQL / redeploy send-push).',
     remindHint:
       'With push enabled, the alert arrives even if the app is closed (30 min before).',
+    remindTooSoon:
+      'This event starts in less than 30 minutes — too late to set a reminder.',
+    remindCancelError: 'Could not cancel the reminder. Please try again.',
     reminders: {
       title: 'Festas Alcochete',
       body: 'An event you saved is about to start.',
@@ -344,10 +355,14 @@ export const translations = {
       legendPlace: 'Places',
       legendBulls: 'Bulls / arena',
       legendFair: 'Fair',
+      legendWc: 'WC',
       layerMap: 'Map',
       layerSatellite: 'Satellite',
       hint: 'Pinch to zoom and tap markers. Use Satellite to see the current terrain. Each pin can open events at that place.',
       seeEvents: 'See events here',
+      goThere: 'Walk there (Google Maps)',
+      portableWcSoon:
+        'Portable toilets: locations still to confirm — we will add them to the map soon.',
       places: {
         sede: 'Aposento HQ',
         igreja: 'Parish church',
@@ -360,6 +375,7 @@ export const translations = {
         palcoCoreto: 'Bandstand stage',
         pracaTouros: 'Bullring',
         feiraCarrosseis: 'Carousel fair',
+        wcPublico: 'Public toilets',
       },
     },
     notify: {
@@ -497,7 +513,7 @@ export const translations = {
       time: 'Time',
       eventTitle: 'Title',
       place: 'Venue (optional)',
-      subtitle: 'Subtitle (optional)',
+      eventSubtitle: 'Subtitle (optional)',
       description: 'Details (optional)',
       descriptionHint:
         'Use UPPERCASE headings for sections, e.g. CAVALEIROS, FORCADOS, GANADARIA',
@@ -608,6 +624,9 @@ export const translations = {
       'Rappel enregistré seulement sur ce téléphone (SQL event-reminders / redeploy send-push manquant).',
     remindHint:
       'Avec le push activé, l’alerte arrive même si l’app est fermée (30 min avant).',
+    remindTooSoon:
+      'Cet événement commence dans moins de 30 minutes — trop tard pour un rappel.',
+    remindCancelError: 'Impossible d’annuler le rappel. Réessayez.',
     reminders: {
       title: 'Festas Alcochete',
       body: 'Un événement que vous avez enregistré commence bientôt.',
@@ -620,10 +639,14 @@ export const translations = {
       legendPlace: 'Lieux',
       legendBulls: 'Taureaux / arène',
       legendFair: 'Fête foraine',
+      legendWc: 'WC',
       layerMap: 'Carte',
       layerSatellite: 'Satellite',
       hint: 'Zoomez et touchez les marqueurs. Utilisez Satellite pour voir le terrain actuel. Chaque épingle peut ouvrir les événements du lieu.',
       seeEvents: 'Voir les événements ici',
+      goThere: 'Y aller à pied (Google Maps)',
+      portableWcSoon:
+        'Toilettes portables : emplacements encore à confirmer — nous les ajouterons bientôt à la carte.',
       places: {
         sede: 'Siège de l’Aposento',
         igreja: 'Église Matriz',
@@ -636,6 +659,7 @@ export const translations = {
         palcoCoreto: 'Scène kiosque',
         pracaTouros: 'Arène',
         feiraCarrosseis: 'Fête foraine des carrousels',
+        wcPublico: 'Toilettes publiques',
       },
     },
     notify: {
@@ -774,7 +798,7 @@ export const translations = {
       time: 'Heure',
       eventTitle: 'Titre',
       place: 'Lieu (optionnel)',
-      subtitle: 'Sous-titre (optionnel)',
+      eventSubtitle: 'Sous-titre (optionnel)',
       description: 'Détails (optionnel)',
       descriptionHint:
         'Utilisez des titres en MAJUSCULES pour les sections, ex. : CAVALEIROS, FORCADOS, GANADARIA',
@@ -885,6 +909,9 @@ export const translations = {
       'Recordatorio guardado solo en este teléfono (falta el SQL event-reminders / redeploy send-push).',
     remindHint:
       'Con push activo, el aviso llega aunque la app esté cerrada (30 min antes).',
+    remindTooSoon:
+      'Este evento empieza en menos de 30 minutos — ya no se puede programar el recordatorio.',
+    remindCancelError: 'No se pudo cancelar el recordatorio. Inténtalo de nuevo.',
     reminders: {
       title: 'Festas Alcochete',
       body: 'Un evento que guardaste empieza pronto.',
@@ -897,10 +924,14 @@ export const translations = {
       legendPlace: 'Puntos',
       legendBulls: 'Toros / plaza',
       legendFair: 'Feria',
+      legendWc: 'WC',
       layerMap: 'Mapa',
       layerSatellite: 'Satélite',
       hint: 'Puedes acercar y tocar los marcadores. Usa Satélite para ver el terreno actual. En cada pin puedes ver los eventos de ese lugar.',
       seeEvents: 'Ver eventos aquí',
+      goThere: 'Ir a pie (Google Maps)',
+      portableWcSoon:
+        'Aseos portátiles: ubicación aún por confirmar — los añadiremos al mapa pronto.',
       places: {
         sede: 'Sede del Aposento',
         igreja: 'Iglesia Matriz',
@@ -913,6 +944,7 @@ export const translations = {
         palcoCoreto: 'Palco Coreto',
         pracaTouros: 'Plaza de Toros',
         feiraCarrosseis: 'Feria de los carruseles',
+        wcPublico: 'Aseos públicos',
       },
     },
     notify: {
@@ -1052,7 +1084,7 @@ export const translations = {
       time: 'Hora',
       eventTitle: 'Título',
       place: 'Lugar (opcional)',
-      subtitle: 'Subtítulo (opcional)',
+      eventSubtitle: 'Subtítulo (opcional)',
       description: 'Detalles (opcional)',
       descriptionHint:
         'Usa títulos en MAYÚSCULAS para secciones, p. ej.: CAVALEIROS, FORCADOS, GANADARIA',

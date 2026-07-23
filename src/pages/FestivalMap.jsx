@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Contrast } from 'lucide-react'
+import { ArrowLeft, Contrast, Navigation } from 'lucide-react'
 import { useLang } from '../context/LangContext'
 import { useA11y } from '../context/A11yContext'
 import { MAP_CENTER, MAP_PLACES, MAP_ZOOM } from '../data/mapPlaces'
+import { mapsWalkToUrl } from '../lib/locations'
 import { getMapLayers } from '../lib/mapTiles'
 import Footer from '../components/Footer'
 import 'leaflet/dist/leaflet.css'
@@ -15,14 +16,19 @@ const kindColor = {
   ponto: '#1B5E3F',
   toiros: '#C0392B',
   feira: '#E8A13A',
+  wc: '#5B7C8A',
 }
 
 function pinIcon(kind) {
   const color = kindColor[kind] || kindColor.ponto
+  const inner =
+    kind === 'wc'
+      ? `<text x="14" y="15.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#fff" font-family="Arial,sans-serif">WC</text>`
+      : `<circle cx="14" cy="12.5" r="4.5" fill="#fff"/>`
   const svg = encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 28 40">
       <path fill="${color}" stroke="#fff" stroke-width="2" d="M14 1c-6.6 0-12 5.2-12 11.6 0 8.7 12 25.4 12 25.4S26 21.3 26 12.6C26 6.2 20.6 1 14 1z"/>
-      <circle cx="14" cy="12.5" r="4.5" fill="#fff"/>
+      ${inner}
     </svg>`
   )
   return L.icon({
@@ -93,6 +99,9 @@ export default function FestivalMap() {
             <li className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-dourado" /> {m.legendFair}
             </li>
+            <li className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#5B7C8A]" /> {m.legendWc}
+            </li>
           </ul>
         </div>
       </header>
@@ -147,12 +156,25 @@ export default function FestivalMap() {
                     <strong className="block text-ink">
                       {m.places?.[p.nameKey] || p.name}
                     </strong>
-                    <Link
-                      to={`/?local=${encodeURIComponent(p.id)}`}
-                      className="inline-flex font-semibold text-tejo underline-offset-2 hover:underline"
-                    >
-                      {m.seeEvents}
-                    </Link>
+                    <div className="flex flex-col gap-1.5">
+                      <a
+                        href={mapsWalkToUrl(p.lat, p.lng)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-semibold text-barrete underline-offset-2 hover:underline"
+                      >
+                        <Navigation className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        {m.goThere}
+                      </a>
+                      {p.matchTerms?.length ? (
+                        <Link
+                          to={`/?local=${encodeURIComponent(p.id)}`}
+                          className="inline-flex font-semibold text-tejo underline-offset-2 hover:underline"
+                        >
+                          {m.seeEvents}
+                        </Link>
+                      ) : null}
+                    </div>
                   </div>
                 </Popup>
               </Marker>
@@ -160,6 +182,9 @@ export default function FestivalMap() {
           </MapContainer>
         </div>
         <p className="px-4 pt-3 text-center text-xs text-ink/50 sm:px-0">{m.hint}</p>
+        <p className="mx-4 mt-2 rounded-xl bg-barrete/5 px-3 py-2.5 text-center text-xs leading-relaxed text-ink/65 ring-1 ring-barrete/10 sm:mx-0">
+          {m.portableWcSoon}
+        </p>
       </div>
 
       <Footer />

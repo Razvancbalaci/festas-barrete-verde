@@ -5,6 +5,7 @@ import {
   pushSupported,
   urlBase64ToUint8Array,
 } from './push'
+import { sanitizeAppPath } from './safeUrl'
 
 function isIos() {
   const ua = window.navigator.userAgent
@@ -18,31 +19,21 @@ function isStandalone() {
   )
 }
 
-async function saveSubscription(json) {
-  const row = {
-    endpoint: json.endpoint,
-    p256dh: json.keys?.p256dh,
-    auth: json.keys?.auth,
-    user_agent: navigator.userAgent,
+/** Guarda/actualiza subscrição via RPC (sem SELECT público das chaves push). */
+export async function savePushSubscription(json) {
+  if (!json?.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
+    return { ok: false, error: new Error('missing keys') }
   }
 
-  const { error: insertError } = await supabase.from('push_subscriptions').insert(row)
-  if (!insertError) return { ok: true, endpoint: row.endpoint }
+  const { error } = await supabase.rpc('upsert_push_subscription', {
+    p_endpoint: String(json.endpoint).slice(0, 2048),
+    p_p256dh: String(json.keys.p256dh).slice(0, 512),
+    p_auth: String(json.keys.auth).slice(0, 512),
+    p_user_agent: String(navigator.userAgent || '').slice(0, 512),
+  })
 
-  if (insertError.code === '23505') {
-    const { error: updateError } = await supabase
-      .from('push_subscriptions')
-      .update({
-        p256dh: row.p256dh,
-        auth: row.auth,
-        user_agent: row.user_agent,
-      })
-      .eq('endpoint', row.endpoint)
-    if (updateError) return { ok: false, error: updateError }
-    return { ok: true, endpoint: row.endpoint }
-  }
-
-  return { ok: false, error: insertError }
+  if (error) return { ok: false, error }
+  return { ok: true, endpoint: json.endpoint }
 }
 
 /**
@@ -84,7 +75,7 @@ export async function ensurePushForReminders() {
     return { ok: false, reason: 'keys' }
   }
 
-  const saved = await saveSubscription(json)
+  const saved = await savePushSubscription(json)
   if (!saved.ok) return { ok: false, reason: 'db' }
   return { ok: true, endpoint: saved.endpoint }
 }
@@ -97,49 +88,34 @@ export async function scheduleServerReminder({
   body,
   url,
 }) {
-  const row = {
-    event_id: eventId,
-    endpoint,
-    scheduled_for: scheduledFor,
-    title,
-    body,
-    url: url || '/',
-    status: 'pending',
-    sent_at: null,
+  if (!eventId || !endpoint || !scheduledFor) {
+    return { message: 'missing_fields' }
   }
 
-  // Upsert: se já existir para este evento+dispositivo, reactiva
-  const { data: existing } = await supabase
-    .from('event_reminders')
-    .select('id')
-    .eq('event_id', eventId)
-    .eq('endpoint', endpoint)
-    .maybeSingle()
-
-  if (existing?.id) {
-    const { error } = await supabase
-      .from('event_reminders')
-      .update(row)
-      .eq('id', existing.id)
-    return error
-  }
-
-  const { error } = await supabase.from('event_reminders').insert(row)
+  const { error } = await supabase.rpc('schedule_event_reminder', {
+    p_event_id: eventId,
+    p_endpoint: endpoint,
+    p_scheduled_for: scheduledFor,
+    p_title: String(title || '').slice(0, 120),
+    p_body: String(body || '').slice(0, 280),
+    p_url: sanitizeAppPath(url, '/'),
+  })
   return error
 }
 
+/** Cancela só o lembrete deste endpoint — endpoint obrigatório. */
 export async function cancelServerReminder(eventId, endpoint) {
-  if (!endpoint) return null
-  const { error } = await supabase
-    .from('event_reminders')
-    .update({ status: 'cancelled' })
-    .eq('event_id', eventId)
-    .eq('endpoint', endpoint)
-    .eq('status', 'pending')
+  if (!eventId || !endpoint) {
+    return { message: 'missing_endpoint' }
+  }
+  const { error } = await supabase.rpc('cancel_event_reminder', {
+    p_event_id: eventId,
+    p_endpoint: endpoint,
+  })
   return error
 }
 
-/** Dispara lembretes devidos no servidor (funciona mesmo com a app fechada noutros dispositivos). */
+/** Dispara lembretes devidos no servidor (app fechada noutros dispositivos). */
 export async function processDueReminders() {
   try {
     await supabase.functions.invoke('send-push', {

@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
+import { parseLocalReminderValue } from '../lib/datetime'
 import { processDueReminders } from '../lib/reminders'
+
+export { eventDateTime } from '../lib/datetime'
 
 const FAV_KEY = 'fbv-favorites'
 const REM_KEY = 'fbv-reminders'
@@ -107,20 +110,26 @@ export function useReminderTicker(t) {
       const now = Date.now()
       for (const [id, raw] of Object.entries(map)) {
         const localOnly = String(raw).startsWith('local:')
-        const iso = localOnly ? String(raw).slice(6) : String(raw)
+        const parsedLocal = localOnly ? parseLocalReminderValue(raw) : null
+        const iso = localOnly ? parsedLocal.whenIso : String(raw)
         const ts = new Date(iso).getTime()
         if (Number.isNaN(ts)) {
           clearReminder(id)
           continue
         }
 
-        // Servidor: limpar UI um pouco depois da hora (o push já foi / vai ser enviado)
+        // Servidor: limpar UI só muito depois da hora (dá tempo ao worker enviar)
         if (!localOnly) {
-          if (ts <= now - 2 * 60 * 1000) clearReminder(id)
+          if (ts <= now - 60 * 60 * 1000) clearReminder(id)
           continue
         }
 
         if (ts > now) continue
+        const dia = parsedLocal?.dia
+        const url = dia
+          ? `/?dia=${encodeURIComponent(dia)}&evento=${encodeURIComponent(id)}`
+          : `/?evento=${encodeURIComponent(id)}`
+        let shown = false
         try {
           if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
             const reg = await navigator.serviceWorker.ready
@@ -128,13 +137,14 @@ export function useReminderTicker(t) {
               body: t.reminders?.body || 'Um evento das festas está prestes a começar.',
               icon: '/icon-192.png',
               tag: `fbv-local-${id}`,
-              data: { url: `/?evento=${id}` },
+              data: { url },
             })
+            shown = true
           }
         } catch {
-          /* ignore */
+          /* ignore — manter lembrete para retry */
         }
-        clearReminder(id)
+        if (shown) clearReminder(id)
       }
     }
 
@@ -162,12 +172,4 @@ export function useOnline() {
     }
   }, [])
   return online
-}
-
-/** Combina dia + hora do evento num Date local. */
-export function eventDateTime(dia, hora) {
-  const [hh, mm] = String(hora).split(':').map((n) => parseInt(n, 10))
-  const d = new Date(`${dia}T00:00:00`)
-  d.setHours(hh || 0, mm || 0, 0, 0)
-  return d
 }

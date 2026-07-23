@@ -20,12 +20,25 @@ const PLACE_ALIASES = {
   'Avenida D. Manuel I': '38.753737,-8.965142',
   'Avenida Dom Manuel I': '38.753737,-8.965142',
   'Av. Dom Manuel I': '38.753737,-8.965142',
+  'Rua da Quebrada': '38.755386,-8.963509',
+  'Rua José André dos Santos': '38.755115,-8.962691',
+  'Rua João de Deus': '38.755521,-8.961591',
+  'Largo da Revolução 1910': '38.755835,-8.96148',
+  'Largo da Revolução de 1910': '38.755835,-8.96148',
+  'Largo de S. João': '38.756038,-8.960828',
+  'Largo de São João': '38.756038,-8.960828',
+  'Av. 5 de Outubro': '38.756045,-8.956002',
+  'Avenida 5 de Outubro': '38.756045,-8.956002',
+  'O Forcado': '38.755314,-8.962095',
+  'Largo João da Horta': '38.755314,-8.962095',
+  'Largo da República': '38.755822,-8.962264',
   'em frente à sede': '38.755349,-8.963055',
   'Sede do Aposento do Barrete Verde': '38.755349,-8.963055',
   'junto à Igreja Matriz': '38.756124,-8.960280',
   'junto ao Pavilhão Municipal de Alcochete': '38.747627,-8.967168',
   'Jardim do Rossio': '38.754176,-8.964545',
   'Antigo Armazém das Filmagens': '38.755190,-8.963924',
+  'Instalações Sanitárias Públicas': '38.756166,-8.959483',
   'Nacional 119': '38.755608,-8.95553',
   'EN 119': '38.755608,-8.95553',
   'N 119': '38.755608,-8.95553',
@@ -69,9 +82,9 @@ export function parseLocations(local) {
   }
 
   const hasComma = trimmed.includes(',')
-  const hasStreetAnd = /\s+e\s+(?=Av\.|Avenida|Rua|Largo|Praça|Nacional|EN\b)/i.test(
-    trimmed
-  )
+  const andSplit =
+    /\s+e\s+(?=Av\.|Avenida|Rua|Largo|Praça|Nacional|EN\b|O Forcado|Coreto)/i
+  const hasStreetAnd = andSplit.test(trimmed)
 
   if (!hasComma && !hasStreetAnd) {
     return [trimmed]
@@ -82,7 +95,7 @@ export function parseLocations(local) {
 
   for (const part of byComma) {
     const sub = part
-      .split(/\s+e\s+(?=Av\.|Avenida|Rua|Largo|Praça|Nacional|EN\b)/i)
+      .split(andSplit)
       .map((s) => s.trim())
       .filter(Boolean)
     streets.push(...sub)
@@ -104,6 +117,16 @@ function mapsQuery(place) {
   const resolved = mapsPlace(place)
   if (isLatLng(resolved) || /Alcochete/i.test(resolved)) return resolved
   return `${resolved}, Alcochete`
+}
+
+/** Direcções a pé até um ponto (origem = localização actual do Maps). */
+export function mapsWalkToUrl(lat, lng) {
+  const params = new URLSearchParams({
+    api: '1',
+    destination: `${lat},${lng}`,
+    travelmode: 'walking',
+  })
+  return `https://www.google.com/maps/dir/?${params.toString()}`
 }
 
 /** Percurso Google Maps: origem → waypoints → destino */

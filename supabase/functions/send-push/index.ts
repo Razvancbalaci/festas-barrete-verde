@@ -1,6 +1,9 @@
 // Supabase Edge Function: send-push
 // Deploy: supabase functions deploy send-push --no-verify-jwt
 // Secrets: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (mailto:...)
+// Opcional: ADMIN_EMAILS=email1@...,email2@... (obrigatório para broadcast)
+// Opcional: CRON_SECRET — se definido, processReminders exige header x-cron-secret
+//           OU um utilizador autenticado (admin).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import webpush from 'npm:web-push@3.6.7'
@@ -8,7 +11,15 @@ import webpush from 'npm:web-push@3.6.7'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type',
+    'authorization, x-client-info, apikey, content-type, x-cron-secret',
+}
+
+function sanitizeAppPath(url) {
+  const raw = String(url || '/').trim() || '/'
+  if (!raw.startsWith('/') || raw.startsWith('//')) return '/'
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw)) return '/'
+  if (!/^\/[\w\-./?&=%+#@,~]*$/i.test(raw)) return '/'
+  return raw.slice(0, 500)
 }
 
 function vapidReady() {
@@ -28,9 +39,9 @@ async function pushOne(sub, title, body, url = '/') {
       keys: { p256dh: sub.p256dh, auth: sub.auth },
     },
     JSON.stringify({
-      title: title.trim(),
-      body: body.trim(),
-      url: url || '/',
+      title: String(title || '').trim().slice(0, 120),
+      body: String(body || '').trim().slice(0, 280),
+      url: sanitizeAppPath(url),
     }),
     {
       TTL: 60 * 60 * 12,
@@ -175,6 +186,23 @@ async function requireUser(req, supabaseUrl, supabaseAnon) {
   return user
 }
 
+function isAllowedAdmin(user) {
+  const raw = Deno.env.get('ADMIN_EMAILS') || ''
+  const allow = raw
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+  if (!allow.length) return false
+  const email = String(user?.email || '').toLowerCase()
+  return Boolean(email && allow.includes(email))
+}
+
+function cronAuthorized(req) {
+  const secret = Deno.env.get('CRON_SECRET')
+  if (!secret) return false
+  return req.headers.get('x-cron-secret') === secret
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -188,8 +216,20 @@ Deno.serve(async (req) => {
 
     const payload = await req.json().catch(() => ({}))
 
-    // Público (anon): processar lembretes devidos — qualquer visita à app ajuda a disparar
+    // processReminders: se CRON_SECRET estiver definido, exige esse header ou admin.
+    // Sem CRON_SECRET: permite o ticker da app (só processa due; não lê dados sensíveis para o cliente).
     if (payload.processReminders) {
+      const cronConfigured = Boolean(Deno.env.get('CRON_SECRET'))
+      if (cronConfigured) {
+        const user = await requireUser(req, supabaseUrl, supabaseAnon)
+        if (!cronAuthorized(req) && !isAllowedAdmin(user)) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+      }
+
       const rem = await processEventReminders(admin)
       return new Response(JSON.stringify({ ok: true, reminders: rem }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -197,7 +237,7 @@ Deno.serve(async (req) => {
     }
 
     const user = await requireUser(req, supabaseUrl, supabaseAnon)
-    if (!user) {
+    if (!user || !isAllowedAdmin(user)) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -227,7 +267,12 @@ Deno.serve(async (req) => {
       })
     }
 
-    const result = await sendToAll(admin, title, body, url)
+    const result = await sendToAll(
+      admin,
+      String(title).slice(0, 120),
+      String(body).slice(0, 500),
+      sanitizeAppPath(url)
+    )
 
     return new Response(JSON.stringify({ ok: true, ...result }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

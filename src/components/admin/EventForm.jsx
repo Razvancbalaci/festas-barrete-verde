@@ -124,7 +124,7 @@ export default function EventForm({ event, onSave, onCancel, t, uiT }) {
         </label>
 
         <label className="mb-3 block">
-          <span className="mb-1 block text-sm font-medium">{t.subtitle}</span>
+          <span className="mb-1 block text-sm font-medium">{t.eventSubtitle}</span>
           <input
             type="text"
             value={form.subtitulo}

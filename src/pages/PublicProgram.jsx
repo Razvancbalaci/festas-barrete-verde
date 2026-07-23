@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { MapPin, Search, Star, X } from 'lucide-react'
 import { FESTIVAL_DAYS } from '../data/days'
@@ -6,41 +6,19 @@ import {
   eventMatchesPlace,
   getMapPlace,
 } from '../data/mapPlaces'
+import {
+  findNextOrCurrentEvent,
+  localDateIso,
+  sortEvents,
+} from '../lib/datetime'
 import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LangContext'
-import { eventDateTime, useFavorites } from '../hooks/useLocalExtras'
+import { useFavorites } from '../hooks/useLocalExtras'
 import Header from '../components/Header'
 import DayTabs from '../components/DayTabs'
 import CategoryFilter from '../components/CategoryFilter'
 import EventList from '../components/EventList'
 import Footer from '../components/Footer'
-
-/** Ordena horas no formato HH:MM; trata madrugada (00–05) como depois da noite */
-function timeSortKey(hora) {
-  const match = String(hora).match(/(\d{1,2}):(\d{2})/)
-  if (!match) return 0
-  let h = parseInt(match[1], 10)
-  const m = parseInt(match[2], 10)
-  if (h >= 0 && h < 6) h += 24
-  return h * 60 + m
-}
-
-function sortEvents(list) {
-  return [...(list || [])].sort((a, b) => {
-    const d = String(a.dia).localeCompare(String(b.dia))
-    if (d !== 0) return d
-    const tDiff = timeSortKey(a.hora) - timeSortKey(b.hora)
-    if (tDiff !== 0) return tDiff
-    return (a.ordem ?? 0) - (b.ordem ?? 0)
-  })
-}
-
-function defaultDay() {
-  const today = new Date()
-  const iso = today.toISOString().slice(0, 10)
-  const found = FESTIVAL_DAYS.find((d) => d.date === iso)
-  return found ? found.date : FESTIVAL_DAYS[0].date
-}
 
 function eventMatchesQuery(event, q) {
   if (!q) return true
@@ -51,23 +29,9 @@ function eventMatchesQuery(event, q) {
   return hay.includes(q)
 }
 
-/** Evento em curso (~90 min) ou o próximo ainda por começar. */
-function findNextOrCurrentEvent(events, now = new Date()) {
-  if (!events.length) return null
-  let current = null
-  let next = null
-  for (const e of events) {
-    const start = eventDateTime(e.dia, e.hora)
-    const end = new Date(start.getTime() + 90 * 60 * 1000)
-    if (now >= start && now <= end) {
-      current = e
-      break
-    }
-    if (start > now && (!next || start < eventDateTime(next.dia, next.hora))) {
-      next = e
-    }
-  }
-  return current || next || null
+function defaultDay(todayIso) {
+  const found = FESTIVAL_DAYS.find((d) => d.date === todayIso)
+  return found ? found.date : FESTIVAL_DAYS[0].date
 }
 
 export default function PublicProgram() {
@@ -79,14 +43,18 @@ export default function PublicProgram() {
   const paramEvento = searchParams.get('evento')
   const paramLocal = searchParams.get('local')
 
-  const placeFilter = useMemo(
-    () => (paramLocal ? getMapPlace(paramLocal) : null),
-    [paramLocal]
-  )
+  const placeFilter = useMemo(() => {
+    if (!paramLocal) return null
+    const place = getMapPlace(paramLocal)
+    // Pins sem matchTerms (ex. WC) não activam filtro de programa
+    if (!place?.matchTerms?.length) return null
+    return place
+  }, [paramLocal])
 
+  const [todayIso, setTodayIso] = useState(() => localDateIso())
   const [selectedDate, setSelectedDate] = useState(() => {
     if (paramDia && FESTIVAL_DAYS.some((d) => d.date === paramDia)) return paramDia
-    return defaultDay()
+    return defaultDay(localDateIso())
   })
   const [category, setCategory] = useState(null)
   const [query, setQuery] = useState('')
@@ -95,14 +63,94 @@ export default function PublicProgram() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [highlightId, setHighlightId] = useState(paramEvento)
+  const [eventDiaResolved, setEventDiaResolved] = useState(
+    () => !(paramEvento && !paramDia)
+  )
+  const fetchGen = useRef(0)
 
-  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const needsEventDayResolve = Boolean(
+    paramEvento && !paramDia && !placeFilter && !favoritesOnly
+  )
+
   const todayInFestival = FESTIVAL_DAYS.some((d) => d.date === todayIso)
 
   const dayMeta = useMemo(
     () => FESTIVAL_DAYS.find((d) => d.date === selectedDate),
     [selectedDate]
   )
+
+  // Data local «Hoje» — actualiza à meia-noite / ao voltar à app
+  useEffect(() => {
+    const refresh = () => setTodayIso(localDateIso())
+    const id = window.setInterval(refresh, 60_000)
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('focus', refresh)
+    return () => {
+      window.clearInterval(id)
+      document.removeEventListener('visibilitychange', refresh)
+      window.removeEventListener('focus', refresh)
+    }
+  }, [])
+
+  // `?local=` inválido → limpar da URL
+  useEffect(() => {
+    if (!paramLocal || placeFilter) return
+    const next = new URLSearchParams(searchParams)
+    next.delete('local')
+    setSearchParams(next, { replace: true })
+  }, [paramLocal, placeFilter, searchParams, setSearchParams])
+
+  // Entrar pelo mapa: desligar favoritos / Agora
+  useEffect(() => {
+    if (!placeFilter) return
+    setFavoritesOnly(false)
+    setShowNow(false)
+  }, [placeFilter])
+
+  // Sincronizar dia com a URL (Back/Forward, links partilhados)
+  useEffect(() => {
+    if (placeFilter || favoritesOnly) return
+    if (paramDia && FESTIVAL_DAYS.some((d) => d.date === paramDia)) {
+      setSelectedDate((prev) => (prev === paramDia ? prev : paramDia))
+    }
+  }, [paramDia, placeFilter, favoritesOnly])
+
+  // Deep link `?evento=` sem `dia` → resolver o dia no servidor antes de listar
+  useEffect(() => {
+    if (!paramEvento || paramDia || placeFilter || favoritesOnly) {
+      setEventDiaResolved(true)
+      return
+    }
+    setEventDiaResolved(false)
+    let cancelled = false
+    ;(async () => {
+      const { data, error } = await supabase
+        .from('eventos')
+        .select('dia')
+        .eq('id', paramEvento)
+        .maybeSingle()
+      if (cancelled) return
+      if (error || !data?.dia || !FESTIVAL_DAYS.some((d) => d.date === data.dia)) {
+        setEventDiaResolved(true)
+        return
+      }
+      setSelectedDate(data.dia)
+      const next = new URLSearchParams(searchParams)
+      next.set('dia', data.dia)
+      setSearchParams(next, { replace: true })
+      setEventDiaResolved(true)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [
+    paramEvento,
+    paramDia,
+    placeFilter,
+    favoritesOnly,
+    searchParams,
+    setSearchParams,
+  ])
 
   const clearPlaceFilter = useCallback(() => {
     const next = new URLSearchParams(searchParams)
@@ -145,22 +193,32 @@ export default function PublicProgram() {
   const favKey = favIds.join(',')
 
   const fetchEvents = useCallback(async () => {
+    if (needsEventDayResolve && !eventDiaResolved) {
+      setLoading(true)
+      return
+    }
+
+    const gen = ++fetchGen.current
     setLoading(true)
+
+    const apply = (list) => {
+      if (gen !== fetchGen.current) return
+      setEvents(sortEvents(list))
+      setLoading(false)
+    }
 
     if (favoritesOnly) {
       if (!favIds.length) {
-        setEvents([])
-        setLoading(false)
+        apply([])
         return
       }
       const { data, error } = await supabase.from('eventos').select('*').in('id', favIds)
       if (error) {
         console.error(error)
-        setEvents([])
+        apply([])
       } else {
-        setEvents(sortEvents(data))
+        apply(data)
       }
-      setLoading(false)
       return
     }
 
@@ -173,13 +231,10 @@ export default function PublicProgram() {
         .in('dia', days)
       if (error) {
         console.error(error)
-        setEvents([])
+        apply([])
       } else {
-        setEvents(
-          sortEvents((data || []).filter((e) => eventMatchesPlace(e, placeFilter)))
-        )
+        apply((data || []).filter((e) => eventMatchesPlace(e, placeFilter)))
       }
-      setLoading(false)
       return
     }
 
@@ -190,13 +245,19 @@ export default function PublicProgram() {
 
     if (error) {
       console.error(error)
-      setEvents([])
+      apply([])
     } else {
-      setEvents(sortEvents(data))
+      apply(data)
     }
-    setLoading(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- favIds via favKey
-  }, [selectedDate, favoritesOnly, favKey, placeFilter])
+  }, [
+    selectedDate,
+    favoritesOnly,
+    favKey,
+    placeFilter,
+    needsEventDayResolve,
+    eventDiaResolved,
+  ])
 
   useEffect(() => {
     fetchEvents()
@@ -359,7 +420,13 @@ export default function PublicProgram() {
           loading={loading}
           hasFilter={hasExtraFilter}
           favoritesEmpty={favoritesOnly && favIds.length === 0}
-          placeEmpty={Boolean(placeFilter) && !loading && filtered.length === 0 && !query.trim() && !category}
+          placeEmpty={
+            Boolean(placeFilter) &&
+            !loading &&
+            filtered.length === 0 &&
+            !query.trim() &&
+            !category
+          }
           highlightId={highlightId}
           groupByDay={Boolean(placeFilter || favoritesOnly)}
         />

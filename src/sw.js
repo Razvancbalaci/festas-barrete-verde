@@ -56,7 +56,19 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const url = event.notification.data?.url || '/'
+  const origin = self.location.origin
+  let path = event.notification.data?.url || '/'
+  try {
+    if (typeof path === 'string' && /^https?:\/\//i.test(path)) {
+      const u = new URL(path)
+      path = u.origin === origin ? `${u.pathname}${u.search}${u.hash}` : '/'
+    }
+  } catch {
+    path = '/'
+  }
+  if (!path.startsWith('/') || path.startsWith('//')) path = '/'
+  const url = new URL(path, origin).href
+
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {

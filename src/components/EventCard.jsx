@@ -17,6 +17,7 @@ import {
   useFavorites,
   useReminders,
 } from '../hooks/useLocalExtras'
+import { formatLocalReminderValue } from '../lib/datetime'
 import {
   cancelServerReminder,
   ensurePushForReminders,
@@ -194,15 +195,31 @@ export default function EventCard({ event, index, highlighted }) {
     setRemindBusy(true)
     try {
       if (reminderAt) {
+        if (String(reminderAt).startsWith('local:')) {
+          clearReminder(event.id)
+          return
+        }
         const endpoint = await getCurrentPushEndpoint()
-        await cancelServerReminder(event.id, endpoint)
+        if (!endpoint) {
+          window.alert(t.remindCancelError || t.remindNeedPermission)
+          return
+        }
+        const err = await cancelServerReminder(event.id, endpoint)
+        if (err) {
+          console.error(err)
+          window.alert(t.remindCancelError || t.remindNeedPermission)
+          return
+        }
         clearReminder(event.id)
         return
       }
 
       const start = eventDateTime(event.dia, event.hora)
       const when = new Date(start.getTime() - 30 * 60 * 1000)
-      if (when.getTime() <= Date.now()) return
+      if (when.getTime() <= Date.now()) {
+        window.alert(t.remindTooSoon || t.remindNeedPermission)
+        return
+      }
 
       const ready = await ensurePushForReminders()
       if (!ready.ok) {
@@ -233,7 +250,10 @@ export default function EventCard({ event, index, highlighted }) {
 
       if (err) {
         console.error(err)
-        setReminder(event.id, `local:${when.toISOString()}`)
+        setReminder(
+          event.id,
+          formatLocalReminderValue(when.toISOString(), event.dia)
+        )
         window.alert(t.remindLocalOnly || t.remindOn)
         return
       }

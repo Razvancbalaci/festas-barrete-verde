@@ -38,12 +38,17 @@ export default function FeedbackForm({ open, onClose }) {
       setError(f.required)
       return
     }
+    if (mensagem.length > 2000) {
+      setError(f.error)
+      return
+    }
     setSending(true)
     setError(null)
+    const contactoRaw = form.contacto.trim().slice(0, 200)
     const { error: err } = await supabase.from('feedback').insert({
-      tipo: form.tipo,
-      mensagem,
-      contacto: form.contacto.trim() || null,
+      tipo: form.tipo === 'problema' ? 'problema' : 'sugestao',
+      mensagem: mensagem.slice(0, 2000),
+      contacto: contactoRaw || null,
     })
     setSending(false)
     if (err) {

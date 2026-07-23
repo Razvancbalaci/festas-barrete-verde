@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Bell, BellRing, X } from 'lucide-react'
 import { useLang } from '../context/LangContext'
-import { supabase } from '../lib/supabase'
+import { savePushSubscription } from '../lib/reminders'
 import { pushSupported, urlBase64ToUint8Array, isAndroid, isInAppBrowser } from '../lib/push'
 
 const DISMISS_KEY = 'fbv-notify-dismissed'
@@ -19,35 +19,6 @@ function isStandalone() {
     window.matchMedia('(display-mode: standalone)').matches ||
     window.navigator.standalone === true
   )
-}
-
-async function saveSubscription(json) {
-  const row = {
-    endpoint: json.endpoint,
-    p256dh: json.keys?.p256dh,
-    auth: json.keys?.auth,
-    user_agent: navigator.userAgent,
-  }
-
-  // Preferir insert; se já existir, atualizar (evita falhas de upsert sem SELECT)
-  const { error: insertError } = await supabase.from('push_subscriptions').insert(row)
-
-  if (!insertError) return null
-
-  // unique_violation → já subscrito
-  if (insertError.code === '23505') {
-    const { error: updateError } = await supabase
-      .from('push_subscriptions')
-      .update({
-        p256dh: row.p256dh,
-        auth: row.auth,
-        user_agent: row.user_agent,
-      })
-      .eq('endpoint', row.endpoint)
-    return updateError
-  }
-
-  return insertError
 }
 
 export default function NotifyPrompt() {
@@ -100,8 +71,8 @@ export default function NotifyPrompt() {
             applicationServerKey: urlBase64ToUint8Array(vapid),
           })
         }
-        const err = await saveSubscription(sub.toJSON())
-        return !err
+        const saved = await savePushSubscription(sub.toJSON())
+        return saved.ok
       } catch {
         return false
       }
@@ -202,11 +173,11 @@ export default function NotifyPrompt() {
         throw new Error('Subscription keys missing')
       }
 
-      const saveError = await saveSubscription(json)
-      if (saveError) {
-        console.error('push_subscriptions save:', saveError)
+      const saved = await savePushSubscription(json)
+      if (!saved.ok) {
+        console.error('push_subscriptions save:', saved.error)
         setStatus('error')
-        setErrorDetail(saveError.message || saveError.code || 'db')
+        setErrorDetail(saved.error?.message || saved.error?.code || 'db')
         return
       }
 

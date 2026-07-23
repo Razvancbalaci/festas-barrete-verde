@@ -1,3 +1,5 @@
+import { isRouteMapEvent, isStreetBullEvent, parseLocations } from '../lib/locations'
+
 /**
  * Pontos do mapa geral das festas (Leaflet).
  * Coordenadas: preferência a GPS dados pelo projecto / Nominatim / fontes oficiais.
@@ -35,7 +37,7 @@ export const MAP_PLACES = [
     lat: 38.747627,
     lng: -8.967168,
     kind: 'ponto',
-    matchTerms: ['Pavilhão Municipal', 'Pavilhão'],
+    matchTerms: ['Pavilhão Municipal'],
   },
   {
     id: 'rossio',
@@ -62,7 +64,7 @@ export const MAP_PLACES = [
     lat: 38.755822,
     lng: -8.962264,
     kind: 'palco',
-    matchTerms: ['Palco Salineiro', 'Largo da República'],
+    matchTerms: ['Palco Salineiro'],
   },
   {
     id: 'forcado',
@@ -71,7 +73,7 @@ export const MAP_PLACES = [
     lat: 38.755314,
     lng: -8.962095,
     kind: 'palco',
-    matchTerms: ['Palco Forcado', 'Largo João da Horta', 'O Forcado'],
+    matchTerms: ['Palco Forcado'],
   },
   {
     id: 'sjoao',
@@ -80,13 +82,7 @@ export const MAP_PLACES = [
     lat: 38.756038,
     lng: -8.960828,
     kind: 'palco',
-    matchTerms: [
-      'Palco S. João',
-      'Palco São João',
-      'Palco S.João',
-      'Largo de S. João',
-      'Largo de São João',
-    ],
+    matchTerms: ['Palco S. João', 'Palco São João', 'Palco S.João'],
   },
   {
     id: 'coreto',
@@ -95,7 +91,7 @@ export const MAP_PLACES = [
     lat: 38.756493,
     lng: -8.959684,
     kind: 'palco',
-    matchTerms: ['Palco Coreto', 'Coreto'],
+    matchTerms: ['Palco Coreto'],
   },
   {
     id: 'praca',
@@ -104,13 +100,7 @@ export const MAP_PLACES = [
     lat: PRACA_TOUROS.lat,
     lng: PRACA_TOUROS.lng,
     kind: 'toiros',
-    matchTerms: [
-      'Praça de Touros',
-      'Nacional 119',
-      'N119',
-      'EN 119',
-      'N 119',
-    ],
+    matchTerms: ['Praça de Touros'],
   },
   {
     id: 'feira',
@@ -119,7 +109,16 @@ export const MAP_PLACES = [
     lat: 38.750396,
     lng: -8.968931,
     kind: 'feira',
-    matchTerms: ['Feira', 'Carrosséis', 'Carrosseis'],
+    matchTerms: ['Feira dos Carrosséis', 'Carrosséis', 'Carrosseis'],
+  },
+  {
+    id: 'wc-publico',
+    nameKey: 'wcPublico',
+    name: 'Instalações Sanitárias Públicas',
+    lat: 38.756166,
+    lng: -8.959483,
+    kind: 'wc',
+    matchTerms: [],
   },
 ]
 
@@ -127,11 +126,55 @@ export function getMapPlace(id) {
   return MAP_PLACES.find((p) => p.id === id) || null
 }
 
-/** Evento associado a um ponto do mapa (local / título). */
+/** Match de termo com limites aproximados de palavra (evita "ao forcado" ⊃ "o forcado"). */
+export function includesTerm(hay, term) {
+  if (!hay || !term) return false
+  const h = String(hay).toLowerCase()
+  const t = String(term).toLowerCase()
+  let idx = 0
+  while ((idx = h.indexOf(t, idx)) !== -1) {
+    const before = idx === 0 ? ' ' : h[idx - 1]
+    const after = idx + t.length >= h.length ? ' ' : h[idx + t.length]
+    const border = /[^\p{L}\p{N}]/u
+    if (border.test(before) && border.test(after)) return true
+    idx += 1
+  }
+  return false
+}
+
+function isVenueTerm(term) {
+  return /palco|pavilh[aã]o municipal|armaz[eé]m|sede|igreja|rossio|feira dos|carross|pra[cç]a de touros|filmagens/i.test(
+    term
+  )
+}
+
+/**
+ * Evento associado a um ponto do mapa.
+ * Prefere `local`; título só para termos de venue claros.
+ * Rotas de toiros (várias ruas) não associam a um palco só porque a rua passa lá.
+ */
 export function eventMatchesPlace(event, place) {
   if (!place?.matchTerms?.length) return false
-  const hay = `${event.local || ''} ${event.titulo || ''}`.toLowerCase()
-  return place.matchTerms.some((term) => hay.includes(String(term).toLowerCase()))
+
+  const local = event.local || ''
+  const title = event.titulo || ''
+  const streets = parseLocations(local)
+  const routeLike =
+    isRouteMapEvent(event) ||
+    (isStreetBullEvent(event) && streets.length >= 2) ||
+    streets.length >= 3
+
+  if (routeLike && (place.kind === 'palco' || place.kind === 'toiros')) {
+    return place.matchTerms.some(
+      (term) => isVenueTerm(term) && includesTerm(local, term)
+    )
+  }
+
+  return place.matchTerms.some((term) => {
+    if (includesTerm(local, term)) return true
+    if (isVenueTerm(term) && includesTerm(title, term)) return true
+    return false
+  })
 }
 
 /** Percurso das entradas (vias do cartaz → Nominatim / GPS do projecto). */
