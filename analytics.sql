@@ -101,6 +101,11 @@ declare
   result jsonb;
   today_lisbon date;
   yesterday_lisbon date;
+  push_total int := 0;
+  push_active int := 0;
+  has_active_col boolean := false;
+  recent_sends jsonb := '[]'::jsonb;
+  reminders_pending int := 0;
 begin
   if auth.role() <> 'authenticated' then
     raise exception 'unauthorized';
@@ -110,6 +115,56 @@ begin
   since := now() - (p_days || ' days')::interval;
   today_lisbon := (now() at time zone 'Europe/Lisbon')::date;
   yesterday_lisbon := today_lisbon - 1;
+
+  select count(*)::int into push_total from push_subscriptions;
+
+  select exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'push_subscriptions'
+      and column_name = 'active'
+  ) into has_active_col;
+
+  if has_active_col then
+    execute $q$
+      select count(*)::int from push_subscriptions where coalesce(active, true) = true
+    $q$ into push_active;
+  else
+    push_active := push_total;
+  end if;
+
+  if to_regclass('public.push_schedules') is not null then
+    execute $q$
+      select coalesce(
+        (
+          select jsonb_agg(
+            jsonb_build_object(
+              'title', title,
+              'body', left(body, 140),
+              'sent_at', sent_at,
+              'status', status
+            )
+            order by sent_at desc
+          )
+          from (
+            select title, body, sent_at, status
+            from push_schedules
+            where status = 'sent' and sent_at is not null
+            order by sent_at desc
+            limit 5
+          ) ps
+        ),
+        '[]'::jsonb
+      )
+    $q$ into recent_sends;
+  end if;
+
+  if to_regclass('public.event_reminders') is not null then
+    execute $q$
+      select count(*)::int from event_reminders where sent_at is null
+    $q$ into reminders_pending;
+  end if;
 
   select jsonb_build_object(
     'days', p_days,
@@ -352,28 +407,9 @@ begin
         limit 10
       ) w
     ), '[]'::jsonb),
-    'push_subscribers', (select count(*) from push_subscriptions),
-    'push_subscribers_active', (
-      select count(*) from push_subscriptions where coalesce(active, true) = true
-    ),
-    'recent_push_sends', coalesce((
-      select jsonb_agg(
-        jsonb_build_object(
-          'title', title,
-          'body', left(body, 140),
-          'sent_at', sent_at,
-          'status', status
-        )
-        order by sent_at desc
-      )
-      from (
-        select title, body, sent_at, status
-        from push_schedules
-        where status = 'sent' and sent_at is not null
-        order by sent_at desc
-        limit 5
-      ) ps
-    ), '[]'::jsonb),
+    'push_subscribers', push_total,
+    'push_subscribers_active', push_active,
+    'recent_push_sends', coalesce(recent_sends, '[]'::jsonb),
     'summary', jsonb_build_object(
       'today', jsonb_build_object(
         'day', today_lisbon,
@@ -444,9 +480,7 @@ begin
         )
       )
     ),
-    'reminders_active', (
-      select count(*) from event_reminders where sent_at is null
-    ),
+    'reminders_active', reminders_pending,
     'feedback_total', (select count(*) from feedback),
     'feedback_unread', (select count(*) from feedback where not lido),
     'feedback_by_type', coalesce((

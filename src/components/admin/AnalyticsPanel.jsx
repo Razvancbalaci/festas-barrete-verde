@@ -143,7 +143,8 @@ export default function AnalyticsPanel({ t, events = [] }) {
     })
     if (err) {
       console.error(err)
-      setError(a.errorLoad)
+      const detail = [err.message, err.details, err.hint].filter(Boolean).join(' — ')
+      setError(detail ? `${a.errorLoad} (${detail})` : a.errorLoad)
       setData(null)
     } else {
       setData(dash)
