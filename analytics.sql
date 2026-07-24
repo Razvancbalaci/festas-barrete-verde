@@ -99,6 +99,8 @@ as $$
 declare
   since timestamptz;
   result jsonb;
+  today_lisbon date;
+  yesterday_lisbon date;
 begin
   if auth.role() <> 'authenticated' then
     raise exception 'unauthorized';
@@ -106,6 +108,8 @@ begin
 
   p_days := greatest(1, least(coalesce(p_days, 14), 90));
   since := now() - (p_days || ' days')::interval;
+  today_lisbon := (now() at time zone 'Europe/Lisbon')::date;
+  yesterday_lisbon := today_lisbon - 1;
 
   select jsonb_build_object(
     'days', p_days,
@@ -349,6 +353,97 @@ begin
       ) w
     ), '[]'::jsonb),
     'push_subscribers', (select count(*) from push_subscriptions),
+    'push_subscribers_active', (
+      select count(*) from push_subscriptions where coalesce(active, true) = true
+    ),
+    'recent_push_sends', coalesce((
+      select jsonb_agg(
+        jsonb_build_object(
+          'title', title,
+          'body', left(body, 140),
+          'sent_at', sent_at,
+          'status', status
+        )
+        order by sent_at desc
+      )
+      from (
+        select title, body, sent_at, status
+        from push_schedules
+        where status = 'sent' and sent_at is not null
+        order by sent_at desc
+        limit 5
+      ) ps
+    ), '[]'::jsonb),
+    'summary', jsonb_build_object(
+      'today', jsonb_build_object(
+        'day', today_lisbon,
+        'sessions', (
+          select count(distinct session_id) from analytics_events
+          where event_name = 'page_view'
+            and (created_at at time zone 'Europe/Lisbon')::date = today_lisbon
+        ),
+        'page_views', (
+          select count(*) from analytics_events
+          where event_name = 'page_view'
+            and (created_at at time zone 'Europe/Lisbon')::date = today_lisbon
+        ),
+        'pwa_sessions', (
+          select count(distinct session_id) from analytics_events
+          where event_name = 'page_view'
+            and (created_at at time zone 'Europe/Lisbon')::date = today_lisbon
+            and coalesce(payload->>'standalone', 'false') = 'true'
+        ),
+        'reminders_set', (
+          select count(*) from analytics_events
+          where event_name = 'reminder_set'
+            and (created_at at time zone 'Europe/Lisbon')::date = today_lisbon
+        ),
+        'shares', (
+          select count(*) from analytics_events
+          where event_name = 'share'
+            and (created_at at time zone 'Europe/Lisbon')::date = today_lisbon
+        ),
+        'push_enables', (
+          select count(*) from analytics_events
+          where event_name = 'push_prompt_enable'
+            and (created_at at time zone 'Europe/Lisbon')::date = today_lisbon
+        )
+      ),
+      'yesterday', jsonb_build_object(
+        'day', yesterday_lisbon,
+        'sessions', (
+          select count(distinct session_id) from analytics_events
+          where event_name = 'page_view'
+            and (created_at at time zone 'Europe/Lisbon')::date = yesterday_lisbon
+        ),
+        'page_views', (
+          select count(*) from analytics_events
+          where event_name = 'page_view'
+            and (created_at at time zone 'Europe/Lisbon')::date = yesterday_lisbon
+        ),
+        'pwa_sessions', (
+          select count(distinct session_id) from analytics_events
+          where event_name = 'page_view'
+            and (created_at at time zone 'Europe/Lisbon')::date = yesterday_lisbon
+            and coalesce(payload->>'standalone', 'false') = 'true'
+        ),
+        'reminders_set', (
+          select count(*) from analytics_events
+          where event_name = 'reminder_set'
+            and (created_at at time zone 'Europe/Lisbon')::date = yesterday_lisbon
+        ),
+        'shares', (
+          select count(*) from analytics_events
+          where event_name = 'share'
+            and (created_at at time zone 'Europe/Lisbon')::date = yesterday_lisbon
+        ),
+        'push_enables', (
+          select count(*) from analytics_events
+          where event_name = 'push_prompt_enable'
+            and (created_at at time zone 'Europe/Lisbon')::date = yesterday_lisbon
+        )
+      )
+    ),
     'reminders_active', (
       select count(*) from event_reminders where sent_at is null
     ),

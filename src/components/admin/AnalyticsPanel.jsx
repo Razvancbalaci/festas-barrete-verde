@@ -1,12 +1,37 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Loader2, RefreshCw } from 'lucide-react'
+import { Download, Loader2, RefreshCw } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { MAP_PLACES } from '../../data/mapPlaces'
+import { buildAnalyticsCsv, downloadCsv } from '../../lib/analyticsExport'
 
 function formatDay(iso) {
   if (!iso) return '—'
   const [, m, d] = String(iso).split('-')
   return `${d}/${m}`
+}
+
+function formatDelta(todayVal, yesterdayVal, a) {
+  const t = Number(todayVal) || 0
+  const y = Number(yesterdayVal) || 0
+  const d = t - y
+  if (d === 0) return a.vsYesterdaySame
+  if (d > 0) return a.vsYesterdayUp.replace('{n}', String(d))
+  return a.vsYesterdayDown.replace('{n}', String(Math.abs(d)))
+}
+
+function formatSentAt(iso) {
+  if (!iso) return '—'
+  try {
+    return new Date(iso).toLocaleString('pt-PT', {
+      timeZone: 'Europe/Lisbon',
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch {
+    return String(iso)
+  }
 }
 
 function StatCard({ label, value, hint }) {
@@ -131,8 +156,19 @@ export default function AnalyticsPanel({ t, events = [] }) {
   }, [load])
 
   const totals = data?.totals || {}
+  const summary = data?.summary || {}
+  const today = summary.today || {}
+  const yesterday = summary.yesterday || {}
   const eventLabel = (id) => eventTitles[id] || (id ? `${String(id).slice(0, 8)}…` : '—')
   const placeLabel = (id) => placeNames[id] || id || '—'
+
+  const pwaPct =
+    totals.unique_sessions > 0
+      ? Math.round((100 * (totals.pwa_sessions || 0)) / totals.unique_sessions)
+      : 0
+
+  const pushActive = data?.push_subscribers_active
+  const pushTotal = data?.push_subscribers
 
   const hourRows = useMemo(() => {
     const raw = data?.visits_by_hour
@@ -163,6 +199,13 @@ export default function AnalyticsPanel({ t, events = [] }) {
     }))
   }, [data])
 
+  function exportCsv() {
+    if (!data) return
+    const csv = buildAnalyticsCsv(data, { eventLabel, placeLabel, labels: a })
+    const stamp = new Date().toISOString().slice(0, 10)
+    downloadCsv(`festas-analytics-${stamp}.csv`, csv)
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -170,7 +213,7 @@ export default function AnalyticsPanel({ t, events = [] }) {
           <h2 className="font-display text-lg font-semibold text-barrete">{a.title}</h2>
           <p className="mt-0.5 text-sm text-ink/55">{a.subtitle}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <select
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
@@ -180,6 +223,15 @@ export default function AnalyticsPanel({ t, events = [] }) {
             <option value={14}>{a.range14}</option>
             <option value={30}>{a.range30}</option>
           </select>
+          <button
+            type="button"
+            onClick={exportCsv}
+            disabled={!data || loading}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-dourado/90 px-3 py-2 text-sm font-bold text-ink hover:brightness-105 disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
+            {a.exportCsv}
+          </button>
           <button
             type="button"
             onClick={load}
@@ -205,6 +257,100 @@ export default function AnalyticsPanel({ t, events = [] }) {
         </div>
       ) : data ? (
         <>
+          <Section title={a.sectionSummary}>
+            <p className="mb-3 text-xs text-ink/50">{a.summaryHint}</p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              <StatCard
+                label={a.uniqueSessions}
+                value={totals.unique_sessions}
+                hint={
+                  summary.today
+                    ? `${a.todayLabel}: ${today.sessions ?? 0} · ${formatDelta(today.sessions, yesterday.sessions, a)}`
+                    : undefined
+                }
+              />
+              <StatCard
+                label={a.pwaPct}
+                value={`${pwaPct}%`}
+                hint={a.pwaSessionsHint}
+              />
+              <StatCard
+                label={a.pushActive}
+                value={
+                  pushActive == null && pushTotal == null
+                    ? '—'
+                    : pushActive != null && pushTotal != null && pushActive !== pushTotal
+                      ? `${pushActive} / ${pushTotal}`
+                      : (pushActive ?? pushTotal)
+                }
+                hint={a.pushActiveHint}
+              />
+              <StatCard
+                label={a.remindersSet}
+                value={totals.reminders_set}
+                hint={
+                  summary.today
+                    ? `${a.todayLabel}: ${today.reminders_set ?? 0} · ${formatDelta(today.reminders_set, yesterday.reminders_set, a)}`
+                    : undefined
+                }
+              />
+              <StatCard
+                label={a.shares}
+                value={totals.shares}
+                hint={
+                  summary.today
+                    ? `${a.todayLabel}: ${today.shares ?? 0} · ${formatDelta(today.shares, yesterday.shares, a)}`
+                    : undefined
+                }
+              />
+            </div>
+          </Section>
+
+          <Section title={a.sectionPushHealth}>
+            <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatCard label={a.pushShows} value={totals.push_prompt_shows} />
+              <StatCard label={a.pushEnables} value={totals.push_enables} />
+              <StatCard
+                label={a.funnelPush}
+                value={pct(totals.push_enables, totals.push_prompt_shows)}
+              />
+              <StatCard
+                label={a.pushActive}
+                value={pushActive ?? pushTotal ?? '—'}
+                hint={
+                  pushTotal != null
+                    ? `${a.pushSubscribers}: ${pushTotal}`
+                    : undefined
+                }
+              />
+            </div>
+            <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+              <p className="mb-2 text-xs font-medium text-ink/50">{a.recentSends}</p>
+              {(data.recent_push_sends || []).length ? (
+                <ul className="flex flex-col gap-2">
+                  {(data.recent_push_sends || []).map((send, i) => (
+                    <li
+                      key={`${send.sent_at}-${i}`}
+                      className="border-b border-barrete/5 pb-2 last:border-0 last:pb-0"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-semibold text-ink">{send.title}</p>
+                        <time className="shrink-0 text-[0.65rem] text-ink/45">
+                          {formatSentAt(send.sent_at)}
+                        </time>
+                      </div>
+                      {send.body ? (
+                        <p className="mt-0.5 line-clamp-2 text-xs text-ink/55">{send.body}</p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-ink/45">{a.empty}</p>
+              )}
+            </div>
+          </Section>
+
           <Section title={a.sectionVisits}>
             <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <StatCard label={a.totalViews} value={totals.page_views} />
