@@ -188,3 +188,45 @@ export const ENTRADA_ROUTE = [
   [38.756045, -8.956002], // Av. 5 de Outubro
   [PRACA_TOUROS.lat, PRACA_TOUROS.lng], // Praça de Touros
 ]
+
+/**
+ * Recintos das largadas (barreras) — GeoJSON LineString fechada → [lat, lng].
+ * Fonte: traçados do utilizador.
+ */
+export const LARGADA_RECINTOS = [
+  {
+    id: 'largada-quebrada',
+    nameKey: 'recintoQuebrada',
+    hintKey: 'recintoQuebradaHint',
+    positions: [
+      [38.7553571, -8.9631805],
+      [38.7551155, -8.9627364],
+      [38.7547503, -8.9622818],
+      [38.7547317, -8.9622493],
+      [38.7548482, -8.9620957],
+      [38.7548768, -8.9621563],
+      [38.7547975, -8.9622515],
+      [38.7551693, -8.9627224],
+      [38.7554013, -8.9631206],
+    ],
+  },
+  {
+    id: 'largada-5outubro',
+    nameKey: 'recinto5Outubro',
+    hintKey: 'recinto5OutubroHint',
+    positions: [
+      [38.7559609, -8.9603317],
+      [38.7560394, -8.9603405],
+      [38.7560497, -8.9593856],
+      [38.7560565, -8.9579139],
+      [38.7559096, -8.9579183],
+      [38.7559301, -8.9593331],
+      [38.7559574, -8.9603273],
+    ],
+  },
+]
+
+/** @deprecated use LARGADA_RECINTOS */
+export const LARGADA_RECINTO = LARGADA_RECINTOS[0].positions
+
+export const LARGADA_RECINTO_LATLNGS = LARGADA_RECINTOS.flatMap((z) => z.positions)

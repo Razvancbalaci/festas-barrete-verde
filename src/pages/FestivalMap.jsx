@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Contrast, Navigation } from 'lucide-react'
 import { useLang } from '../context/LangContext'
 import { useA11y } from '../context/A11yContext'
-import { MAP_CENTER, MAP_PLACES, MAP_ZOOM } from '../data/mapPlaces'
+import { LARGADA_RECINTO_LATLNGS, LARGADA_RECINTOS, MAP_CENTER, MAP_PLACES, MAP_ZOOM } from '../data/mapPlaces'
 import { mapsWalkToUrl } from '../lib/locations'
 import { track } from '../lib/analytics'
 import { getMapLayers } from '../lib/mapTiles'
@@ -40,13 +40,17 @@ function pinIcon(kind) {
   })
 }
 
-function FitBounds({ places }) {
+function FitBounds({ places, extraLatLngs = [] }) {
   const map = useMap()
   useEffect(() => {
-    if (!places.length) return
-    const bounds = L.latLngBounds(places.map((p) => [p.lat, p.lng]))
+    const pts = [
+      ...places.map((p) => [p.lat, p.lng]),
+      ...extraLatLngs,
+    ]
+    if (!pts.length) return
+    const bounds = L.latLngBounds(pts)
     map.fitBounds(bounds.pad(0.15))
-  }, [map, places])
+  }, [map, places, extraLatLngs])
   return null
 }
 
@@ -96,6 +100,10 @@ export default function FestivalMap() {
             </li>
             <li className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-vermelho" /> {m.legendBulls}
+            </li>
+            <li className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-sm bg-vermelho/50 ring-1 ring-vermelho" />{' '}
+              {m.legendRecinto}
             </li>
             <li className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-dourado" /> {m.legendFair}
@@ -149,7 +157,31 @@ export default function FestivalMap() {
                 ? { tileSize: active.tileSize, zoomOffset: active.zoomOffset ?? 0 }
                 : {})}
             />
-            <FitBounds places={MAP_PLACES} />
+            <FitBounds places={MAP_PLACES} extraLatLngs={LARGADA_RECINTO_LATLNGS} />
+            {LARGADA_RECINTOS.map((zone) => (
+              <Polygon
+                key={zone.id}
+                positions={zone.positions}
+                pathOptions={{
+                  color: '#C0392B',
+                  weight: 2,
+                  opacity: 0.9,
+                  fillColor: '#C0392B',
+                  fillOpacity: 0.22,
+                }}
+              >
+                <Popup>
+                  <div className="min-w-[10rem] space-y-1 text-sm">
+                    <strong className="block text-ink">
+                      {m[zone.nameKey] || m.recintoTitle}
+                    </strong>
+                    <p className="text-xs leading-relaxed text-ink/65">
+                      {m[zone.hintKey] || m.recintoHint}
+                    </p>
+                  </div>
+                </Popup>
+              </Polygon>
+            ))}
             {MAP_PLACES.map((p) => (
               <Marker key={p.id} position={[p.lat, p.lng]} icon={pinIcon(p.kind)}>
                 <Popup>

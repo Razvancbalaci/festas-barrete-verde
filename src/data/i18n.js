@@ -127,6 +127,7 @@ export const translations = {
       legendStage: 'Palcos',
       legendPlace: 'Pontos',
       legendBulls: 'Toiros / Praça',
+      legendRecinto: 'Recinto largadas',
       legendFair: 'Feira',
       legendWc: 'WC',
       layerMap: 'Mapa',
@@ -136,6 +137,15 @@ export const translations = {
       goThere: 'Ir a pé (Google Maps)',
       portableWcSoon:
         'Casas de banho portáteis: localização ainda a confirmar — vamos adicioná-las ao mapa em breve.',
+      recintoTitle: 'Recinto das largadas',
+      recintoHint:
+        'Zona das barreras para largadas de toiros. Mantém distância e segue as indicações no local.',
+      recintoQuebrada: 'Recinto das largadas — Quebrada',
+      recintoQuebradaHint:
+        'Barreras na Rua José André dos Santos / Quebrada. Mantém distância e segue as indicações no local.',
+      recinto5Outubro: 'Recinto das largadas — Av. 5 de Outubro',
+      recinto5OutubroHint:
+        'Barreras na Av. 5 de Outubro (junto a S. João). Mantém distância e segue as indicações no local.',
       places: {
         sede: 'Sede do Aposento',
         igreja: 'Igreja Matriz',
@@ -638,6 +648,7 @@ export const translations = {
       legendStage: 'Stages',
       legendPlace: 'Places',
       legendBulls: 'Bulls / arena',
+      legendRecinto: 'Release enclosure',
       legendFair: 'Fair',
       legendWc: 'WC',
       layerMap: 'Map',
@@ -647,6 +658,15 @@ export const translations = {
       goThere: 'Walk there (Google Maps)',
       portableWcSoon:
         'Portable toilets: locations still to confirm — we will add them to the map soon.',
+      recintoTitle: 'Bull-release enclosure',
+      recintoHint:
+        'Barrier zone for street bull releases. Keep clear and follow on-site instructions.',
+      recintoQuebrada: 'Release enclosure — Quebrada',
+      recintoQuebradaHint:
+        'Barriers on Rua José André dos Santos / Quebrada. Keep clear and follow on-site instructions.',
+      recinto5Outubro: 'Release enclosure — Av. 5 de Outubro',
+      recinto5OutubroHint:
+        'Barriers on Av. 5 de Outubro (near S. João). Keep clear and follow on-site instructions.',
       places: {
         sede: 'Aposento HQ',
         igreja: 'Parish church',
@@ -1147,6 +1167,7 @@ export const translations = {
       legendStage: 'Scènes',
       legendPlace: 'Lieux',
       legendBulls: 'Taureaux / arène',
+      legendRecinto: 'Enclos des lâchers',
       legendFair: 'Fête foraine',
       legendWc: 'WC',
       layerMap: 'Carte',
@@ -1156,6 +1177,15 @@ export const translations = {
       goThere: 'Y aller à pied (Google Maps)',
       portableWcSoon:
         'Toilettes portables : emplacements encore à confirmer — nous les ajouterons bientôt à la carte.',
+      recintoTitle: 'Enclos des lâchers',
+      recintoHint:
+        'Zone des barrières pour les lâchers de taureaux. Gardez vos distances et suivez les consignes sur place.',
+      recintoQuebrada: 'Enclos des lâchers — Quebrada',
+      recintoQuebradaHint:
+        'Barrières Rua José André dos Santos / Quebrada. Gardez vos distances et suivez les consignes sur place.',
+      recinto5Outubro: 'Enclos des lâchers — Av. 5 de Outubro',
+      recinto5OutubroHint:
+        'Barrières Av. 5 de Outubro (près de S. João). Gardez vos distances et suivez les consignes sur place.',
       places: {
         sede: 'Siège de l’Aposento',
         igreja: 'Église Matriz',
@@ -1658,6 +1688,7 @@ export const translations = {
       legendStage: 'Escenarios',
       legendPlace: 'Puntos',
       legendBulls: 'Toros / plaza',
+      legendRecinto: 'Recinto sueltas',
       legendFair: 'Feria',
       legendWc: 'WC',
       layerMap: 'Mapa',
@@ -1667,6 +1698,15 @@ export const translations = {
       goThere: 'Ir a pie (Google Maps)',
       portableWcSoon:
         'Aseos portátiles: ubicación aún por confirmar — los añadiremos al mapa pronto.',
+      recintoTitle: 'Recinto de las sueltas',
+      recintoHint:
+        'Zona de barreras para sueltas de toros. Mantén distancia y sigue las indicaciones en el lugar.',
+      recintoQuebrada: 'Recinto de sueltas — Quebrada',
+      recintoQuebradaHint:
+        'Barreras en Rua José André dos Santos / Quebrada. Mantén distancia y sigue las indicaciones en el lugar.',
+      recinto5Outubro: 'Recinto de sueltas — Av. 5 de Outubro',
+      recinto5OutubroHint:
+        'Barreras en Av. 5 de Outubro (junto a S. João). Mantén distancia y sigue las indicaciones en el lugar.',
       places: {
         sede: 'Sede del Aposento',
         igreja: 'Iglesia Matriz',
