@@ -18,7 +18,7 @@ end $$;
 
 select cron.schedule(
   'festas-push-worker',
-  '1 minute',
+  '* * * * *',
   $$
   select net.http_post(
     url := 'https://PROJECT_REF.supabase.co/functions/v1/send-push',
