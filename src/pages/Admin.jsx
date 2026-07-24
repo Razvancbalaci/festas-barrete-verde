@@ -542,7 +542,15 @@ export default function Admin() {
         await fetchSubCount()
       } catch (err) {
         console.error(err)
-        setMessage({ type: 'err', text: a.errorGeneric })
+        const msg = String(err?.message || err?.details || '')
+        const needsSql =
+          /Could not find the function|set_all_push_subscriptions_active|column .*active.* does not exist|PGRST202/i.test(
+            msg
+          )
+        setMessage({
+          type: 'err',
+          text: needsSql ? a.notifyActiveSqlRequired : a.errorGeneric,
+        })
       } finally {
         setNotifySending(false)
       }

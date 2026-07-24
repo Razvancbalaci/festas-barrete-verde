@@ -340,6 +340,8 @@ export const translations = {
       notifyReactivateConfirm: 'Confirmar reactivação',
       notifyDeactivateOk: 'Envios pausados ({n} dispositivos).',
       notifyReactivateOk: 'Envios reactivados ({n} dispositivos).',
+      notifyActiveSqlRequired:
+        'Falta correr push-subscriptions-active.sql no SQL Editor do Supabase.',
       placeHint:
         'Uma morada, ou várias ruas separadas por vírgulas (ex.: Rua A, Rua B e Av. C).',
       tabFeedback: 'Feedback',
@@ -755,6 +757,8 @@ export const translations = {
       notifyReactivateConfirm: 'Confirm reactivation',
       notifyDeactivateOk: 'Sending paused ({n} devices).',
       notifyReactivateOk: 'Sending reactivated ({n} devices).',
+      notifyActiveSqlRequired:
+        'Run push-subscriptions-active.sql in the Supabase SQL Editor first.',
       placeHint:
         'One venue, or several streets separated by commas (e.g. Street A, Street B and Av. C).',
       tabFeedback: 'Feedback',
@@ -1172,6 +1176,8 @@ export const translations = {
       notifyReactivateConfirm: 'Confirmer la réactivation',
       notifyDeactivateOk: 'Envois suspendus ({n} appareils).',
       notifyReactivateOk: 'Envois réactivés ({n} appareils).',
+      notifyActiveSqlRequired:
+        'Exécutez d’abord push-subscriptions-active.sql dans l’éditeur SQL Supabase.',
       placeHint:
         'Un lieu, ou plusieurs rues séparées par des virgules (ex. : Rue A, Rue B et Av. C).',
       tabFeedback: 'Avis',
@@ -1590,6 +1596,8 @@ export const translations = {
       notifyReactivateConfirm: 'Confirmar reactivación',
       notifyDeactivateOk: 'Envíos pausados ({n} dispositivos).',
       notifyReactivateOk: 'Envíos reactivados ({n} dispositivos).',
+      notifyActiveSqlRequired:
+        'Hay que ejecutar push-subscriptions-active.sql en el SQL Editor de Supabase.',
       placeHint:
         'Una dirección, o varias calles separadas por comas (ej.: Calle A, Calle B y Av. C).',
       tabFeedback: 'Feedback',

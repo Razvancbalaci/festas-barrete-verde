@@ -65,7 +65,10 @@ begin
     raise exception 'unauthorized';
   end if;
 
-  update push_subscriptions set active = coalesce(p_active, false);
+  -- WHERE obrigatório (Supabase: "UPDATE requires a WHERE clause")
+  update push_subscriptions
+  set active = coalesce(p_active, false)
+  where true;
   get diagnostics n = row_count;
   return n;
 end;
