@@ -21,6 +21,7 @@ export default defineConfig({
         'icon-512.png',
         'icon-512-maskable.png',
         'og-image.png',
+        'mark.svg',
         'robots.txt',
         'sitemap.xml',
         'google6eb5c1ba2c31c81f.html',

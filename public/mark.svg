@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="BV 2026">
+  <rect width="512" height="512" rx="96" fill="#1B5E3F"/>
+  <text
+    x="256"
+    y="250"
+    text-anchor="middle"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="168"
+    font-weight="700"
+    fill="#E8A13A"
+    letter-spacing="8"
+  >BV</text>
+  <text
+    x="256"
+    y="355"
+    text-anchor="middle"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="72"
+    font-weight="600"
+    fill="#E8A13A"
+    letter-spacing="6"
+    opacity="0.92"
+  >2026</text>
+</svg>

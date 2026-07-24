@@ -64,6 +64,14 @@ export default function Header() {
         </div>
 
         <div className="animate-fade-up text-center">
+          <img
+            src="/mark.svg"
+            alt=""
+            width={72}
+            height={72}
+            className="mx-auto mb-4 h-[4.5rem] w-[4.5rem] rounded-2xl shadow-lg shadow-black/20 ring-2 ring-dourado/40"
+            decoding="async"
+          />
           <p className="mb-2 text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-dourado">
             Alcochete · 2026
           </p>

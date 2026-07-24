@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const publicDir = path.join(__dirname, '..', 'public')
-const emblema = path.join(publicDir, 'emblema-barrete.png')
+const mark = path.join(publicDir, 'mark.svg')
 const out = path.join(publicDir, 'og-image.png')
 
 const W = 1200
@@ -30,8 +30,8 @@ const svg = Buffer.from(`<?xml version="1.0" encoding="UTF-8"?>
 
 let image = sharp(svg)
 
-if (fs.existsSync(emblema)) {
-  const logo = await sharp(emblema)
+if (fs.existsSync(mark)) {
+  const logo = await sharp(mark, { density: 300 })
     .resize(280, 280, {
       fit: 'contain',
       background: { r: 0, g: 0, b: 0, alpha: 0 },
