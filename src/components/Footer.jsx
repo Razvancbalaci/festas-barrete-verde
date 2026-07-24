@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Bell, MessageSquarePlus } from 'lucide-react'
 import { useLang } from '../context/LangContext'
 import FeedbackForm from './FeedbackForm'
@@ -35,6 +36,15 @@ export default function Footer() {
               {t.feedback.link}
             </button>
           </div>
+
+          <p className="mt-5 text-center">
+            <Link
+              to="/privacidade"
+              className="text-xs font-semibold text-white/70 underline-offset-2 hover:text-white hover:underline"
+            >
+              {t.privacy.link}
+            </Link>
+          </p>
 
           <div className="mt-6 flex items-center justify-center">
             <span className="select-none text-[0.65rem] tracking-widest text-white/20" aria-hidden>

@@ -26,6 +26,65 @@ export const translations = {
       'Apenas serão admitidos para as esperas e recolhas de toiros os campinos e cavaleiros amadores segurados e autorizados pelo Aposento do Barrete Verde de Alcochete. O Aposento não se responsabiliza por quaisquer acidentes ocorridos nos recintos das largadas e passagem de toiros.',
     disclaimer:
       'Este site é um projeto cívico e independente, feito por cidadãos para cidadãos. Não tem vínculo oficial com o Aposento do Barrete Verde, com a Câmara Municipal de Alcochete nem com qualquer outro órgão administrativo, e não visa qualquer lucro ou interesse comercial.',
+    privacy: {
+      link: 'Privacidade e cookies',
+      back: 'Voltar ao programa',
+      title: 'Privacidade e cookies',
+      updated: 'Última actualização: 24 de Julho de 2026',
+      sections: [
+        {
+          heading: 'Responsável',
+          paragraphs: [
+            'Este site (www.festasbarreteverde.pt) é um projecto cívico independente, sem fins comerciais, para disponibilizar o programa das Festas do Barrete Verde e das Salinas em Alcochete.',
+            'Para questões sobre dados pessoais, usa o formulário de feedback no rodapé do site.',
+          ],
+        },
+        {
+          heading: 'Que dados tratamos',
+          paragraphs: [
+            'Na utilização normal da app pública não pedimos nome, conta nem login.',
+          ],
+          bullets: [
+            'Telemetria anónima: identificador aleatório guardado no teu dispositivo (localStorage), página visitada, idioma, se a app está instalada, e acções agregadas (favoritos, partilhas, filtros). Não guardamos texto de pesquisa nem localização GPS.',
+            'Notificações push (opcional): se activares avisos, o browser gera uma subscrição técnica (endpoint e chaves) no teu dispositivo, associada às preferências de tipos de aviso que escolheres.',
+            'Lembretes de eventos (opcional): se marcares a campainha, agendamos um aviso para esse evento ligado à tua subscrição push.',
+            'Feedback: a mensagem que envias e, se indicares, um contacto (email ou telefone).',
+            'Comércio local: se fores comerciante e submeteres o formulário, tratamos os dados que indicares (nome do estabelecimento, morada, contactos, etc.) para publicação após aprovação.',
+            'Preferências locais: idioma, favoritos, lembretes e opções de acessibilidade ficam no teu telemóvel (localStorage), sem conta.',
+          ],
+        },
+        {
+          heading: 'Cookies e armazenamento local',
+          paragraphs: [
+            'Não usamos cookies de publicidade nem Google Analytics.',
+            'Usamos armazenamento local do browser (localStorage) e, quando instalas a app ou activas avisos, um service worker necessário ao funcionamento offline e às notificações.',
+            'Mapas podem carregar mosaicos de fornecedores cartográficos (por exemplo OpenStreetMap / MapTiler / Esri) quando abres o mapa — isso é pedido técnico ao visualizares o mapa, não um perfil publicitário nosso.',
+          ],
+        },
+        {
+          heading: 'Finalidades e bases',
+          paragraphs: [
+            'Operar o programa, melhorar a experiência (estatísticas agregadas), enviar avisos que pediste, e responder a feedback ou candidaturas de comércio.',
+            'Bases típicas: interesse legítimo no funcionamento de um site informativo cívico; e o teu consentimento quando activas notificações ou envias dados voluntariamente (feedback / comércio).',
+          ],
+        },
+        {
+          heading: 'Conservação e partilha',
+          paragraphs: [
+            'Os dados técnicos e de formulários são alojados em infraestrutura de alojamento e base de dados na cloud (actualmente Vercel e Supabase) na medida necessária ao serviço.',
+            'Não vendemos dados. Só partilhamos com prestadores estritamente necessários à operação técnica do site.',
+            'Podes limpar dados locais nas definições do browser / ao desinstalar a app. Podes desactivar notificações nas definições do telemóvel ou nas preferências de avisos do site. Para apagar feedback ou uma candidatura de comércio, contacta-nos pelo formulário de feedback.',
+          ],
+        },
+        {
+          heading: 'Os teus direitos',
+          paragraphs: [
+            'Nos termos do RGPD, podes pedir acesso, rectificação, apagamento, limitação ou oposição ao tratamento dos dados que te digam respeito, e apresentar reclamação à CNPD (www.cnpd.pt).',
+            'Como grande parte da utilização é anónima no dispositivo, alguns pedidos podem depender de elementos que nos envies para identificar o registo (por exemplo o contacto usado no feedback).',
+          ],
+        },
+      ],
+    },
     offlineBanner: 'Estás offline — a mostrar o programa em cache, se disponível.',
     searchPlaceholder: 'Pesquisar artista, palco, evento…',
     today: 'Hoje',
@@ -471,6 +530,65 @@ export const translations = {
       'Only insured campinos and amateur riders authorised by the Aposento do Barrete Verde de Alcochete will be admitted to bull waits and collections. The Aposento accepts no liability for accidents in bull-run or bull-passage areas.',
     disclaimer:
       'This website is an independent civic project, made by citizens for citizens. It has no official link to the Aposento do Barrete Verde, the Alcochete Town Hall, or any other administrative body, and seeks no profit or commercial interest.',
+    privacy: {
+      link: 'Privacy & cookies',
+      back: 'Back to programme',
+      title: 'Privacy & cookies',
+      updated: 'Last updated: 24 July 2026',
+      sections: [
+        {
+          heading: 'Controller',
+          paragraphs: [
+            'This site (www.festasbarreteverde.pt) is an independent civic project with no commercial purpose, providing the programme for the Festas do Barrete Verde e das Salinas in Alcochete.',
+            'For questions about personal data, use the feedback form in the site footer.',
+          ],
+        },
+        {
+          heading: 'What we process',
+          paragraphs: [
+            'For normal use of the public app we do not ask for a name, account or login.',
+          ],
+          bullets: [
+            'Anonymous telemetry: a random ID stored on your device (localStorage), page visited, language, whether the app is installed, and aggregated actions (favourites, shares, filters). We do not store search text or GPS location.',
+            'Push notifications (optional): if you enable alerts, the browser creates a technical subscription (endpoint and keys) on your device, with the alert-type preferences you choose.',
+            'Event reminders (optional): if you use the bell, we schedule an alert for that event linked to your push subscription.',
+            'Feedback: the message you send and, if you provide it, a contact (email or phone).',
+            'Local shops: if you submit the business form, we process the details you enter for publication after approval.',
+            'Local preferences: language, favourites, reminders and accessibility options stay on your phone (localStorage), with no account.',
+          ],
+        },
+        {
+          heading: 'Cookies and local storage',
+          paragraphs: [
+            'We do not use advertising cookies or Google Analytics.',
+            'We use browser local storage (localStorage) and, when you install the app or enable alerts, a service worker needed for offline use and notifications.',
+            'Maps may load tiles from map providers (e.g. OpenStreetMap / MapTiler / Esri) when you open the map — a technical request while viewing the map, not an advertising profile from us.',
+          ],
+        },
+        {
+          heading: 'Purposes and legal bases',
+          paragraphs: [
+            'To run the programme, improve the experience (aggregated statistics), send alerts you requested, and reply to feedback or shop submissions.',
+            'Typical bases: legitimate interest in operating a civic information site; and your consent when you enable notifications or voluntarily send data (feedback / shops).',
+          ],
+        },
+        {
+          heading: 'Retention and sharing',
+          paragraphs: [
+            'Technical and form data are hosted on cloud hosting and database providers (currently Vercel and Supabase) as needed to run the service.',
+            'We do not sell data. We only share with providers strictly required to operate the site.',
+            'You can clear local data in browser settings / by uninstalling the app. You can turn off notifications in phone settings or in the site alert preferences. To delete feedback or a shop submission, contact us via the feedback form.',
+          ],
+        },
+        {
+          heading: 'Your rights',
+          paragraphs: [
+            'Under the GDPR you may request access, rectification, erasure, restriction or objection regarding personal data that concerns you, and lodge a complaint with the CNPD (www.cnpd.pt).',
+            'Because much use is anonymous on-device, some requests may need details you send us to identify the record (for example the contact used in feedback).',
+          ],
+        },
+      ],
+    },
     offlineBanner: 'You are offline — showing the cached programme if available.',
     searchPlaceholder: 'Search artist, stage, event…',
     today: 'Today',
@@ -914,6 +1032,65 @@ export const translations = {
       'Seuls les campinos et cavaliers amateurs assurés et autorisés par l’Aposento do Barrete Verde d’Alcochete seront admis aux attentes et ramassages. L’Aposento décline toute responsabilité en cas d’accident dans les zones de lâchers et de passage de taureaux.',
     disclaimer:
       'Ce site est un projet civique et indépendant, réalisé par des citoyens pour des citoyens. Il n’a aucun lien officiel avec l’Aposento do Barrete Verde, la mairie d’Alcochete ni aucun autre organe administratif, et ne vise aucun profit ni intérêt commercial.',
+    privacy: {
+      link: 'Confidentialité et cookies',
+      back: 'Retour au programme',
+      title: 'Confidentialité et cookies',
+      updated: 'Dernière mise à jour : 24 juillet 2026',
+      sections: [
+        {
+          heading: 'Responsable',
+          paragraphs: [
+            'Ce site (www.festasbarreteverde.pt) est un projet civique indépendant, sans but commercial, pour présenter le programme des Festas do Barrete Verde e das Salinas à Alcochete.',
+            'Pour toute question sur les données personnelles, utilisez le formulaire d’avis dans le pied de page.',
+          ],
+        },
+        {
+          heading: 'Données traitées',
+          paragraphs: [
+            'Pour une utilisation normale de l’app publique, nous ne demandons ni nom, ni compte, ni connexion.',
+          ],
+          bullets: [
+            'Télémétrie anonyme : identifiant aléatoire stocké sur votre appareil (localStorage), page visitée, langue, app installée ou non, et actions agrégées (favoris, partages, filtres). Pas de texte de recherche ni de GPS.',
+            'Notifications push (optionnel) : si vous activez les alertes, le navigateur crée un abonnement technique (endpoint et clés) sur l’appareil, avec les préférences de types d’alertes.',
+            'Rappels d’événements (optionnel) : si vous utilisez la cloche, nous planifions une alerte liée à votre abonnement push.',
+            'Avis / feedback : le message envoyé et, si indiqué, un contact (email ou téléphone).',
+            'Commerces : si vous soumettez le formulaire, nous traitons les informations fournies pour publication après validation.',
+            'Préférences locales : langue, favoris, rappels et accessibilité restent sur le téléphone (localStorage), sans compte.',
+          ],
+        },
+        {
+          heading: 'Cookies et stockage local',
+          paragraphs: [
+            'Nous n’utilisons pas de cookies publicitaires ni Google Analytics.',
+            'Nous utilisons le stockage local du navigateur (localStorage) et, si vous installez l’app ou activez les alertes, un service worker nécessaire hors ligne et pour les notifications.',
+            'La carte peut charger des tuiles de fournisseurs cartographiques (ex. OpenStreetMap / MapTiler / Esri) lorsque vous l’ouvrez — requête technique, pas un profil publicitaire de notre part.',
+          ],
+        },
+        {
+          heading: 'Finalités et bases',
+          paragraphs: [
+            'Faire fonctionner le programme, améliorer l’expérience (statistiques agrégées), envoyer les alertes demandées, et répondre aux avis ou candidatures commerces.',
+            'Bases typiques : intérêt légitime pour un site d’information civique ; et votre consentement lorsque vous activez les notifications ou envoyez des données volontairement.',
+          ],
+        },
+        {
+          heading: 'Conservation et partage',
+          paragraphs: [
+            'Les données techniques et de formulaires sont hébergées chez des prestataires cloud (actuellement Vercel et Supabase) dans la mesure nécessaire au service.',
+            'Nous ne vendons pas de données. Partage uniquement avec les prestataires strictement nécessaires au fonctionnement.',
+            'Vous pouvez effacer les données locales dans les réglages du navigateur / en désinstallant l’app, et désactiver les notifications dans le téléphone ou dans les préférences du site. Pour supprimer un avis ou une candidature commerce, contactez-nous via le formulaire d’avis.',
+          ],
+        },
+        {
+          heading: 'Vos droits',
+          paragraphs: [
+            'Conformément au RGPD, vous pouvez demander l’accès, la rectification, l’effacement, la limitation ou l’opposition, et saisir la CNPD (www.cnpd.pt).',
+            'Une grande partie de l’usage étant anonyme sur l’appareil, certaines demandes peuvent nécessiter des éléments permettant d’identifier l’enregistrement (ex. le contact du feedback).',
+          ],
+        },
+      ],
+    },
     offlineBanner: 'Vous êtes hors ligne — affichage du programme en cache si disponible.',
     searchPlaceholder: 'Rechercher artiste, scène, événement…',
     today: 'Aujourd’hui',
@@ -1359,6 +1536,65 @@ export const translations = {
       'Solo serán admitidos en las esperas y recogidas de toros los campinos y jinetes aficionados asegurados y autorizados por el Aposento do Barrete Verde de Alcochete. El Aposento no se responsabiliza de accidentes en los recintos de sueltas y paso de toros.',
     disclaimer:
       'Este sitio es un proyecto cívico e independiente, hecho por ciudadanos para ciudadanos. No tiene vínculo oficial con el Aposento do Barrete Verde, el Ayuntamiento de Alcochete ni ningún otro órgano administrativo, y no busca lucro ni interés comercial.',
+    privacy: {
+      link: 'Privacidad y cookies',
+      back: 'Volver al programa',
+      title: 'Privacidad y cookies',
+      updated: 'Última actualización: 24 de julio de 2026',
+      sections: [
+        {
+          heading: 'Responsable',
+          paragraphs: [
+            'Este sitio (www.festasbarreteverde.pt) es un proyecto cívico independiente, sin fin comercial, para ofrecer el programa de las Festas do Barrete Verde e das Salinas en Alcochete.',
+            'Para cuestiones sobre datos personales, usa el formulario de feedback en el pie de página.',
+          ],
+        },
+        {
+          heading: 'Qué datos tratamos',
+          paragraphs: [
+            'En el uso normal de la app pública no pedimos nombre, cuenta ni inicio de sesión.',
+          ],
+          bullets: [
+            'Telemetría anónima: identificador aleatorio en el dispositivo (localStorage), página visitada, idioma, si la app está instalada, y acciones agregadas (favoritos, compartidos, filtros). No guardamos texto de búsqueda ni GPS.',
+            'Notificaciones push (opcional): si activas avisos, el navegador crea una suscripción técnica (endpoint y claves) en el dispositivo, con las preferencias de tipos de aviso.',
+            'Recordatorios de eventos (opcional): si usas la campana, programamos un aviso ligado a tu suscripción push.',
+            'Feedback: el mensaje que envías y, si lo indicas, un contacto (email o teléfono).',
+            'Comercio local: si envías el formulario, tratamos los datos indicados para publicación tras aprobación.',
+            'Preferencias locales: idioma, favoritos, recordatorios y accesibilidad quedan en el móvil (localStorage), sin cuenta.',
+          ],
+        },
+        {
+          heading: 'Cookies y almacenamiento local',
+          paragraphs: [
+            'No usamos cookies publicitarias ni Google Analytics.',
+            'Usamos almacenamiento local del navegador (localStorage) y, al instalar la app o activar avisos, un service worker necesario para uso sin conexión y notificaciones.',
+            'El mapa puede cargar mosaicos de proveedores cartográficos (p. ej. OpenStreetMap / MapTiler / Esri) al abrirlo — petición técnica, no un perfil publicitario nuestro.',
+          ],
+        },
+        {
+          heading: 'Finalidades y bases',
+          paragraphs: [
+            'Operar el programa, mejorar la experiencia (estadísticas agregadas), enviar avisos solicitados y responder a feedback o candidaturas de comercio.',
+            'Bases habituales: interés legítimo en un sitio informativo cívico; y tu consentimiento al activar notificaciones o enviar datos voluntariamente.',
+          ],
+        },
+        {
+          heading: 'Conservación y cesión',
+          paragraphs: [
+            'Los datos técnicos y de formularios se alojan en infraestructura cloud (actualmente Vercel y Supabase) en la medida necesaria para el servicio.',
+            'No vendemos datos. Solo compartimos con proveedores estrictamente necesarios para operar el sitio.',
+            'Puedes borrar datos locales en el navegador / al desinstalar la app, y desactivar notificaciones en el móvil o en las preferencias del sitio. Para borrar feedback o una candidatura de comercio, contacta por el formulario de feedback.',
+          ],
+        },
+        {
+          heading: 'Tus derechos',
+          paragraphs: [
+            'Según el RGPD puedes solicitar acceso, rectificación, supresión, limitación u oposición, y reclamar ante la CNPD (www.cnpd.pt).',
+            'Como gran parte del uso es anónimo en el dispositivo, algunas solicitudes pueden depender de datos que nos envíes para identificar el registro (p. ej. el contacto del feedback).',
+          ],
+        },
+      ],
+    },
     offlineBanner: 'Estás sin conexión — mostrando el programa en caché si está disponible.',
     searchPlaceholder: 'Buscar artista, escenario, evento…',
     today: 'Hoy',
