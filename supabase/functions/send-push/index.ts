@@ -68,6 +68,7 @@ async function sendToAll(admin, title, body, url = '/', category = 'broadcast') 
   let query = admin
     .from('push_subscriptions')
     .select('id, endpoint, p256dh, auth')
+    .eq('active', true)
     .eq(prefCol, true)
 
   const { data: subs, error: subError } = await query
@@ -127,11 +128,11 @@ async function processEventReminders(admin) {
   for (const job of due || []) {
     const { data: sub } = await admin
       .from('push_subscriptions')
-      .select('id, endpoint, p256dh, auth')
+      .select('id, endpoint, p256dh, auth, active')
       .eq('endpoint', job.endpoint)
       .maybeSingle()
 
-    if (!sub) {
+    if (!sub || sub.active === false) {
       await admin
         .from('event_reminders')
         .update({ status: 'cancelled' })

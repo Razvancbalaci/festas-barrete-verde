@@ -2,8 +2,8 @@ import { useEffect } from 'react'
 import { AlertTriangle, Loader2, X } from 'lucide-react'
 
 /**
- * Modal de confirmação antes de enviar / agendar push.
- * props.draft: { mode, title, body, whenLabel, subscribers?, autoCount? }
+ * Modal de confirmação antes de enviar / agendar / pausar push.
+ * props.draft: { mode, title?, body?, whenLabel?, subscribers?, autoCount?, deviceCount? }
  */
 export default function NotifyConfirmModal({
   open,
@@ -26,6 +26,9 @@ export default function NotifyConfirmModal({
 
   if (!open || !draft) return null
 
+  const isDevices =
+    draft.mode === 'deactivate_all' || draft.mode === 'reactivate_all'
+
   const modeLabel =
     draft.mode === 'now'
       ? a.notifyConfirmModeNow
@@ -33,7 +36,25 @@ export default function NotifyConfirmModal({
         ? a.notifyConfirmModeSchedule
         : draft.mode === 'test5'
           ? a.notifyConfirmModeTest
-          : a.notifyConfirmModeAuto
+          : draft.mode === 'deactivate_all'
+            ? a.notifyConfirmModeDeactivate
+            : draft.mode === 'reactivate_all'
+              ? a.notifyConfirmModeReactivate
+              : a.notifyConfirmModeAuto
+
+  const hint =
+    draft.mode === 'deactivate_all'
+      ? a.notifyConfirmDeactivateHint
+      : draft.mode === 'reactivate_all'
+        ? a.notifyConfirmReactivateHint
+        : a.notifyConfirmHint
+
+  const actionLabel =
+    draft.mode === 'deactivate_all'
+      ? a.notifyDeactivateConfirm
+      : draft.mode === 'reactivate_all'
+        ? a.notifyReactivateConfirm
+        : a.notifyConfirmAction
 
   return (
     <div
@@ -59,7 +80,7 @@ export default function NotifyConfirmModal({
                 id="notify-confirm-title"
                 className="font-display text-lg font-semibold text-barrete"
               >
-                {a.notifyConfirmTitle}
+                {isDevices ? a.notifyDevicesTitle : a.notifyConfirmTitle}
               </h2>
               <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-vermelho/80">
                 {modeLabel}
@@ -77,7 +98,7 @@ export default function NotifyConfirmModal({
           </button>
         </div>
 
-        <p className="mb-4 text-sm leading-relaxed text-ink/65">{a.notifyConfirmHint}</p>
+        <p className="mb-4 text-sm leading-relaxed text-ink/65">{hint}</p>
 
         {draft.mode === 'auto' ? (
           <div className="rounded-xl bg-white p-4 ring-1 ring-barrete/10">
@@ -86,6 +107,18 @@ export default function NotifyConfirmModal({
               {draft.autoCount ?? 0}
             </p>
             <p className="text-xs text-ink/50">{a.notifyConfirmAutoJobs}</p>
+          </div>
+        ) : isDevices ? (
+          <div className="rounded-xl bg-white p-4 ring-1 ring-barrete/10">
+            <p className="text-sm text-ink/70">
+              {draft.mode === 'deactivate_all'
+                ? a.notifyConfirmDeactivateCount
+                : a.notifyConfirmReactivateCount}
+            </p>
+            <p className="mt-2 font-display text-2xl font-bold text-barrete">
+              {draft.deviceCount ?? 0}
+            </p>
+            <p className="text-xs text-ink/50">{a.notifyConfirmDevices}</p>
           </div>
         ) : (
           <dl className="space-y-3 rounded-xl bg-white p-4 ring-1 ring-barrete/10">
@@ -144,7 +177,7 @@ export default function NotifyConfirmModal({
                 {a.notifySending}
               </>
             ) : (
-              a.notifyConfirmAction
+              actionLabel
             )}
           </button>
         </div>

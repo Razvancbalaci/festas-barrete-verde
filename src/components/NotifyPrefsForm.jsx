@@ -95,7 +95,7 @@ export default function NotifyPrefsForm({ open, onClose }) {
       setMessage({ type: 'err', text: p.saveError })
       return
     }
-    setMessage({ type: 'ok', text: p.saved })
+    onClose()
   }
 
   function toggle(key) {

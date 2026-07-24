@@ -33,6 +33,7 @@ export default function Admin() {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [subCount, setSubCount] = useState(null)
+  const [subActiveCount, setSubActiveCount] = useState(null)
   const [notifyForm, setNotifyForm] = useState({ title: '', body: '', scheduledFor: '' })
   const [notifySending, setNotifySending] = useState(false)
   const [notifyConfirm, setNotifyConfirm] = useState(null)
@@ -83,14 +84,24 @@ export default function Admin() {
   }, [])
 
   const fetchSubCount = useCallback(async () => {
-    const { count, error } = await supabase
-      .from('push_subscriptions')
-      .select('*', { count: 'exact', head: true })
-    if (error) {
-      console.error(error)
+    const [allRes, activeRes] = await Promise.all([
+      supabase.from('push_subscriptions').select('*', { count: 'exact', head: true }),
+      supabase
+        .from('push_subscriptions')
+        .select('*', { count: 'exact', head: true })
+        .eq('active', true),
+    ])
+    if (allRes.error) {
+      console.error(allRes.error)
       setSubCount(null)
     } else {
-      setSubCount(count ?? 0)
+      setSubCount(allRes.count ?? 0)
+    }
+    if (activeRes.error) {
+      // Coluna active ainda não existe → tratar todos como activos
+      setSubActiveCount(allRes.error ? null : (allRes.count ?? 0))
+    } else {
+      setSubActiveCount(activeRes.count ?? 0)
     }
   }, [])
 
@@ -294,7 +305,7 @@ export default function Admin() {
       title: notifyForm.title.trim(),
       body: notifyForm.body.trim(),
       whenLabel: a.notifyConfirmWhenNow,
-      subscribers: subCount ?? undefined,
+      subscribers: subActiveCount ?? subCount ?? undefined,
     })
   }
 
@@ -319,7 +330,7 @@ export default function Admin() {
       body: notifyForm.body.trim(),
       whenLabel: formatNotifyWhen(when),
       whenIso: when.toISOString(),
-      subscribers: subCount ?? undefined,
+      subscribers: subActiveCount ?? subCount ?? undefined,
     })
   }
 
@@ -331,7 +342,7 @@ export default function Admin() {
       body: 'Se vês isto no telemóvel, as notificações estão a funcionar.',
       whenLabel: formatNotifyWhen(when),
       whenIso: when.toISOString(),
-      subscribers: subCount ?? undefined,
+      subscribers: subActiveCount ?? subCount ?? undefined,
     })
   }
 
@@ -359,6 +370,20 @@ export default function Admin() {
     } finally {
       setAutoAlertBusy(false)
     }
+  }
+
+  function requestDeactivateDevices() {
+    setNotifyConfirm({
+      mode: 'deactivate_all',
+      deviceCount: subActiveCount ?? subCount ?? 0,
+    })
+  }
+
+  function requestReactivateDevices() {
+    setNotifyConfirm({
+      mode: 'reactivate_all',
+      deviceCount: subCount ?? 0,
+    })
   }
 
   async function executeNotifyConfirm() {
@@ -494,6 +519,32 @@ export default function Admin() {
         setMessage({ type: 'err', text: a.errorGeneric })
       } finally {
         setAutoAlertBusy(false)
+      }
+      return
+    }
+
+    if (draft.mode === 'deactivate_all' || draft.mode === 'reactivate_all') {
+      setNotifySending(true)
+      try {
+        const active = draft.mode === 'reactivate_all'
+        const { data, error } = await supabase.rpc(
+          'set_all_push_subscriptions_active',
+          { p_active: active }
+        )
+        if (error) throw error
+        setMessage({
+          type: 'ok',
+          text: active
+            ? a.notifyReactivateOk.replace('{n}', String(data ?? 0))
+            : a.notifyDeactivateOk.replace('{n}', String(data ?? 0)),
+        })
+        setNotifyConfirm(null)
+        await fetchSubCount()
+      } catch (err) {
+        console.error(err)
+        setMessage({ type: 'err', text: a.errorGeneric })
+      } finally {
+        setNotifySending(false)
       }
     }
   }
@@ -749,9 +800,44 @@ export default function Admin() {
             <p className="mt-3 text-sm font-medium text-ink/80">
               {a.notifyCount}:{' '}
               <span className="font-bold text-barrete">
-                {subCount === null ? '—' : subCount}
+                {subActiveCount === null && subCount === null
+                  ? '—'
+                  : subActiveCount !== null &&
+                      subCount !== null &&
+                      subActiveCount !== subCount
+                    ? `${subActiveCount} ${a.notifyCountActive} / ${subCount}`
+                    : (subActiveCount ?? subCount)}
               </span>
             </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={
+                  notifySending ||
+                  Boolean(notifyConfirm) ||
+                  !subActiveCount
+                }
+                onClick={requestDeactivateDevices}
+                className="inline-flex items-center rounded-xl bg-vermelho/10 px-3 py-2 text-xs font-semibold text-vermelho hover:bg-vermelho/15 disabled:opacity-40"
+              >
+                {a.notifyDeactivateAll}
+              </button>
+              <button
+                type="button"
+                disabled={
+                  notifySending ||
+                  Boolean(notifyConfirm) ||
+                  subCount === null ||
+                  (subActiveCount !== null &&
+                    subCount !== null &&
+                    subActiveCount >= subCount)
+                }
+                onClick={requestReactivateDevices}
+                className="inline-flex items-center rounded-xl bg-barrete/10 px-3 py-2 text-xs font-semibold text-barrete hover:bg-barrete/15 disabled:opacity-40"
+              >
+                {a.notifyReactivateAll}
+              </button>
+            </div>
             <form onSubmit={requestSendNow} className="mt-5 space-y-3">
               <label className="block">
                 <span className="mb-1 block text-sm font-medium">{a.notifySubject}</span>
