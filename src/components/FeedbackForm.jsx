@@ -3,7 +3,7 @@ import { Loader2, MessageSquarePlus, X } from 'lucide-react'
 import { useLang } from '../context/LangContext'
 import { supabase } from '../lib/supabase'
 
-const empty = { tipo: 'sugestao', mensagem: '', contacto: '' }
+const empty = { tipo: 'sugestao', mensagem: '' }
 
 export default function FeedbackForm({ open, onClose }) {
   const { t } = useLang()
@@ -44,11 +44,10 @@ export default function FeedbackForm({ open, onClose }) {
     }
     setSending(true)
     setError(null)
-    const contactoRaw = form.contacto.trim().slice(0, 200)
     const { error: err } = await supabase.from('feedback').insert({
       tipo: form.tipo === 'problema' ? 'problema' : 'sugestao',
       mensagem: mensagem.slice(0, 2000),
-      contacto: contactoRaw || null,
+      contacto: null,
     })
     setSending(false)
     if (err) {
@@ -137,23 +136,6 @@ export default function FeedbackForm({ open, onClose }) {
                 className="min-h-[120px] w-full rounded-xl border border-barrete/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-barrete/40"
                 maxLength={1000}
                 required
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-1 block text-sm font-medium">
-                {f.contact}{' '}
-                <span className="font-normal text-ink/40">({f.optional})</span>
-              </span>
-              <input
-                type="text"
-                value={form.contacto}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, contacto: e.target.value }))
-                }
-                className="w-full rounded-xl border border-barrete/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-barrete/40"
-                placeholder={f.contactPlaceholder}
-                maxLength={120}
               />
             </label>
 
