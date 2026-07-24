@@ -282,7 +282,7 @@ export const translations = {
       notifyAutoSuccess: 'Alertas automáticos actualizados',
       notifyAutoEmpty: 'Não há alertas futuros a gerar (programa vazio ou tudo já passou).',
       notifyTest5Min: 'Teste em 5 min',
-      notifyTest5MinOk: 'Teste agendado para daqui a 5 minutos. Mantém este separador Avisos aberto (ou volta cá daqui a 5 min).',
+      notifyTest5MinOk: 'Teste agendado para daqui a 5 minutos. O cron no servidor trata do envio — podes fechar esta página.',
       placeHint:
         'Uma morada, ou várias ruas separadas por vírgulas (ex.: Rua A, Rua B e Av. C).',
       tabFeedback: 'Feedback',
@@ -573,7 +573,7 @@ export const translations = {
       notifyAutoSuccess: 'Automatic alerts updated',
       notifyAutoEmpty: 'No future alerts to generate (empty programme or everything already past).',
       notifyTest5Min: 'Test in 5 min',
-      notifyTest5MinOk: 'Test scheduled in 5 minutes. Keep this Alerts tab open (or come back in 5 min).',
+      notifyTest5MinOk: 'Test scheduled in 5 minutes. The server cron will send it — you can close this page.',
       placeHint:
         'One venue, or several streets separated by commas (e.g. Street A, Street B and Av. C).',
       tabFeedback: 'Feedback',
@@ -865,7 +865,7 @@ export const translations = {
       notifyAutoSuccess: 'Alertes automatiques mises à jour',
       notifyAutoEmpty: 'Aucune alerte future à générer.',
       notifyTest5Min: 'Test dans 5 min',
-      notifyTest5MinOk: 'Test planifié dans 5 minutes. Gardez cet onglet ouvert.',
+      notifyTest5MinOk: 'Test planifié dans 5 minutes. Le cron serveur s’en charge — vous pouvez fermer cette page.',
       placeHint:
         'Un lieu, ou plusieurs rues séparées par des virgules (ex. : Rue A, Rue B et Av. C).',
       tabFeedback: 'Avis',
@@ -1158,7 +1158,7 @@ export const translations = {
       notifyAutoSuccess: 'Alertas automáticas actualizadas',
       notifyAutoEmpty: 'No hay alertas futuras que generar.',
       notifyTest5Min: 'Prueba en 5 min',
-      notifyTest5MinOk: 'Prueba programada en 5 minutos. Mantén esta pestaña abierta.',
+      notifyTest5MinOk: 'Prueba programada en 5 minutos. El cron del servidor se encarga — puedes cerrar esta página.',
       placeHint:
         'Una dirección, o varias calles separadas por comas (ej.: Calle A, Calle B y Av. C).',
       tabFeedback: 'Feedback',
