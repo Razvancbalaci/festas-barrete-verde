@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LangContext'
 import { FESTIVAL_DAYS } from '../data/days'
 import { CATEGORY_COLORS } from '../data/categories'
-import { buildAutoAlertJobs } from '../lib/autoAlerts'
+import { buildAutoAlertJobs, toScheduleRow } from '../lib/autoAlerts'
 import LoginForm from '../components/admin/LoginForm'
 import EventForm from '../components/admin/EventForm'
 
@@ -400,25 +400,22 @@ export default function Admin() {
       for (const job of jobs) {
         const prev = byKey.get(job.dedupe_key)
         if (prev?.id) {
+          const row = toScheduleRow(job)
           const { error } = await supabase
             .from('push_schedules')
             .update({
-              title: job.title,
-              body: job.body,
-              scheduled_for: job.scheduled_for,
+              title: row.title,
+              body: row.body,
+              scheduled_for: row.scheduled_for,
               status: 'pending',
               sent_at: null,
             })
             .eq('id', prev.id)
           if (error) throw error
         } else {
-          const { error } = await supabase.from('push_schedules').insert({
-            title: job.title,
-            body: job.body,
-            scheduled_for: job.scheduled_for,
-            status: 'pending',
-            dedupe_key: job.dedupe_key,
-          })
+          const { error } = await supabase
+            .from('push_schedules')
+            .insert(toScheduleRow(job))
           if (error) throw error
         }
       }
