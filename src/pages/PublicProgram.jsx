@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { MapPin, Search, Star, X } from 'lucide-react'
-import { FESTIVAL_DAYS } from '../data/days'
+import { FESTIVAL_DAYS, programDayIso } from '../data/days'
 import {
   eventMatchesPlace,
   getMapPlace,
 } from '../data/mapPlaces'
 import {
   findNextOrCurrentEvent,
-  localDateIso,
   sortEvents,
 } from '../lib/datetime'
 import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LangContext'
 import { useFavorites } from '../hooks/useLocalExtras'
+import { track } from '../lib/analytics'
 import Header from '../components/Header'
 import DayTabs from '../components/DayTabs'
 import CategoryFilter from '../components/CategoryFilter'
@@ -27,11 +27,6 @@ function eventMatchesQuery(event, q) {
     .join(' ')
     .toLowerCase()
   return hay.includes(q)
-}
-
-function defaultDay(todayIso) {
-  const found = FESTIVAL_DAYS.find((d) => d.date === todayIso)
-  return found ? found.date : FESTIVAL_DAYS[0].date
 }
 
 export default function PublicProgram() {
@@ -51,10 +46,10 @@ export default function PublicProgram() {
     return place
   }, [paramLocal])
 
-  const [todayIso, setTodayIso] = useState(() => localDateIso())
+  const [todayIso, setTodayIso] = useState(() => programDayIso())
   const [selectedDate, setSelectedDate] = useState(() => {
     if (paramDia && FESTIVAL_DAYS.some((d) => d.date === paramDia)) return paramDia
-    return defaultDay(localDateIso())
+    return programDayIso()
   })
   const [category, setCategory] = useState(null)
   const [query, setQuery] = useState('')
@@ -79,9 +74,9 @@ export default function PublicProgram() {
     [selectedDate]
   )
 
-  // Data local «Hoje» — actualiza à meia-noite / ao voltar à app
+  // Dia de cartaz «Hoje» — madrugada 00–05h ainda conta o dia anterior
   useEffect(() => {
-    const refresh = () => setTodayIso(localDateIso())
+    const refresh = () => setTodayIso(programDayIso())
     const id = window.setInterval(refresh, 60_000)
     document.addEventListener('visibilitychange', refresh)
     window.addEventListener('focus', refresh)
@@ -175,11 +170,13 @@ export default function PublicProgram() {
 
   const goToday = useCallback(() => {
     if (!todayInFestival) return
+    track('filter_today')
     selectDay(todayIso)
   }, [todayInFestival, todayIso, selectDay])
 
   const goNow = useCallback(() => {
     const day = todayInFestival ? todayIso : selectedDate
+    track('filter_now')
     setFavoritesOnly(false)
     setShowNow(true)
     setSelectedDate(day)
@@ -308,7 +305,13 @@ export default function PublicProgram() {
         selectedDate={placeFilter || favoritesOnly ? null : selectedDate}
         onSelect={selectDay}
       />
-      <CategoryFilter selected={category} onSelect={setCategory} />
+      <CategoryFilter
+        selected={category}
+        onSelect={(cat) => {
+          track('filter_category', { category: cat || 'all' })
+          setCategory(cat)
+        }}
+      />
 
       <div className="border-b border-barrete/10 bg-creme/80">
         <div className="mx-auto flex max-w-3xl flex-col gap-2.5 px-4 py-3 sm:px-6">
@@ -320,7 +323,11 @@ export default function PublicProgram() {
             <input
               type="search"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value
+                setQuery(value)
+                if (value.trim().length === 1) track('search')
+              }}
               placeholder={t.searchPlaceholder}
               className="w-full rounded-xl border-0 bg-white py-2.5 pl-9 pr-3 text-sm text-ink shadow-sm ring-1 ring-barrete/10 placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-barrete/30"
             />
@@ -363,6 +370,8 @@ export default function PublicProgram() {
             <button
               type="button"
               onClick={() => {
+                const enabling = !favoritesOnly
+                if (enabling) track('filter_favorites')
                 setFavoritesOnly((v) => !v)
                 setShowNow(false)
                 setHighlightId(null)

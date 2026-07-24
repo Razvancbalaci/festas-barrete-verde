@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { track } from '../lib/analytics'
 
 const A11yContext = createContext(null)
 const STORAGE_KEY = 'fbv-a11y'
@@ -26,7 +27,11 @@ export function A11yProvider({ children }) {
   }, [])
 
   const toggleA11y = useCallback(() => {
-    setA11yState((v) => !v)
+    setA11yState((v) => {
+      const next = !v
+      track('a11y_toggle', { on: next })
+      return next
+    })
   }, [])
 
   return (

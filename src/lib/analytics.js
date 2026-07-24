@@ -33,14 +33,16 @@ let flushing = false
 async function flushQueue() {
   if (flushing || queue.length === 0) return
   flushing = true
-  const batch = queue.splice(0, queue.length)
   try {
-    for (const item of batch) {
-      await supabase.rpc('record_analytics_event', {
-        p_event_name: item.name,
-        p_payload: item.payload,
-        p_session_id: item.sessionId,
-      })
+    while (queue.length > 0) {
+      const batch = queue.splice(0, queue.length)
+      for (const item of batch) {
+        await supabase.rpc('record_analytics_event', {
+          p_event_name: item.name,
+          p_payload: item.payload,
+          p_session_id: item.sessionId,
+        })
+      }
     }
   } catch {
     /* fire-and-forget */

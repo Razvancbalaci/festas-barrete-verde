@@ -6,6 +6,13 @@ export function localDateIso(date = new Date()) {
   return `${y}-${m}-${d}`
 }
 
+/** Soma/subtrai dias a uma data ISO local (meio-dia para evitar DST). */
+export function addCalendarDays(iso, delta) {
+  const d = new Date(`${iso}T12:00:00`)
+  d.setDate(d.getDate() + delta)
+  return localDateIso(d)
+}
+
 /**
  * Ordenação de horas HH:MM — madrugada (00–05) depois da noite do mesmo dia de cartaz.
  */

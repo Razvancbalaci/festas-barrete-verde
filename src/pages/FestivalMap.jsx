@@ -162,6 +162,7 @@ export default function FestivalMap() {
                         href={mapsWalkToUrl(p.lat, p.lng)}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={() => track('map_walk', { place_id: p.id })}
                         className="inline-flex items-center gap-1 font-semibold text-barrete underline-offset-2 hover:underline"
                       >
                         <Navigation className="h-3.5 w-3.5 shrink-0" aria-hidden />

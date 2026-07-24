@@ -15,6 +15,7 @@ import { useLang } from '../context/LangContext'
 import { BUSINESS_TYPES } from '../data/businessTypes'
 import Footer from '../components/Footer'
 import { mapsUrl } from '../lib/locations'
+import { track } from '../lib/analytics'
 
 const emptyForm = {
   nome: '',
@@ -101,6 +102,7 @@ export default function Negocios() {
       return
     }
     setSuccess(b.success)
+    track('comercio_submit', { tipo: payload.tipo })
     setForm({ ...emptyForm })
     setShowForm(false)
   }
