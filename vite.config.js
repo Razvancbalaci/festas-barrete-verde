@@ -13,6 +13,7 @@ export default defineConfig({
       filename: 'sw.js',
       registerType: 'autoUpdate',
       includeAssets: [
+        'favicon.ico',
         'favicon.svg',
         'favicon.png',
         'apple-touch-icon.png',
