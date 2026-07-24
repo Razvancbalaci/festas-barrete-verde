@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import { LangProvider, useLang } from './context/LangContext'
 import { A11yProvider } from './context/A11yContext'
@@ -9,12 +10,22 @@ import Negocios from './pages/Negocios'
 import InstallPrompt from './components/InstallPrompt'
 import NotifyPrompt from './components/NotifyPrompt'
 import OfflineBanner from './components/OfflineBanner'
+import AnalyticsTracker from './components/AnalyticsTracker'
+import { track } from './lib/analytics'
 
 function AppExtras() {
   const { t } = useLang()
   useReminderTicker(t)
+
+  useEffect(() => {
+    const onInstall = () => track('pwa_install')
+    window.addEventListener('appinstalled', onInstall)
+    return () => window.removeEventListener('appinstalled', onInstall)
+  }, [])
+
   return (
     <>
+      <AnalyticsTracker />
       <OfflineBanner />
       <InstallPrompt />
       <NotifyPrompt />

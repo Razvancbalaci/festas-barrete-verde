@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import { parseLocalReminderValue } from '../lib/datetime'
 import { processDueReminders } from '../lib/reminders'
+import { track } from '../lib/analytics'
 
 export { eventDateTime } from '../lib/datetime'
 
@@ -56,11 +57,13 @@ export function useFavorites() {
 
   const toggle = useCallback((id) => {
     const current = readJson(FAV_KEY, [])
-    const next = current.includes(id)
-      ? current.filter((x) => x !== id)
-      : [...current, id]
+    const adding = !current.includes(id)
+    const next = adding
+      ? [...current, id]
+      : current.filter((x) => x !== id)
     writeJson(FAV_KEY, next)
     emit(favListeners)
+    track(adding ? 'favorite_add' : 'favorite_remove', { event_id: id })
   }, [])
 
   const has = useCallback((id) => ids.includes(id), [ids])

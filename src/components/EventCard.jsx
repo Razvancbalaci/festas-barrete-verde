@@ -24,6 +24,7 @@ import {
   getCurrentPushEndpoint,
   scheduleServerReminder,
 } from '../lib/reminders'
+import { track } from '../lib/analytics'
 import {
   isCorridaEvent,
   isRouteMapEvent,
@@ -176,6 +177,7 @@ export default function EventCard({ event, index, highlighted }) {
     try {
       if (navigator.share) {
         await navigator.share({ title, text, url })
+        track('share', { event_id: event.id })
         return
       }
     } catch {
@@ -183,6 +185,7 @@ export default function EventCard({ event, index, highlighted }) {
     }
     try {
       await navigator.clipboard.writeText(url)
+      track('share', { event_id: event.id })
       setShareMsg(true)
       window.setTimeout(() => setShareMsg(false), 2000)
     } catch {
@@ -197,6 +200,7 @@ export default function EventCard({ event, index, highlighted }) {
       if (reminderAt) {
         if (String(reminderAt).startsWith('local:')) {
           clearReminder(event.id)
+          track('reminder_cancel', { event_id: event.id })
           return
         }
         const endpoint = await getCurrentPushEndpoint()
@@ -211,6 +215,7 @@ export default function EventCard({ event, index, highlighted }) {
           return
         }
         clearReminder(event.id)
+        track('reminder_cancel', { event_id: event.id })
         return
       }
 
@@ -254,11 +259,13 @@ export default function EventCard({ event, index, highlighted }) {
           event.id,
           formatLocalReminderValue(when.toISOString(), event.dia)
         )
+        track('reminder_set', { event_id: event.id, local: true })
         window.alert(t.remindLocalOnly || t.remindOn)
         return
       }
 
       setReminder(event.id, when.toISOString())
+      track('reminder_set', { event_id: event.id })
     } finally {
       setRemindBusy(false)
     }
@@ -364,6 +371,7 @@ export default function EventCard({ event, index, highlighted }) {
                   href={event.bilhetes_url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => track('ticket_click', { event_id: event.id })}
                   className="inline-flex items-center gap-1.5 rounded-full bg-vermelho px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#A93226]"
                 >
                   <Ticket className="h-3.5 w-3.5" aria-hidden />

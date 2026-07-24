@@ -8,6 +8,7 @@ import { CATEGORY_COLORS } from '../data/categories'
 import { buildAutoAlertJobs, toScheduleRow } from '../lib/autoAlerts'
 import LoginForm from '../components/admin/LoginForm'
 import EventForm from '../components/admin/EventForm'
+import AnalyticsPanel from '../components/admin/AnalyticsPanel'
 
 function timeSortKey(hora) {
   const match = String(hora).match(/(\d{1,2}):(\d{2})/)
@@ -140,6 +141,7 @@ export default function Admin() {
       fetchSchedules()
       processDueSchedules()
     } else if (tab === 'feedback') fetchFeedback(true)
+    else if (tab === 'analytics') fetchEvents()
   }, [
     session,
     tab,
@@ -564,6 +566,15 @@ export default function Admin() {
           >
             {a.tabNotify}
           </button>
+          <button
+            type="button"
+            onClick={() => setTab('analytics')}
+            className={`min-w-[4.5rem] flex-1 rounded-xl px-2 py-2.5 text-xs font-semibold transition sm:px-3 sm:text-sm ${
+              tab === 'analytics' ? 'bg-barrete text-white' : 'text-ink/60 hover:bg-creme'
+            }`}
+          >
+            {a.tabAnalytics}
+          </button>
         </div>
 
         {tab === 'events' ? (
@@ -886,6 +897,8 @@ export default function Admin() {
               ))}
             </ul>
           )
+        ) : tab === 'analytics' ? (
+          <AnalyticsPanel t={t} events={events} />
         ) : loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-barrete" />

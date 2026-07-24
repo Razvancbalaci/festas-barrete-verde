@@ -7,6 +7,7 @@ import { useLang } from '../context/LangContext'
 import { useA11y } from '../context/A11yContext'
 import { MAP_CENTER, MAP_PLACES, MAP_ZOOM } from '../data/mapPlaces'
 import { mapsWalkToUrl } from '../lib/locations'
+import { track } from '../lib/analytics'
 import { getMapLayers } from '../lib/mapTiles'
 import Footer from '../components/Footer'
 import 'leaflet/dist/leaflet.css'
@@ -169,6 +170,7 @@ export default function FestivalMap() {
                       {p.matchTerms?.length ? (
                         <Link
                           to={`/?local=${encodeURIComponent(p.id)}`}
+                          onClick={() => track('map_place_view', { place_id: p.id })}
                           className="inline-flex font-semibold text-tejo underline-offset-2 hover:underline"
                         >
                           {m.seeEvents}

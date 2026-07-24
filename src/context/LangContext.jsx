@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { translations } from '../data/i18n'
+import { track } from '../lib/analytics'
 
 const LangContext = createContext(null)
 
@@ -20,10 +21,17 @@ export function LangProvider({ children }) {
     }
   }, [lang])
 
+  const setLangTracked = useCallback((next) => {
+    setLang((prev) => {
+      if (prev !== next) track('lang_change', { lang: next })
+      return next
+    })
+  }, [])
+
   const t = translations[lang] || translations.pt
 
   return (
-    <LangContext.Provider value={{ lang, setLang, t }}>
+    <LangContext.Provider value={{ lang, setLang: setLangTracked, t }}>
       {children}
     </LangContext.Provider>
   )

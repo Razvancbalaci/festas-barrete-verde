@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Download, Share, X } from 'lucide-react'
 import { useLang } from '../context/LangContext'
+import { track } from '../lib/analytics'
 
 const STORAGE_KEY = 'fbv-install-dismissed'
 const SHOW_DELAY_MS = 2500
@@ -77,11 +78,21 @@ export default function InstallPrompt() {
     }
   }, [pathname])
 
+  const shownTracked = useRef(false)
+
+  useEffect(() => {
+    if (!visible || pathname.startsWith('/admin')) return
+    if (shownTracked.current) return
+    shownTracked.current = true
+    track('install_prompt_show')
+  }, [visible, pathname])
+
   if (!visible || pathname.startsWith('/admin')) return null
   if (!iosMode && !androidMode && !deferredPrompt) return null
 
   const dismiss = () => {
     setVisible(false)
+    track('install_prompt_dismiss')
     try {
       localStorage.setItem(STORAGE_KEY, '1')
     } catch {
@@ -93,12 +104,18 @@ export default function InstallPrompt() {
     if (!deferredPrompt) return
     deferredPrompt.prompt()
     try {
-      await deferredPrompt.userChoice
+      const choice = await deferredPrompt.userChoice
+      if (choice?.outcome === 'accepted') track('install_prompt_accept')
     } catch {
       /* ignore */
     }
     setDeferredPrompt(null)
-    dismiss()
+    setVisible(false)
+    try {
+      localStorage.setItem(STORAGE_KEY, '1')
+    } catch {
+      /* ignore */
+    }
   }
 
   const copy = t.install

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Bell, BellRing, X } from 'lucide-react'
 import { useLang } from '../context/LangContext'
 import { savePushSubscription } from '../lib/reminders'
+import { track } from '../lib/analytics'
 import { pushSupported, urlBase64ToUint8Array, isAndroid, isInAppBrowser } from '../lib/push'
 
 const DISMISS_KEY = 'fbv-notify-dismissed'
@@ -95,10 +96,20 @@ export default function NotifyPrompt() {
     }
   }, [pathname])
 
+  const shownTracked = useRef(false)
+
+  useEffect(() => {
+    if (!visible || pathname.startsWith('/admin')) return
+    if (shownTracked.current) return
+    shownTracked.current = true
+    track('push_prompt_show')
+  }, [visible, pathname])
+
   if (!visible || pathname.startsWith('/admin')) return null
 
-  const dismiss = () => {
+  const dismiss = (manual = true) => {
     setVisible(false)
+    if (manual) track('push_prompt_dismiss')
     try {
       localStorage.setItem(DISMISS_KEY, '1')
     } catch {
@@ -193,7 +204,8 @@ export default function NotifyPrompt() {
       }
 
       setStatus('on')
-      window.setTimeout(dismiss, 1800)
+      track('push_prompt_enable')
+      window.setTimeout(() => dismiss(false), 1800)
     } catch (err) {
       console.error(err)
       setStatus('error')
