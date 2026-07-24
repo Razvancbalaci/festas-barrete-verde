@@ -8,7 +8,10 @@ export default function Header() {
   const { a11y, toggleA11y } = useA11y()
 
   return (
-    <header className="relative overflow-hidden border-b border-barrete/10">
+    <header
+      className="relative overflow-hidden border-b border-barrete/10"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+    >
       <div
         className="absolute inset-0 opacity-90"
         style={{

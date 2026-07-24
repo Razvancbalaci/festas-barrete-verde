@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import { LangProvider, useLang } from './context/LangContext'
 import { A11yProvider } from './context/A11yContext'
 import { useReminderTicker } from './hooks/useLocalExtras'
@@ -15,6 +15,15 @@ import OfflineBanner from './components/OfflineBanner'
 import AnalyticsTracker from './components/AnalyticsTracker'
 import { track } from './lib/analytics'
 
+/** Ao mudar de rota (ex. footer → privacidade), ir ao topo do ecrã. */
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+  return null
+}
+
 function AppExtras() {
   const { t } = useLang()
   useReminderTicker(t)
@@ -27,6 +36,7 @@ function AppExtras() {
 
   return (
     <>
+      <ScrollToTop />
       <AnalyticsTracker />
       <OfflineBanner />
       <InstallPrompt />

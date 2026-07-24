@@ -19,6 +19,8 @@
 html {
   scroll-behavior: smooth;
   overflow-x: hidden;
+  /* Evita faixa creme no topo (notch / status bar / overscroll). */
+  background-color: #1b5e3f;
 }
 
 /* Modo acessibilidade: texto maior + contraste mais forte */

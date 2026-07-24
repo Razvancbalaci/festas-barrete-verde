@@ -120,7 +120,10 @@ export default function Negocios() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-barrete/10 bg-gradient-to-br from-barrete to-barrete-light text-white">
+      <header
+        className="border-b border-barrete/10 bg-gradient-to-br from-barrete to-barrete-light text-white"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
           <Link
             to="/"
