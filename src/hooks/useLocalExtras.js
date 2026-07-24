@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import { parseLocalReminderValue } from '../lib/datetime'
 import { processDueReminders } from '../lib/reminders'
 import { track } from '../lib/analytics'
+import { getPushServiceWorker } from '../lib/push'
 
 export { eventDateTime } from '../lib/datetime'
 
@@ -135,7 +136,8 @@ export function useReminderTicker(t) {
         let shown = false
         try {
           if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
-            const reg = await navigator.serviceWorker.ready
+            const reg = await getPushServiceWorker(2000)
+            if (!reg) continue
             await reg.showNotification(t.reminders?.title || 'Lembrete', {
               body: t.reminders?.body || 'Um evento das festas está prestes a começar.',
               icon: '/icon-192.png',

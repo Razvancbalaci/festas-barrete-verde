@@ -131,16 +131,22 @@ begin
     ), '[]'::jsonb),
     'visits_by_hour', coalesce((
       select jsonb_agg(
-        jsonb_build_object('hour', hour, 'views', views)
-        order by hour
+        jsonb_build_object('hour', h.hour, 'views', h.views)
+        order by h.hour
       )
       from (
         select
-          extract(hour from created_at at time zone 'Europe/Lisbon')::int as hour,
-          count(*) as views
-        from analytics_events
-        where event_name = 'page_view' and created_at >= since
-        group by 1
+          gs.hour,
+          coalesce(v.views, 0)::int as views
+        from generate_series(0, 23) as gs(hour)
+        left join (
+          select
+            extract(hour from created_at at time zone 'Europe/Lisbon')::int as hour,
+            count(*)::int as views
+          from analytics_events
+          where event_name = 'page_view' and created_at >= since
+          group by 1
+        ) v on v.hour = gs.hour
       ) h
     ), '[]'::jsonb),
     'totals', jsonb_build_object(

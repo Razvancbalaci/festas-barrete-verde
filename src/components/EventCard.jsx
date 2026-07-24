@@ -232,6 +232,8 @@ export default function EventCard({ event, index, highlighted }) {
           window.alert(t.remindNeedInstall || t.remindNeedPermission)
         } else if (ready.reason === 'inApp') {
           window.alert(t.notify?.androidBrowser || t.remindNeedPermission)
+        } else if (ready.reason === 'timeout' || ready.reason === 'sw') {
+          window.alert(t.notify?.errorTimeout || t.notifyPrefs?.enableTimeout || t.remindNeedPermission)
         } else {
           window.alert(t.remindNeedPermission)
         }

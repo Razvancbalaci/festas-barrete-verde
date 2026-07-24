@@ -135,7 +135,28 @@ export default function AnalyticsPanel({ t, events = [] }) {
   const placeLabel = (id) => placeNames[id] || id || '—'
 
   const hourRows = useMemo(() => {
-    const byHour = new Map((data?.visits_by_hour || []).map((r) => [r.hour, r.views]))
+    const raw = data?.visits_by_hour
+    const list = Array.isArray(raw)
+      ? raw
+      : typeof raw === 'string'
+        ? (() => {
+            try {
+              const parsed = JSON.parse(raw)
+              return Array.isArray(parsed) ? parsed : []
+            } catch {
+              return []
+            }
+          })()
+        : []
+
+    const byHour = new Map()
+    for (const row of list) {
+      const hour = Number(row?.hour)
+      const views = Number(row?.views)
+      if (!Number.isInteger(hour) || hour < 0 || hour > 23) continue
+      byHour.set(hour, (byHour.get(hour) || 0) + (Number.isFinite(views) ? views : 0))
+    }
+
     return Array.from({ length: 24 }, (_, hour) => ({
       hour,
       views: byHour.get(hour) || 0,

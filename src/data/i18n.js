@@ -110,6 +110,10 @@ export const translations = {
       dismiss: 'Agora não',
       error:
         'Não foi possível ativar. Confirma que correste o SQL push-subscriptions no Supabase e tenta de novo.',
+      errorSw:
+        'Service worker indisponível (em localhost o SW está desligado; em rede de trabalho o Edge pode bloqueá-lo). Tenta no telemóvel ou em casa.',
+      errorTimeout:
+        'O Edge demorou demasiado a criar a subscrição (rede de trabalho costuma bloquear push). Tenta noutro browser ou fora da VPN.',
     },
     adminLink: 'Admin',
     businessesLink: 'Comércio local',
@@ -150,6 +154,8 @@ export const translations = {
       enable: 'Activar notificações',
       enabled: 'Notificações activas. Podes escolher os tipos abaixo.',
       enableError: 'Não foi possível activar as notificações.',
+      enableTimeout:
+        'O browser demorou demasiado (rede de trabalho / Edge). Tenta noutro browser ou fora da VPN.',
       needInstall: 'Adiciona a app ao ecrã inicial e abre pelo ícone para activar avisos.',
       denied: 'Permissão de notificações recusada nas definições do telemóvel.',
       save: 'Guardar',
@@ -529,6 +535,10 @@ export const translations = {
       dismiss: 'Not now',
       error:
         'Could not enable. Make sure you ran the push-subscriptions SQL in Supabase, then try again.',
+      errorSw:
+        'Service worker unavailable (off on localhost; work Edge may block it). Try on your phone or at home.',
+      errorTimeout:
+        'Edge took too long to create the subscription (work networks often block push). Try another browser or off VPN.',
     },
     adminLink: 'Admin',
     businessesLink: 'Local shops',
@@ -569,6 +579,8 @@ export const translations = {
       enable: 'Enable notifications',
       enabled: 'Notifications on. You can pick types below.',
       enableError: 'Could not enable notifications.',
+      enableTimeout:
+        'The browser took too long (work network / Edge). Try another browser or off VPN.',
       needInstall: 'Add the app to your home screen and open it from the icon to enable alerts.',
       denied: 'Notification permission was denied in phone settings.',
       save: 'Save',
@@ -946,6 +958,10 @@ export const translations = {
       dismiss: 'Pas maintenant',
       error:
         'Activation impossible. Vérifiez que le SQL push-subscriptions a été exécuté dans Supabase, puis réessayez.',
+      errorSw:
+        'Service worker indisponible (désactivé en localhost ; Edge pro peut le bloquer). Essayez sur le téléphone ou chez vous.',
+      errorTimeout:
+        'Edge a mis trop longtemps à créer l’abonnement (réseau pro). Essayez un autre navigateur ou hors VPN.',
     },
     adminLink: 'Admin',
     businessesLink: 'Commerces locaux',
@@ -986,6 +1002,8 @@ export const translations = {
       enable: 'Activer les notifications',
       enabled: 'Notifications actives. Choisissez les types ci-dessous.',
       enableError: 'Impossible d’activer les notifications.',
+      enableTimeout:
+        'Le navigateur a mis trop longtemps (réseau pro / Edge). Essayez un autre navigateur ou hors VPN.',
       needInstall:
         'Ajoutez l’app à l’écran d’accueil et ouvrez-la via l’icône pour activer les alertes.',
       denied: 'Permission de notifications refusée dans les réglages du téléphone.',
@@ -1365,6 +1383,10 @@ export const translations = {
       dismiss: 'Ahora no',
       error:
         'No se pudo activar. Confirma que ejecutaste el SQL push-subscriptions en Supabase e inténtalo de nuevo.',
+      errorSw:
+        'Service worker no disponible (desactivado en localhost; Edge del trabajo puede bloquearlo). Prueba en el móvil o en casa.',
+      errorTimeout:
+        'Edge tardó demasiado en crear la suscripción (redes de trabajo suelen bloquear push). Prueba otro navegador o sin VPN.',
     },
     adminLink: 'Admin',
     businessesLink: 'Comercio local',
@@ -1405,6 +1427,8 @@ export const translations = {
       enable: 'Activar notificaciones',
       enabled: 'Notificaciones activas. Puedes elegir los tipos abajo.',
       enableError: 'No se pudieron activar las notificaciones.',
+      enableTimeout:
+        'El navegador tardó demasiado (red de trabajo / Edge). Prueba otro navegador o sin VPN.',
       needInstall:
         'Añade la app a la pantalla de inicio y ábrela desde el icono para activar avisos.',
       denied: 'Permiso de notificaciones denegado en los ajustes del móvil.',

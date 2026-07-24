@@ -4,7 +4,7 @@ import { Bell, BellRing, X } from 'lucide-react'
 import { useLang } from '../context/LangContext'
 import { savePushSubscription } from '../lib/reminders'
 import { track } from '../lib/analytics'
-import { pushSupported, urlBase64ToUint8Array, isAndroid, isInAppBrowser } from '../lib/push'
+import { pushSupported, isAndroid, isInAppBrowser, getPushServiceWorker, getOrCreatePushSubscription } from '../lib/push'
 
 const DISMISS_KEY = 'fbv-notify-dismissed'
 const INSTALL_KEY = 'fbv-install-dismissed'
@@ -64,15 +64,11 @@ export default function NotifyPrompt() {
       if ((isIos() || isAndroid()) && !isStandalone()) return false
       if (isInAppBrowser()) return false
       try {
-        const reg = await navigator.serviceWorker.ready
-        let sub = await reg.pushManager.getSubscription()
-        if (!sub) {
-          sub = await reg.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(vapid),
-          })
-        }
-        const saved = await savePushSubscription(sub.toJSON())
+        const reg = await getPushServiceWorker()
+        if (!reg) return false
+        const created = await getOrCreatePushSubscription(reg, vapid)
+        if (!created.ok) return false
+        const saved = await savePushSubscription(created.subscription.toJSON())
         return saved.ok
       } catch {
         return false
@@ -154,32 +150,27 @@ export default function NotifyPrompt() {
         return
       }
 
-      let reg = await navigator.serviceWorker.getRegistration()
+      const reg = await getPushServiceWorker()
       if (!reg) {
-        await new Promise((r) => setTimeout(r, 800))
-        reg = await navigator.serviceWorker.ready
-      } else {
-        reg = await navigator.serviceWorker.ready
+        setStatus('error')
+        setErrorDetail(n.errorSw || 'service worker')
+        return
       }
 
-      // Android: recriar a subscrição evita endpoints FCM “mortos”
-      let sub = await reg.pushManager.getSubscription()
-      if (sub && isAndroid()) {
-        try {
-          await sub.unsubscribe()
-        } catch {
-          /* ignore */
-        }
-        sub = null
-      }
-      if (!sub) {
-        sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidKey),
-        })
+      const created = await getOrCreatePushSubscription(reg, vapidKey, {
+        recreate: isAndroid(),
+      })
+      if (!created.ok) {
+        setStatus('error')
+        setErrorDetail(
+          created.reason === 'timeout'
+            ? n.errorTimeout || 'timeout'
+            : created.error?.message || created.reason || 'subscribe'
+        )
+        return
       }
 
-      const json = sub.toJSON()
+      const json = created.subscription.toJSON()
       if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
         throw new Error('Subscription keys missing')
       }

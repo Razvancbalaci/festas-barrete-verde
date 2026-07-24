@@ -1,9 +1,10 @@
 import { supabase } from './supabase'
 import {
+  getOrCreatePushSubscription,
+  getPushServiceWorker,
   isAndroid,
   isInAppBrowser,
   pushSupported,
-  urlBase64ToUint8Array,
 } from './push'
 import { sanitizeAppPath } from './safeUrl'
 
@@ -61,16 +62,17 @@ export async function ensurePushForReminders() {
     return { ok: false, reason: 'denied' }
   }
 
-  const reg = await navigator.serviceWorker.ready
-  let sub = await reg.pushManager.getSubscription()
-  if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidKey),
-    })
+  const reg = await getPushServiceWorker()
+  if (!reg) return { ok: false, reason: 'sw' }
+
+  const created = await getOrCreatePushSubscription(reg, vapidKey, {
+    recreate: isAndroid(),
+  })
+  if (!created.ok) {
+    return { ok: false, reason: created.reason || 'subscribe' }
   }
 
-  const json = sub.toJSON()
+  const json = created.subscription.toJSON()
   if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
     return { ok: false, reason: 'keys' }
   }
@@ -129,17 +131,7 @@ export async function processDueReminders() {
 export async function getCurrentPushEndpoint() {
   try {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null
-
-    // Em dev o SW pode estar desligado — `ready` nunca resolve. Usar getRegistration + timeout.
-    const reg = await Promise.race([
-      navigator.serviceWorker.getRegistration().then(async (r) => {
-        if (r) return r
-        // Só esperar por ready se já houver controller (produção / SW activo)
-        if (!navigator.serviceWorker.controller) return null
-        return navigator.serviceWorker.ready
-      }),
-      new Promise((resolve) => window.setTimeout(() => resolve(null), 1500)),
-    ])
+    const reg = await getPushServiceWorker(1500)
     if (!reg?.pushManager) return null
     const sub = await reg.pushManager.getSubscription()
     return sub?.endpoint || null

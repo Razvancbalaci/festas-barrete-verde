@@ -75,6 +75,8 @@ export default function NotifyPrefsForm({ open, onClose }) {
     if (!ready.ok) {
       if (ready.reason === 'needInstall') setMessage({ type: 'err', text: p.needInstall })
       else if (ready.reason === 'denied') setMessage({ type: 'err', text: p.denied })
+      else if (ready.reason === 'timeout' || ready.reason === 'sw')
+        setMessage({ type: 'err', text: p.enableTimeout || p.enableError })
       else setMessage({ type: 'err', text: p.enableError })
       return
     }
