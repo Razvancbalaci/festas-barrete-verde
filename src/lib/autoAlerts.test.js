@@ -332,11 +332,14 @@ describe('buildAutoAlertJobs — no early / random / duplicate sends', () => {
     const row = toScheduleRow(job)
     expect(row).toEqual({
       dedupe_key: job.dedupe_key,
+      category: 'street',
       title: job.title,
       body: job.body,
       scheduled_for: job.scheduled_for,
       status: 'pending',
     })
+    expect(row._event_id).toBeUndefined()
+    expect(row._minutes_before).toBeUndefined()
     expect(row._event_start).toBeUndefined()
   })
 

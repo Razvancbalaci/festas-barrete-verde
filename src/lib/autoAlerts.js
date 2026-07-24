@@ -61,6 +61,7 @@ export function buildAutoAlertJobs(events, now = new Date()) {
       seen.add(dedupe_key)
       jobs.push({
         dedupe_key,
+        category: kind,
         title,
         body: titulo.slice(0, 200),
         scheduled_for: when.toISOString(),
@@ -89,8 +90,11 @@ export function buildAutoAlertJobs(events, now = new Date()) {
 
 /** Remove campos internos antes de gravar na BD. */
 export function toScheduleRow(job) {
+  const fromKey = String(job.dedupe_key || '').match(/^auto:([a-z]+):/)
+  const category = job.category || fromKey?.[1] || 'broadcast'
   return {
     dedupe_key: job.dedupe_key,
+    category,
     title: job.title,
     body: job.body,
     scheduled_for: job.scheduled_for,

@@ -50,12 +50,27 @@ async function pushOne(sub, title, body, url = '/') {
   )
 }
 
-async function sendToAll(admin, title, body, url = '/') {
+async function sendToAll(admin, title, body, url = '/', category = 'broadcast') {
   vapidReady()
 
-  const { data: subs, error: subError } = await admin
+  const cat = ['street', 'corrida', 'sjoao', 'broadcast'].includes(category)
+    ? category
+    : 'broadcast'
+  const prefCol =
+    cat === 'street'
+      ? 'pref_street'
+      : cat === 'corrida'
+        ? 'pref_corrida'
+        : cat === 'sjoao'
+          ? 'pref_sjoao'
+          : 'pref_broadcast'
+
+  let query = admin
     .from('push_subscriptions')
     .select('id, endpoint, p256dh, auth')
+    .eq(prefCol, true)
+
+  const { data: subs, error: subError } = await query
 
   if (subError) throw subError
 
@@ -79,7 +94,16 @@ async function sendToAll(admin, title, body, url = '/') {
     await admin.from('push_subscriptions').delete().in('id', stale)
   }
 
-  return { sent, total: subs?.length || 0, removed: stale.length }
+  return { sent, total: subs?.length || 0, removed: stale.length, category: cat }
+}
+
+function categoryFromSchedule(job) {
+  if (job?.category && ['street', 'corrida', 'sjoao', 'broadcast'].includes(job.category)) {
+    return job.category
+  }
+  const m = String(job?.dedupe_key || '').match(/^auto:([a-z]+):/)
+  if (m && ['street', 'corrida', 'sjoao'].includes(m[1])) return m[1]
+  return 'broadcast'
 }
 
 /** Lembretes por evento → um push por subscrição (app pode estar fechada). */
@@ -159,7 +183,13 @@ async function processBroadcastSchedules(admin) {
   const results = []
   for (const job of due || []) {
     try {
-      const r = await sendToAll(admin, job.title, job.body, '/')
+      const r = await sendToAll(
+        admin,
+        job.title,
+        job.body,
+        '/',
+        categoryFromSchedule(job)
+      )
       await admin
         .from('push_schedules')
         .update({ status: 'sent', sent_at: new Date().toISOString() })
@@ -265,7 +295,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { title, body, url } = payload
+    const { title, body, url, category } = payload
     if (!title?.trim() || !body?.trim()) {
       return new Response(JSON.stringify({ error: 'title and body required' }), {
         status: 400,
@@ -277,7 +307,8 @@ Deno.serve(async (req) => {
       admin,
       String(title).slice(0, 120),
       String(body).slice(0, 500),
-      sanitizeAppPath(url)
+      sanitizeAppPath(url),
+      categoryFromSchedule({ category, dedupe_key: null })
     )
 
     return new Response(JSON.stringify({ ok: true, ...result }), {

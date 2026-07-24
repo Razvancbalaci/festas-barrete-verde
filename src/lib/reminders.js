@@ -128,10 +128,71 @@ export async function processDueReminders() {
 
 export async function getCurrentPushEndpoint() {
   try {
-    const reg = await navigator.serviceWorker.ready
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null
+
+    // Em dev o SW pode estar desligado — `ready` nunca resolve. Usar getRegistration + timeout.
+    const reg = await Promise.race([
+      navigator.serviceWorker.getRegistration().then(async (r) => {
+        if (r) return r
+        // Só esperar por ready se já houver controller (produção / SW activo)
+        if (!navigator.serviceWorker.controller) return null
+        return navigator.serviceWorker.ready
+      }),
+      new Promise((resolve) => window.setTimeout(() => resolve(null), 1500)),
+    ])
+    if (!reg?.pushManager) return null
     const sub = await reg.pushManager.getSubscription()
     return sub?.endpoint || null
   } catch {
     return null
   }
+}
+
+const DEFAULT_PREFS = {
+  pref_street: true,
+  pref_corrida: true,
+  pref_sjoao: true,
+  pref_broadcast: true,
+}
+
+export async function fetchPushPreferences() {
+  try {
+    const endpoint = await getCurrentPushEndpoint()
+    if (!endpoint) {
+      return { ...DEFAULT_PREFS, subscribed: false, endpoint: null }
+    }
+    const { data, error } = await supabase.rpc('get_push_preferences', {
+      p_endpoint: endpoint,
+    })
+    if (error || !data) {
+      // RPC ainda não existe / rede — mostrar defaults e pedir activar se preciso
+      return { ...DEFAULT_PREFS, subscribed: false, endpoint }
+    }
+    return {
+      subscribed: Boolean(data.subscribed),
+      endpoint,
+      pref_street: data.pref_street !== false,
+      pref_corrida: data.pref_corrida !== false,
+      pref_sjoao: data.pref_sjoao !== false,
+      pref_broadcast: data.pref_broadcast !== false,
+    }
+  } catch {
+    return { ...DEFAULT_PREFS, subscribed: false, endpoint: null }
+  }
+}
+
+export async function savePushPreferences(prefs) {
+  const endpoint = await getCurrentPushEndpoint()
+  if (!endpoint) return { ok: false, reason: 'no_endpoint' }
+
+  const { data, error } = await supabase.rpc('update_push_preferences', {
+    p_endpoint: endpoint,
+    p_pref_street: Boolean(prefs.pref_street),
+    p_pref_corrida: Boolean(prefs.pref_corrida),
+    p_pref_sjoao: Boolean(prefs.pref_sjoao),
+    p_pref_broadcast: Boolean(prefs.pref_broadcast),
+  })
+  if (error) return { ok: false, reason: 'rpc', error }
+  if (data?.ok === false) return { ok: false, reason: data.reason || 'not_subscribed' }
+  return { ok: true }
 }

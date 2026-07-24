@@ -9,6 +9,7 @@ import { buildAutoAlertJobs, toScheduleRow } from '../lib/autoAlerts'
 import LoginForm from '../components/admin/LoginForm'
 import EventForm from '../components/admin/EventForm'
 import AnalyticsPanel from '../components/admin/AnalyticsPanel'
+import NotifyConfirmModal from '../components/admin/NotifyConfirmModal'
 
 function timeSortKey(hora) {
   const match = String(hora).match(/(\d{1,2}):(\d{2})/)
@@ -34,6 +35,7 @@ export default function Admin() {
   const [subCount, setSubCount] = useState(null)
   const [notifyForm, setNotifyForm] = useState({ title: '', body: '', scheduledFor: '' })
   const [notifySending, setNotifySending] = useState(false)
+  const [notifyConfirm, setNotifyConfirm] = useState(null)
   const [autoAlertBusy, setAutoAlertBusy] = useState(false)
   const [schedules, setSchedules] = useState([])
   const [feedbackList, setFeedbackList] = useState([])
@@ -270,39 +272,34 @@ export default function Admin() {
     }
   }
 
-  async function handleSendNotify(e) {
+  function formatNotifyWhen(date) {
+    return date.toLocaleString(undefined, {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  function requestSendNow(e) {
     e.preventDefault()
     if (!notifyForm.title.trim() || !notifyForm.body.trim()) {
       setMessage({ type: 'err', text: a.errorRequired })
       return
     }
-    setNotifySending(true)
-    try {
-      const { data, error } = await supabase.functions.invoke('send-push', {
-        body: {
-          title: notifyForm.title.trim(),
-          body: notifyForm.body.trim(),
-          url: '/',
-        },
-      })
-      if (error) throw error
-      if (data?.error) throw new Error(data.error)
-      setMessage({
-        type: 'ok',
-        text: `${a.notifySuccess} (${data?.sent ?? 0}/${data?.total ?? 0})`,
-      })
-      setNotifyForm({ title: '', body: '', scheduledFor: '' })
-      await fetchSubCount()
-    } catch (err) {
-      console.error(err)
-      setMessage({ type: 'err', text: a.notifyError })
-    } finally {
-      setNotifySending(false)
-    }
+    setNotifyConfirm({
+      mode: 'now',
+      title: notifyForm.title.trim(),
+      body: notifyForm.body.trim(),
+      whenLabel: a.notifyConfirmWhenNow,
+      subscribers: subCount ?? undefined,
+    })
   }
 
-  async function handleScheduleNotify(e) {
-    e.preventDefault()
+  function requestSchedule(e) {
+    e?.preventDefault?.()
     if (
       !notifyForm.title.trim() ||
       !notifyForm.body.trim() ||
@@ -313,65 +310,32 @@ export default function Admin() {
     }
     const when = new Date(notifyForm.scheduledFor)
     if (Number.isNaN(when.getTime()) || when.getTime() <= Date.now()) {
-      setMessage({ type: 'err', text: a.errorRequired })
+      setMessage({ type: 'err', text: a.notifyConfirmPastError })
       return
     }
-    setNotifySending(true)
-    try {
-      const { error } = await supabase.from('push_schedules').insert({
-        title: notifyForm.title.trim(),
-        body: notifyForm.body.trim(),
-        scheduled_for: when.toISOString(),
-        status: 'pending',
-      })
-      if (error) throw error
-      setMessage({ type: 'ok', text: a.notifyScheduled })
-      setNotifyForm({ title: '', body: '', scheduledFor: '' })
-      await fetchSchedules()
-    } catch (err) {
-      console.error(err)
-      setMessage({ type: 'err', text: a.errorGeneric })
-    } finally {
-      setNotifySending(false)
-    }
+    setNotifyConfirm({
+      mode: 'schedule',
+      title: notifyForm.title.trim(),
+      body: notifyForm.body.trim(),
+      whenLabel: formatNotifyWhen(when),
+      whenIso: when.toISOString(),
+      subscribers: subCount ?? undefined,
+    })
   }
 
-  async function cancelSchedule(id) {
-    const { error } = await supabase
-      .from('push_schedules')
-      .update({ status: 'cancelled' })
-      .eq('id', id)
-    if (error) {
-      setMessage({ type: 'err', text: a.errorGeneric })
-    } else {
-      await fetchSchedules()
-    }
+  function requestTest5Min() {
+    const when = new Date(Date.now() + 5 * 60 * 1000)
+    setNotifyConfirm({
+      mode: 'test5',
+      title: 'Teste · Festas Alcochete',
+      body: 'Se vês isto no telemóvel, as notificações estão a funcionar.',
+      whenLabel: formatNotifyWhen(when),
+      whenIso: when.toISOString(),
+      subscribers: subCount ?? undefined,
+    })
   }
 
-  async function handleTestNotify5Min() {
-    setNotifySending(true)
-    try {
-      const when = new Date(Date.now() + 5 * 60 * 1000)
-      const { error } = await supabase.from('push_schedules').insert({
-        title: 'Teste · Festas Alcochete',
-        body: 'Se vês isto no telemóvel, as notificações estão a funcionar.',
-        scheduled_for: when.toISOString(),
-        status: 'pending',
-      })
-      if (error) throw error
-      setMessage({ type: 'ok', text: a.notifyTest5MinOk })
-      await fetchSchedules()
-      // tenta processar já (ainda não está due) e o intervalo trata aos 5 min
-      await processDueSchedules()
-    } catch (err) {
-      console.error(err)
-      setMessage({ type: 'err', text: a.errorGeneric })
-    } finally {
-      setNotifySending(false)
-    }
-  }
-
-  async function handleGenerateAutoAlerts() {
+  async function requestGenerateAutoAlerts() {
     setAutoAlertBusy(true)
     try {
       const { data: allEvents, error: evErr } = await supabase
@@ -384,68 +348,165 @@ export default function Admin() {
         setMessage({ type: 'ok', text: a.notifyAutoEmpty })
         return
       }
-
-      const keys = new Set(jobs.map((j) => j.dedupe_key))
-
-      const { data: existingAuto, error: exErr } = await supabase
-        .from('push_schedules')
-        .select('id, dedupe_key, status')
-        .not('dedupe_key', 'is', null)
-      if (exErr) throw exErr
-
-      const byKey = new Map(
-        (existingAuto || [])
-          .filter((r) => r.dedupe_key)
-          .map((r) => [r.dedupe_key, r])
-      )
-
-      for (const job of jobs) {
-        const prev = byKey.get(job.dedupe_key)
-        if (prev?.id) {
-          const row = toScheduleRow(job)
-          const { error } = await supabase
-            .from('push_schedules')
-            .update({
-              title: row.title,
-              body: row.body,
-              scheduled_for: row.scheduled_for,
-              status: 'pending',
-              sent_at: null,
-            })
-            .eq('id', prev.id)
-          if (error) throw error
-        } else {
-          const { error } = await supabase
-            .from('push_schedules')
-            .insert(toScheduleRow(job))
-          if (error) throw error
-        }
-      }
-
-      const obsolete = (existingAuto || []).filter(
-        (r) =>
-          r.status === 'pending' &&
-          r.dedupe_key &&
-          !keys.has(r.dedupe_key)
-      )
-      for (const row of obsolete) {
-        const { error } = await supabase
-          .from('push_schedules')
-          .update({ status: 'cancelled' })
-          .eq('id', row.id)
-        if (error) throw error
-      }
-
-      setMessage({
-        type: 'ok',
-        text: `${a.notifyAutoSuccess} (${jobs.length})`,
+      setNotifyConfirm({
+        mode: 'auto',
+        autoCount: jobs.length,
+        jobs,
       })
-      await fetchSchedules()
     } catch (err) {
       console.error(err)
       setMessage({ type: 'err', text: a.errorGeneric })
     } finally {
       setAutoAlertBusy(false)
+    }
+  }
+
+  async function executeNotifyConfirm() {
+    if (!notifyConfirm) return
+    const draft = notifyConfirm
+
+    if (draft.mode === 'now') {
+      setNotifySending(true)
+      try {
+        const { data, error } = await supabase.functions.invoke('send-push', {
+          body: {
+            title: draft.title,
+            body: draft.body,
+            url: '/',
+            category: 'broadcast',
+          },
+        })
+        if (error) throw error
+        if (data?.error) throw new Error(data.error)
+        setMessage({
+          type: 'ok',
+          text: `${a.notifySuccess} (${data?.sent ?? 0}/${data?.total ?? 0})`,
+        })
+        setNotifyForm({ title: '', body: '', scheduledFor: '' })
+        setNotifyConfirm(null)
+        await fetchSubCount()
+      } catch (err) {
+        console.error(err)
+        setMessage({ type: 'err', text: a.notifyError })
+      } finally {
+        setNotifySending(false)
+      }
+      return
+    }
+
+    if (draft.mode === 'schedule' || draft.mode === 'test5') {
+      setNotifySending(true)
+      try {
+        const { error } = await supabase.from('push_schedules').insert({
+          title: draft.title,
+          body: draft.body,
+          scheduled_for: draft.whenIso,
+          status: 'pending',
+          category: 'broadcast',
+        })
+        if (error) throw error
+        setMessage({
+          type: 'ok',
+          text: draft.mode === 'test5' ? a.notifyTest5MinOk : a.notifyScheduled,
+        })
+        if (draft.mode === 'schedule') {
+          setNotifyForm({ title: '', body: '', scheduledFor: '' })
+        }
+        setNotifyConfirm(null)
+        await fetchSchedules()
+        if (draft.mode === 'test5') await processDueSchedules()
+      } catch (err) {
+        console.error(err)
+        setMessage({
+          type: 'err',
+          text: draft.mode === 'schedule' ? a.errorGeneric : a.errorGeneric,
+        })
+      } finally {
+        setNotifySending(false)
+      }
+      return
+    }
+
+    if (draft.mode === 'auto') {
+      setAutoAlertBusy(true)
+      try {
+        const jobs = draft.jobs || []
+        const keys = new Set(jobs.map((j) => j.dedupe_key))
+
+        const { data: existingAuto, error: exErr } = await supabase
+          .from('push_schedules')
+          .select('id, dedupe_key, status')
+          .not('dedupe_key', 'is', null)
+        if (exErr) throw exErr
+
+        const byKey = new Map(
+          (existingAuto || [])
+            .filter((r) => r.dedupe_key)
+            .map((r) => [r.dedupe_key, r])
+        )
+
+        for (const job of jobs) {
+          const prev = byKey.get(job.dedupe_key)
+          if (prev?.id) {
+            const row = toScheduleRow(job)
+            const { error } = await supabase
+              .from('push_schedules')
+              .update({
+                title: row.title,
+                body: row.body,
+                scheduled_for: row.scheduled_for,
+                category: row.category,
+                status: 'pending',
+                sent_at: null,
+              })
+              .eq('id', prev.id)
+            if (error) throw error
+          } else {
+            const { error } = await supabase
+              .from('push_schedules')
+              .insert(toScheduleRow(job))
+            if (error) throw error
+          }
+        }
+
+        const obsolete = (existingAuto || []).filter(
+          (r) =>
+            r.status === 'pending' &&
+            r.dedupe_key &&
+            !keys.has(r.dedupe_key)
+        )
+        for (const row of obsolete) {
+          const { error } = await supabase
+            .from('push_schedules')
+            .update({ status: 'cancelled' })
+            .eq('id', row.id)
+          if (error) throw error
+        }
+
+        setMessage({
+          type: 'ok',
+          text: `${a.notifyAutoSuccess} (${jobs.length})`,
+        })
+        setNotifyConfirm(null)
+        await fetchSchedules()
+      } catch (err) {
+        console.error(err)
+        setMessage({ type: 'err', text: a.errorGeneric })
+      } finally {
+        setAutoAlertBusy(false)
+      }
+    }
+  }
+
+  async function cancelSchedule(id) {
+    const { error } = await supabase
+      .from('push_schedules')
+      .update({ status: 'cancelled' })
+      .eq('id', id)
+    if (error) {
+      setMessage({ type: 'err', text: a.errorGeneric })
+    } else {
+      await fetchSchedules()
     }
   }
 
@@ -691,7 +752,7 @@ export default function Admin() {
                 {subCount === null ? '—' : subCount}
               </span>
             </p>
-            <form onSubmit={handleSendNotify} className="mt-5 space-y-3">
+            <form onSubmit={requestSendNow} className="mt-5 space-y-3">
               <label className="block">
                 <span className="mb-1 block text-sm font-medium">{a.notifySubject}</span>
                 <input
@@ -733,22 +794,15 @@ export default function Admin() {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="submit"
-                  disabled={notifySending}
+                  disabled={notifySending || Boolean(notifyConfirm)}
                   className="inline-flex items-center gap-2 rounded-xl bg-dourado px-4 py-2.5 text-sm font-semibold text-ink shadow-sm hover:brightness-105 disabled:opacity-60"
                 >
-                  {notifySending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      {a.notifySending}
-                    </>
-                  ) : (
-                    a.notifySend
-                  )}
+                  {a.notifySend}
                 </button>
                 <button
                   type="button"
-                  disabled={notifySending}
-                  onClick={handleScheduleNotify}
+                  disabled={notifySending || Boolean(notifyConfirm)}
+                  onClick={requestSchedule}
                   className="inline-flex items-center gap-2 rounded-xl bg-barrete px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:brightness-105 disabled:opacity-60"
                 >
                   {a.notifySchedule}
@@ -763,8 +817,8 @@ export default function Admin() {
               <p className="mt-2 text-sm leading-relaxed text-ink/60">{a.notifyAutoHint}</p>
               <button
                 type="button"
-                disabled={autoAlertBusy || notifySending}
-                onClick={handleGenerateAutoAlerts}
+                disabled={autoAlertBusy || notifySending || Boolean(notifyConfirm)}
+                onClick={requestGenerateAutoAlerts}
                 className="mt-3 inline-flex items-center gap-2 rounded-xl bg-tejo px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:brightness-105 disabled:opacity-60"
               >
                 {autoAlertBusy ? (
@@ -778,8 +832,8 @@ export default function Admin() {
               </button>
               <button
                 type="button"
-                disabled={autoAlertBusy || notifySending}
-                onClick={handleTestNotify5Min}
+                disabled={autoAlertBusy || notifySending || Boolean(notifyConfirm)}
+                onClick={requestTest5Min}
                 className="mt-3 ml-2 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-barrete shadow-sm ring-1 ring-barrete/20 hover:bg-barrete/5 disabled:opacity-60"
               >
                 {a.notifyTest5Min}
@@ -1006,6 +1060,18 @@ export default function Admin() {
           uiT={t}
         />
       )}
+
+      <NotifyConfirmModal
+        open={Boolean(notifyConfirm)}
+        draft={notifyConfirm}
+        busy={notifySending || autoAlertBusy}
+        onConfirm={executeNotifyConfirm}
+        onCancel={() => {
+          if (notifySending || autoAlertBusy) return
+          setNotifyConfirm(null)
+        }}
+        t={a}
+      />
     </div>
   )
 }
