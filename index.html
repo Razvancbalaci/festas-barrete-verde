@@ -64,6 +64,21 @@
     />
     <meta name="twitter:image" content="https://www.festasbarreteverde.pt/og-image.png" />
 
+    <!-- Evita flash do shell SEO antes do React montar (o HTML mantém-se para crawlers). -->
+    <style>
+      #root > .seo-shell {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+    </style>
+
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -125,7 +140,7 @@
   <body>
     <div id="root">
       <!-- Conteúdo estático para motores de busca (substituído pela app React). -->
-      <main>
+      <main class="seo-shell">
         <h1>Festas do Barrete Verde e das Salinas</h1>
         <p>
           Programa oficial das <strong>Festas do Barrete Verde</strong> e das Salinas em
