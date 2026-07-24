@@ -25,6 +25,7 @@ import {
   scheduleServerReminder,
 } from '../lib/reminders'
 import { track } from '../lib/analytics'
+import { sanitizeHttpUrl } from '../lib/safeUrl'
 import {
   isCorridaEvent,
   isRouteMapEvent,
@@ -164,6 +165,7 @@ export default function EventCard({ event, index, highlighted }) {
   const isCorrida = isCorridaEvent(event)
   const isStreetBull = isStreetBullEvent(event)
   const asRoute = isRouteMapEvent(event)
+  const ticketsUrl = sanitizeHttpUrl(event.bilhetes_url)
   const [open, setOpen] = useState(false)
   const [safetyOpen, setSafetyOpen] = useState(false)
   const [shareMsg, setShareMsg] = useState(false)
@@ -368,9 +370,9 @@ export default function EventCard({ event, index, highlighted }) {
             ) : null}
 
             <div className="mt-3 flex flex-wrap gap-2">
-              {event.bilhetes_url ? (
+              {ticketsUrl ? (
                 <a
-                  href={event.bilhetes_url}
+                  href={ticketsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => track('ticket_click', { event_id: event.id })}

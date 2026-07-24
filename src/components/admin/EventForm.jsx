@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Loader2, X } from 'lucide-react'
 import { CATEGORIES } from '../../data/categories'
 import { FESTIVAL_DAYS } from '../../data/days'
+import { isValidEventTime } from '../../lib/datetime'
+import { sanitizeHttpUrl } from '../../lib/safeUrl'
 
 const emptyForm = {
   dia: '2026-08-07',
@@ -45,6 +47,16 @@ export default function EventForm({ event, onSave, onCancel, t, uiT }) {
       setError(t.errorRequired)
       return
     }
+    if (!isValidEventTime(form.hora)) {
+      setError(t.errorInvalidTime)
+      return
+    }
+    const ticketsRaw = form.bilhetes_url.trim()
+    const bilhetes_url = ticketsRaw ? sanitizeHttpUrl(ticketsRaw) : null
+    if (ticketsRaw && !bilhetes_url) {
+      setError(t.errorInvalidUrl)
+      return
+    }
     setLoading(true)
     const payload = {
       dia: form.dia,
@@ -55,7 +67,7 @@ export default function EventForm({ event, onSave, onCancel, t, uiT }) {
       categoria: form.categoria,
       ordem: Number(form.ordem) || 0,
       descricao: form.descricao.trim() || null,
-      bilhetes_url: form.bilhetes_url.trim() || null,
+      bilhetes_url,
     }
     const result = await onSave(payload, event?.id)
     if (result?.error) setError(t.errorGeneric)
@@ -106,7 +118,10 @@ export default function EventForm({ event, onSave, onCancel, t, uiT }) {
           <span className="mb-1 block text-sm font-medium">{t.time}</span>
           <input
             type="text"
+            inputMode="numeric"
             placeholder="22:30"
+            pattern="([01]\d|2[0-3]):[0-5]\d"
+            title="HH:MM"
             value={form.hora}
             onChange={(e) => update('hora', e.target.value)}
             className={inputClass}

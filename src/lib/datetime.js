@@ -25,6 +25,11 @@ export function timeSortKey(hora) {
   return h * 60 + m
 }
 
+/** Hora do cartaz no formato HH:MM (00:00–23:59). */
+export function isValidEventTime(hora) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(hora || '').trim())
+}
+
 /**
  * Combina dia + hora do cartaz num Date local.
  * Horas 00:00–05:59 contam como madrugada a seguir à noite desse dia (dia+1).

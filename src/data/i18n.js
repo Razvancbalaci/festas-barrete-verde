@@ -25,7 +25,7 @@ export const translations = {
     safetyNote:
       'Apenas serão admitidos para as esperas e recolhas de toiros os campinos e cavaleiros amadores segurados e autorizados pelo Aposento do Barrete Verde de Alcochete. O Aposento não se responsabiliza por quaisquer acidentes ocorridos nos recintos das largadas e passagem de toiros.',
     disclaimer:
-      'Este site é um projeto cívico e independente, feito por cidadãos para cidadãos. Não tem vínculo oficial com o Aposento do Barrete Verde, com a Câmara Municipal de Alcochete nem com qualquer outro órgão administrativo, e não visa qualquer lucro ou interesse comercial.',
+      'Este site é um projecto cívico e independente, feito por cidadãos para cidadãos. Não tem vínculo oficial com o Aposento do Barrete Verde, com a Câmara Municipal de Alcochete nem com qualquer outro órgão administrativo, e não visa qualquer lucro ou interesse comercial.',
     privacy: {
       link: 'Privacidade e cookies',
       back: 'Voltar ao programa',
@@ -153,22 +153,22 @@ export const translations = {
     },
     notify: {
       title: 'Receber avisos',
-      body: 'Ativa notificações para saberes de alterações ao programa.',
-      enable: 'Ativar',
-      enabled: 'Notificações ativas',
+      body: 'Activa notificações para saberes de alterações ao programa.',
+      enable: 'Activar',
+      enabled: 'Notificações activas',
       denied: 'Permissão recusada nas definições do telemóvel.',
       unsupported: 'O teu browser não suporta notificações.',
       iosInstall:
-        'No iPhone, adiciona primeiro a app ao Ecrã Principal (Partilhar → Adicionar) e abre pelo ícone. Depois ativa os avisos.',
+        'No iPhone, adiciona primeiro a app ao Ecrã Principal (Partilhar → Adicionar) e abre pelo ícone. Depois activa os avisos.',
       androidInstall:
-        'No Android, adiciona primeiro a app à página inicial (botão Instalar, ou ⋮ → Instalar app / Adicionar à página inicial) e abre pelo ícone. Depois ativa os avisos.',
+        'No Android, adiciona primeiro a app à página inicial (botão Instalar, ou ⋮ → Instalar app / Adicionar à página inicial) e abre pelo ícone. Depois activa os avisos.',
       androidBrowser:
-        'Abre o site no Chrome (não dentro do Instagram/Facebook/WhatsApp). Depois adiciona à página inicial e ativa os avisos.',
+        'Abre o site no Chrome (não dentro do Instagram/Facebook/WhatsApp). Depois adiciona à página inicial e activa os avisos.',
       testTitle: 'Festas Alcochete',
       testBody: 'Notificações activas neste telemóvel.',
       dismiss: 'Agora não',
       error:
-        'Não foi possível ativar. Confirma que correste o SQL push-subscriptions no Supabase e tenta de novo.',
+        'Não foi possível activar. Confirma que correste o SQL push-subscriptions no Supabase e tenta de novo.',
       errorSw:
         'Service worker indisponível (em localhost o SW está desligado; em rede de trabalho o Edge pode bloqueá-lo). Tenta no telemóvel ou em casa.',
       errorTimeout:
@@ -186,6 +186,7 @@ export const translations = {
       problem: 'Problema',
       suggestion: 'Sugestão',
       message: 'Mensagem',
+      optional: 'opcional',
       send: 'Enviar',
       close: 'Fechar',
       success: 'Obrigado! A tua mensagem foi enviada.',
@@ -219,6 +220,11 @@ export const translations = {
       saveError: 'Não foi possível guardar. Tenta novamente.',
       close: 'Fechar',
     },
+    notFound: {
+      title: 'Página não encontrada',
+      body: 'Este endereço não existe. Volta ao programa das festas.',
+      back: 'Voltar ao programa',
+    },
     install: {
       title: 'Adicionar à página inicial',
       android:
@@ -226,7 +232,7 @@ export const translations = {
       androidRitual:
         'No Chrome: toca no botão Instalar abaixo (se aparecer) ou em ⋮ → «Instalar app» / «Adicionar à página inicial». Depois abre pelo ícone — como no iPhone.',
       androidManual:
-        'No Chrome: toca em ⋮ → «Instalar app» ou «Adicionar à página inicial». Depois abre pelo ícone para ativar avisos.',
+        'No Chrome: toca em ⋮ → «Instalar app» ou «Adicionar à página inicial». Depois abre pelo ícone para activar avisos.',
       iosPrefix: 'Toca em',
       iosSuffix: 'e depois em «Adicionar ao Ecrã Principal».',
       cta: 'Instalar',
@@ -257,6 +263,7 @@ export const translations = {
         'Candidatura enviada! Fica à espera da aprovação do administrador.',
       error: 'Não foi possível enviar. Verifica os dados e tenta de novo.',
       required: 'Preenche os campos obrigatórios (nome, tipo, descrição e morada).',
+      invalidUrl: 'O website tem de ser um link http:// ou https://.',
       call: 'Ligar',
       maps: 'Ver no mapa',
       types: {
@@ -312,6 +319,7 @@ export const translations = {
       delete: 'Apagar',
       edit: 'Editar',
       confirmDelete: 'Tens a certeza que queres apagar este evento?',
+      confirmDeleteFeedback: 'Tens a certeza que queres apagar esta mensagem de feedback?',
       day: 'Dia',
       time: 'Hora',
       eventTitle: 'Título',
@@ -329,6 +337,8 @@ export const translations = {
       errorGeneric: 'Algo correu mal. Tenta novamente.',
       errorLogin: 'Email ou palavra-passe incorretos.',
       errorRequired: 'Preenche os campos obrigatórios.',
+      errorInvalidUrl: 'O link tem de ser http:// ou https://.',
+      errorInvalidTime: 'A hora tem de estar no formato HH:MM (ex.: 22:30).',
       backToProgram: 'Ver programa público',
       empty: 'Ainda não há eventos. Adiciona o primeiro!',
       loading: 'A carregar…',
@@ -346,7 +356,7 @@ export const translations = {
       tabNotify: 'Avisos',
       notifyTitle: 'Enviar notificação',
       notifyHint:
-        'Envia um aviso a quem ativou as notificações na app. Só funciona depois de configurares as chaves VAPID e a Edge Function (ver README).',
+        'Envia um aviso a quem activou as notificações na app. Só funciona depois de configurares as chaves VAPID e a Edge Function (ver README).',
       notifySubject: 'Título',
       notifyBody: 'Mensagem',
       notifySend: 'Enviar agora',
@@ -687,6 +697,7 @@ export const translations = {
       problem: 'Problem',
       suggestion: 'Suggestion',
       message: 'Message',
+      optional: 'optional',
       send: 'Send',
       close: 'Close',
       success: 'Thanks! Your message was sent.',
@@ -719,6 +730,11 @@ export const translations = {
       saved: 'Preferences saved.',
       saveError: 'Could not save. Please try again.',
       close: 'Close',
+    },
+    notFound: {
+      title: 'Page not found',
+      body: 'This address does not exist. Head back to the festival programme.',
+      back: 'Back to the programme',
     },
     install: {
       title: 'Add to Home Screen',
@@ -756,6 +772,7 @@ export const translations = {
       success: 'Application sent! Wait for administrator approval.',
       error: 'Could not submit. Check the details and try again.',
       required: 'Please fill in the required fields (name, type, description and address).',
+      invalidUrl: 'The website must be an http:// or https:// link.',
       call: 'Call',
       maps: 'View on map',
       types: {
@@ -811,6 +828,7 @@ export const translations = {
       delete: 'Delete',
       edit: 'Edit',
       confirmDelete: 'Are you sure you want to delete this event?',
+      confirmDeleteFeedback: 'Are you sure you want to delete this feedback message?',
       day: 'Day',
       time: 'Time',
       eventTitle: 'Title',
@@ -828,6 +846,8 @@ export const translations = {
       errorGeneric: 'Something went wrong. Please try again.',
       errorLogin: 'Incorrect email or password.',
       errorRequired: 'Please fill in the required fields.',
+      errorInvalidUrl: 'The link must be http:// or https://.',
+      errorInvalidTime: 'Time must be HH:MM (e.g. 22:30).',
       backToProgram: 'View public programme',
       empty: 'No events yet. Add the first one!',
       loading: 'Loading…',
@@ -1186,6 +1206,7 @@ export const translations = {
       problem: 'Problème',
       suggestion: 'Suggestion',
       message: 'Message',
+      optional: 'facultatif',
       send: 'Envoyer',
       close: 'Fermer',
       success: 'Merci ! Votre message a été envoyé.',
@@ -1219,6 +1240,11 @@ export const translations = {
       saved: 'Préférences enregistrées.',
       saveError: 'Enregistrement impossible. Réessayez.',
       close: 'Fermer',
+    },
+    notFound: {
+      title: 'Page introuvable',
+      body: 'Cette adresse n’existe pas. Retournez au programme des fêtes.',
+      back: 'Retour au programme',
     },
     install: {
       title: "Ajouter à l'écran d'accueil",
@@ -1257,6 +1283,7 @@ export const translations = {
       success: 'Candidature envoyée ! En attente de validation.',
       error: 'Envoi impossible. Vérifiez les données et réessayez.',
       required: 'Remplissez les champs obligatoires (nom, type, description et adresse).',
+      invalidUrl: 'Le site doit être un lien http:// ou https://.',
       call: 'Appeler',
       maps: 'Voir sur la carte',
       types: {
@@ -1312,6 +1339,7 @@ export const translations = {
       delete: 'Supprimer',
       edit: 'Modifier',
       confirmDelete: 'Voulez-vous vraiment supprimer cet événement ?',
+      confirmDeleteFeedback: 'Voulez-vous vraiment supprimer ce message de feedback ?',
       day: 'Jour',
       time: 'Heure',
       eventTitle: 'Titre',
@@ -1329,6 +1357,8 @@ export const translations = {
       errorGeneric: 'Une erreur est survenue. Réessayez.',
       errorLogin: 'Email ou mot de passe incorrect.',
       errorRequired: 'Veuillez remplir les champs obligatoires.',
+      errorInvalidUrl: 'Le lien doit être http:// ou https://.',
+      errorInvalidTime: 'L’heure doit être au format HH:MM (ex. 22:30).',
       backToProgram: 'Voir le programme public',
       empty: 'Pas encore d’événements. Ajoutez le premier !',
       loading: 'Chargement…',
@@ -1687,6 +1717,7 @@ export const translations = {
       problem: 'Problema',
       suggestion: 'Sugerencia',
       message: 'Mensaje',
+      optional: 'opcional',
       send: 'Enviar',
       close: 'Cerrar',
       success: '¡Gracias! Tu mensaje se ha enviado.',
@@ -1720,6 +1751,11 @@ export const translations = {
       saved: 'Preferencias guardadas.',
       saveError: 'No se pudo guardar. Inténtalo de nuevo.',
       close: 'Cerrar',
+    },
+    notFound: {
+      title: 'Página no encontrada',
+      body: 'Esta dirección no existe. Vuelve al programa de las fiestas.',
+      back: 'Volver al programa',
     },
     install: {
       title: 'Añadir a la pantalla de inicio',
@@ -1759,6 +1795,7 @@ export const translations = {
         '¡Solicitud enviada! Espera la aprobación del administrador.',
       error: 'No se pudo enviar. Revisa los datos e inténtalo de nuevo.',
       required: 'Rellena los campos obligatorios (nombre, tipo, descripción y dirección).',
+      invalidUrl: 'El sitio web debe ser un enlace http:// o https://.',
       call: 'Llamar',
       maps: 'Ver en el mapa',
       types: {
@@ -1814,6 +1851,7 @@ export const translations = {
       delete: 'Borrar',
       edit: 'Editar',
       confirmDelete: '¿Seguro que quieres borrar este evento?',
+      confirmDeleteFeedback: '¿Seguro que quieres borrar este mensaje de feedback?',
       day: 'Día',
       time: 'Hora',
       eventTitle: 'Título',
@@ -1831,6 +1869,8 @@ export const translations = {
       errorGeneric: 'Algo salió mal. Inténtalo de nuevo.',
       errorLogin: 'Email o contraseña incorrectos.',
       errorRequired: 'Rellena los campos obligatorios.',
+      errorInvalidUrl: 'El enlace debe ser http:// o https://.',
+      errorInvalidTime: 'La hora debe estar en formato HH:MM (ej. 22:30).',
       backToProgram: 'Ver programa público',
       empty: 'Aún no hay eventos. ¡Añade el primero!',
       loading: 'Cargando…',

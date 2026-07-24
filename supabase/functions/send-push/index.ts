@@ -32,17 +32,19 @@ function vapidReady() {
   webpush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate)
 }
 
-async function pushOne(sub, title, body, url = '/') {
+async function pushOne(sub, title, body, url = '/', tag = null) {
+  const payload = {
+    title: String(title || '').trim().slice(0, 120),
+    body: String(body || '').trim().slice(0, 280),
+    url: sanitizeAppPath(url),
+  }
+  if (tag) payload.tag = String(tag).slice(0, 64)
   await webpush.sendNotification(
     {
       endpoint: sub.endpoint,
       keys: { p256dh: sub.p256dh, auth: sub.auth },
     },
-    JSON.stringify({
-      title: String(title || '').trim().slice(0, 120),
-      body: String(body || '').trim().slice(0, 280),
-      url: sanitizeAppPath(url),
-    }),
+    JSON.stringify(payload),
     {
       TTL: 60 * 60 * 12,
       urgency: 'high',
@@ -50,7 +52,7 @@ async function pushOne(sub, title, body, url = '/') {
   )
 }
 
-async function sendToAll(admin, title, body, url = '/', category = 'broadcast') {
+async function sendToAll(admin, title, body, url = '/', category = 'broadcast', tag = null) {
   vapidReady()
 
   const cat = ['street', 'corrida', 'sjoao', 'broadcast'].includes(category)
@@ -81,7 +83,7 @@ async function sendToAll(admin, title, body, url = '/', category = 'broadcast') 
   await Promise.all(
     (subs || []).map(async (sub) => {
       try {
-        await pushOne(sub, title, body, url)
+        await pushOne(sub, title, body, url, tag)
         sent += 1
       } catch (err) {
         const code = err?.statusCode
@@ -142,7 +144,7 @@ async function processEventReminders(admin) {
     }
 
     try {
-      await pushOne(sub, job.title, job.body, job.url || '/')
+      await pushOne(sub, job.title, job.body, job.url || '/', `reminder:${job.id}`)
       await admin
         .from('event_reminders')
         .update({ status: 'sent', sent_at: new Date().toISOString() })
@@ -189,7 +191,8 @@ async function processBroadcastSchedules(admin) {
         job.title,
         job.body,
         '/',
-        categoryFromSchedule(job)
+        categoryFromSchedule(job),
+        job.dedupe_key || `schedule:${job.id}`
       )
       await admin
         .from('push_schedules')

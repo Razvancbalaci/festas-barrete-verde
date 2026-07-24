@@ -40,13 +40,19 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  // Tag único por aviso — tag fixo fazia cada push remoto substituir o anterior.
+  const rawTag = typeof payload.tag === 'string' ? payload.tag.trim() : ''
+  const tag =
+    rawTag ||
+    `fbv-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+
   // Android/Chrome exige notificação visível em cada push; ícones absolutos evitam falhas.
   event.waitUntil(
     self.registration.showNotification(payload.title || 'Barrete Verde', {
       body: payload.body || '',
       icon: `${origin}/icon-192.png`,
       badge: `${origin}/icon-192.png`,
-      tag: 'fbv-push',
+      tag: tag.slice(0, 64),
       renotify: true,
       vibrate: [120, 60, 120],
       data: { url: payload.url || '/' },

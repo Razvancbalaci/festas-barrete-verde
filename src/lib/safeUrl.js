@@ -19,3 +19,24 @@ export function absoluteAppUrl(path, origin) {
     return safe
   }
 }
+
+/**
+ * URLs externas (bilhetes, website): só http(s).
+ * Domínios sem esquema recebem https://. Devolve null se vazio/inválido.
+ */
+export function sanitizeHttpUrl(url) {
+  if (url == null) return null
+  let raw = String(url).trim()
+  if (!raw) return null
+  if (/[\u0000-\u001F]/.test(raw)) return null
+  if (raw.startsWith('//')) raw = `https:${raw}`
+  else if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw)) raw = `https://${raw}`
+  try {
+    const parsed = new URL(raw)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+    if (!parsed.hostname) return null
+    return parsed.href.slice(0, 2000)
+  } catch {
+    return null
+  }
+}

@@ -194,7 +194,7 @@ export default function Admin() {
   }
 
   async function deleteFeedback(id) {
-    if (!window.confirm(a.confirmDelete)) return
+    if (!window.confirm(a.confirmDeleteFeedback)) return
     const { error } = await supabase.from('feedback').delete().eq('id', id)
     if (error) {
       setMessage({ type: 'err', text: a.errorGeneric })
@@ -474,16 +474,21 @@ export default function Admin() {
           const prev = byKey.get(job.dedupe_key)
           if (prev?.id) {
             const row = toScheduleRow(job)
+            // Já enviados: actualizar texto/hora, mas não reabrir como pending
+            // (evita reenviar o mesmo aviso).
+            const patch = {
+              title: row.title,
+              body: row.body,
+              scheduled_for: row.scheduled_for,
+              category: row.category,
+            }
+            if (prev.status !== 'sent') {
+              patch.status = 'pending'
+              patch.sent_at = null
+            }
             const { error } = await supabase
               .from('push_schedules')
-              .update({
-                title: row.title,
-                body: row.body,
-                scheduled_for: row.scheduled_for,
-                category: row.category,
-                status: 'pending',
-                sent_at: null,
-              })
+              .update(patch)
               .eq('id', prev.id)
             if (error) throw error
           } else {

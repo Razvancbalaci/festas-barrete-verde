@@ -16,6 +16,7 @@ import { BUSINESS_TYPES } from '../data/businessTypes'
 import Footer from '../components/Footer'
 import { mapsUrl } from '../lib/locations'
 import { track } from '../lib/analytics'
+import { sanitizeHttpUrl } from '../lib/safeUrl'
 
 const emptyForm = {
   nome: '',
@@ -83,6 +84,13 @@ export default function Negocios() {
       return
     }
     setSubmitting(true)
+    const websiteRaw = form.website.trim()
+    const website = websiteRaw ? sanitizeHttpUrl(websiteRaw) : null
+    if (websiteRaw && !website) {
+      setSubmitting(false)
+      setError(b.invalidUrl)
+      return
+    }
     const payload = {
       nome: form.nome.trim(),
       tipo: form.tipo,
@@ -90,7 +98,7 @@ export default function Negocios() {
       morada: form.morada.trim(),
       telefone: form.telefone.trim() || null,
       email: form.email.trim() || null,
-      website: form.website.trim() || null,
+      website,
       horario: form.horario.trim() || null,
       aprovado: false,
     }
@@ -198,7 +206,9 @@ export default function Negocios() {
           </p>
         ) : (
           <ul className="flex flex-col gap-3">
-            {filtered.map((n) => (
+            {filtered.map((n) => {
+              const websiteUrl = sanitizeHttpUrl(n.website)
+              return (
               <li
                 key={n.id}
                 className="animate-fade-up rounded-2xl bg-white p-4 shadow-sm ring-1 ring-barrete/5"
@@ -239,13 +249,9 @@ export default function Negocios() {
                       {b.call}
                     </a>
                   ) : null}
-                  {n.website ? (
+                  {websiteUrl ? (
                     <a
-                      href={
-                        n.website.startsWith('http')
-                          ? n.website
-                          : `https://${n.website}`
-                      }
+                      href={websiteUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 rounded-full bg-ink/5 px-3 py-1.5 text-xs font-semibold text-ink/70"
@@ -257,7 +263,8 @@ export default function Negocios() {
                   ) : null}
                 </div>
               </li>
-            ))}
+              )
+            })}
           </ul>
         )}
       </main>

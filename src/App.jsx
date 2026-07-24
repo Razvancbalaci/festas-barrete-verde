@@ -8,6 +8,7 @@ import FestivalMap from './pages/FestivalMap'
 import Admin from './pages/Admin'
 import Negocios from './pages/Negocios'
 import Privacy from './pages/Privacy'
+import NotFound from './pages/NotFound'
 import InstallPrompt from './components/InstallPrompt'
 import NotifyPrompt from './components/NotifyPrompt'
 import OfflineBanner from './components/OfflineBanner'
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="/privacidade" element={<Privacy />} />
             <Route path="/privacy" element={<Navigate to="/privacidade" replace />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
           <AppExtras />
         </BrowserRouter>

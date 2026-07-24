@@ -3,6 +3,7 @@ import {
   eventDateTime,
   findNextOrCurrentEvent,
   formatLocalReminderValue,
+  isValidEventTime,
   localDateIso,
   parseLocalReminderValue,
   timeSortKey,
@@ -19,6 +20,23 @@ describe('localDateIso', () => {
     // 2026-08-07 00:30 in UTC+1 → still Aug 7 locally
     const d = new Date(2026, 7, 7, 0, 30, 0) // month 7 = August
     expect(localDateIso(d)).toBe('2026-08-07')
+  })
+})
+
+describe('isValidEventTime', () => {
+  it('accepts HH:MM', () => {
+    expect(isValidEventTime('00:00')).toBe(true)
+    expect(isValidEventTime('09:05')).toBe(true)
+    expect(isValidEventTime('22:30')).toBe(true)
+    expect(isValidEventTime('23:59')).toBe(true)
+  })
+
+  it('rejects invalid times', () => {
+    expect(isValidEventTime('9:05')).toBe(false)
+    expect(isValidEventTime('24:00')).toBe(false)
+    expect(isValidEventTime('12:60')).toBe(false)
+    expect(isValidEventTime('22h30')).toBe(false)
+    expect(isValidEventTime('')).toBe(false)
   })
 })
 
