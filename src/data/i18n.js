@@ -128,6 +128,7 @@ export const translations = {
       legendPlace: 'Pontos',
       legendBulls: 'Toiros / Praça',
       legendRecinto: 'Recinto largadas',
+      legendRoute: 'Percurso toiros',
       legendFair: 'Feira',
       legendWc: 'WC',
       layerMap: 'Mapa',
@@ -139,13 +140,21 @@ export const translations = {
         'Casas de banho portáteis: localização ainda a confirmar — vamos adicioná-las ao mapa em breve.',
       recintoTitle: 'Recinto das largadas',
       recintoHint:
-        'Zona das barreras para largadas de toiros. Mantém distância e segue as indicações no local.',
+        'Zona das vedações para largadas de toiros. Mantém distância e segue as indicações no local.',
       recintoQuebrada: 'Recinto das largadas — Quebrada',
       recintoQuebradaHint:
-        'Barreras na Rua José André dos Santos / Quebrada. Mantém distância e segue as indicações no local.',
+        'Vedações na Rua José André dos Santos / Quebrada. Mantém distância e segue as indicações no local.',
       recinto5Outubro: 'Recinto das largadas — Av. 5 de Outubro',
       recinto5OutubroHint:
-        'Barreras na Av. 5 de Outubro (junto a S. João). Mantém distância e segue as indicações no local.',
+        'Vedações na Av. 5 de Outubro (junto a S. João). Mantém distância e segue as indicações no local.',
+      routeEntradaTitle: 'Percurso das entradas',
+      routeEntradaHint:
+        'Rota típica das entradas até à Praça de Touros. Durante uma largada ou entrada a decorrer, o toiro anima-se ao longo do percurso (posição simulada).',
+      bullLiveNow: 'A decorrer agora',
+      bullLiveTitle: 'Toiros na rua',
+      bullSimHint:
+        'Posição ilustrativa ao longo do percurso — não é GPS em tempo real do animal.',
+      bullDemoNote: 'modo demo',
       places: {
         sede: 'Sede do Aposento',
         igreja: 'Igreja Matriz',
@@ -649,6 +658,7 @@ export const translations = {
       legendPlace: 'Places',
       legendBulls: 'Bulls / arena',
       legendRecinto: 'Release enclosure',
+      legendRoute: 'Bull route',
       legendFair: 'Fair',
       legendWc: 'WC',
       layerMap: 'Map',
@@ -660,13 +670,21 @@ export const translations = {
         'Portable toilets: locations still to confirm — we will add them to the map soon.',
       recintoTitle: 'Bull-release enclosure',
       recintoHint:
-        'Barrier zone for street bull releases. Keep clear and follow on-site instructions.',
+        'Fenced zone for street bull releases. Keep clear and follow on-site instructions.',
       recintoQuebrada: 'Release enclosure — Quebrada',
       recintoQuebradaHint:
-        'Barriers on Rua José André dos Santos / Quebrada. Keep clear and follow on-site instructions.',
+        'Fencing on Rua José André dos Santos / Quebrada. Keep clear and follow on-site instructions.',
       recinto5Outubro: 'Release enclosure — Av. 5 de Outubro',
       recinto5OutubroHint:
-        'Barriers on Av. 5 de Outubro (near S. João). Keep clear and follow on-site instructions.',
+        'Fencing on Av. 5 de Outubro (near S. João). Keep clear and follow on-site instructions.',
+      routeEntradaTitle: 'Entry route',
+      routeEntradaHint:
+        'Typical bull-entry path to the arena. During a live release or entry, the bull icon moves along the route (simulated position).',
+      bullLiveNow: 'Live now',
+      bullLiveTitle: 'Bulls in the streets',
+      bullSimHint:
+        'Illustrative position along the route — not live GPS of the animal.',
+      bullDemoNote: 'demo mode',
       places: {
         sede: 'Aposento HQ',
         igreja: 'Parish church',
@@ -1168,6 +1186,7 @@ export const translations = {
       legendPlace: 'Lieux',
       legendBulls: 'Taureaux / arène',
       legendRecinto: 'Enclos des lâchers',
+      legendRoute: 'Parcours taureaux',
       legendFair: 'Fête foraine',
       legendWc: 'WC',
       layerMap: 'Carte',
@@ -1179,13 +1198,21 @@ export const translations = {
         'Toilettes portables : emplacements encore à confirmer — nous les ajouterons bientôt à la carte.',
       recintoTitle: 'Enclos des lâchers',
       recintoHint:
-        'Zone des barrières pour les lâchers de taureaux. Gardez vos distances et suivez les consignes sur place.',
+        'Zone clôturée pour les lâchers de taureaux. Gardez vos distances et suivez les consignes sur place.',
       recintoQuebrada: 'Enclos des lâchers — Quebrada',
       recintoQuebradaHint:
-        'Barrières Rua José André dos Santos / Quebrada. Gardez vos distances et suivez les consignes sur place.',
+        'Clôtures Rua José André dos Santos / Quebrada. Gardez vos distances et suivez les consignes sur place.',
       recinto5Outubro: 'Enclos des lâchers — Av. 5 de Outubro',
       recinto5OutubroHint:
-        'Barrières Av. 5 de Outubro (près de S. João). Gardez vos distances et suivez les consignes sur place.',
+        'Clôtures Av. 5 de Outubro (près de S. João). Gardez vos distances et suivez les consignes sur place.',
+      routeEntradaTitle: 'Parcours des entrées',
+      routeEntradaHint:
+        'Trajet typique des entrées jusqu’à l’arène. Pendant un lâcher ou une entrée en cours, l’icône du taureau se déplace sur le parcours (position simulée).',
+      bullLiveNow: 'En cours',
+      bullLiveTitle: 'Taureaux en rue',
+      bullSimHint:
+        'Position illustrative sur le parcours — pas de GPS en temps réel de l’animal.',
+      bullDemoNote: 'mode démo',
       places: {
         sede: 'Siège de l’Aposento',
         igreja: 'Église Matriz',
@@ -1689,6 +1716,7 @@ export const translations = {
       legendPlace: 'Puntos',
       legendBulls: 'Toros / plaza',
       legendRecinto: 'Recinto sueltas',
+      legendRoute: 'Recorrido toros',
       legendFair: 'Feria',
       legendWc: 'WC',
       layerMap: 'Mapa',
@@ -1700,13 +1728,21 @@ export const translations = {
         'Aseos portátiles: ubicación aún por confirmar — los añadiremos al mapa pronto.',
       recintoTitle: 'Recinto de las sueltas',
       recintoHint:
-        'Zona de barreras para sueltas de toros. Mantén distancia y sigue las indicaciones en el lugar.',
+        'Zona vallada para sueltas de toros. Mantén distancia y sigue las indicaciones en el lugar.',
       recintoQuebrada: 'Recinto de sueltas — Quebrada',
       recintoQuebradaHint:
-        'Barreras en Rua José André dos Santos / Quebrada. Mantén distancia y sigue las indicaciones en el lugar.',
+        'Vallas en Rua José André dos Santos / Quebrada. Mantén distancia y sigue las indicaciones en el lugar.',
       recinto5Outubro: 'Recinto de sueltas — Av. 5 de Outubro',
       recinto5OutubroHint:
-        'Barreras en Av. 5 de Outubro (junto a S. João). Mantén distancia y sigue las indicaciones en el lugar.',
+        'Vallas en Av. 5 de Outubro (junto a S. João). Mantén distancia y sigue las indicaciones en el lugar.',
+      routeEntradaTitle: 'Recorrido de las entradas',
+      routeEntradaHint:
+        'Ruta típica de las entradas hasta la plaza. Durante una suelta o entrada en curso, el icono del toro se mueve por el recorrido (posición simulada).',
+      bullLiveNow: 'En curso',
+      bullLiveTitle: 'Toros en la calle',
+      bullSimHint:
+        'Posición ilustrativa a lo largo del recorrido — no es GPS en tiempo real del animal.',
+      bullDemoNote: 'modo demo',
       places: {
         sede: 'Sede del Aposento',
         igreja: 'Iglesia Matriz',

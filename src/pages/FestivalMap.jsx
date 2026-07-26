@@ -5,10 +5,21 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft, Contrast, Navigation } from 'lucide-react'
 import { useLang } from '../context/LangContext'
 import { useA11y } from '../context/A11yContext'
-import { LARGADA_RECINTO_LATLNGS, LARGADA_RECINTOS, MAP_CENTER, MAP_PLACES, MAP_ZOOM } from '../data/mapPlaces'
+import {
+  ENTRADA_ROUTE,
+  LARGADA_RECINTO_LATLNGS,
+  LARGADA_RECINTOS,
+  MAP_CENTER,
+  MAP_PLACES,
+  MAP_ZOOM,
+} from '../data/mapPlaces'
 import { mapsWalkToUrl } from '../lib/locations'
 import { track } from '../lib/analytics'
 import { getMapLayers } from '../lib/mapTiles'
+import LiveBullLayer, {
+  LiveBullBanner,
+  useLiveStreetBull,
+} from '../components/map/LiveBullLayer'
 import Footer from '../components/Footer'
 import 'leaflet/dist/leaflet.css'
 
@@ -61,6 +72,11 @@ export default function FestivalMap() {
   const layers = useMemo(() => getMapLayers(), [])
   const [basemap, setBasemap] = useState('streets')
   const active = layers[basemap] || layers.streets
+  const live = useLiveStreetBull()
+  const fitExtra = useMemo(
+    () => [...LARGADA_RECINTO_LATLNGS, ...ENTRADA_ROUTE],
+    []
+  )
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -109,6 +125,9 @@ export default function FestivalMap() {
               {m.legendRecinto}
             </li>
             <li className="inline-flex items-center gap-1.5">
+              <span className="h-0.5 w-4 rounded-full bg-vermelho" /> {m.legendRoute}
+            </li>
+            <li className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-dourado" /> {m.legendFair}
             </li>
             <li className="inline-flex items-center gap-1.5">
@@ -145,6 +164,8 @@ export default function FestivalMap() {
             </button>
           </div>
 
+          <LiveBullBanner labels={m} liveTitle={live.liveTitle} />
+
           <MapContainer
             center={MAP_CENTER}
             zoom={MAP_ZOOM}
@@ -160,7 +181,8 @@ export default function FestivalMap() {
                 ? { tileSize: active.tileSize, zoomOffset: active.zoomOffset ?? 0 }
                 : {})}
             />
-            <FitBounds places={MAP_PLACES} extraLatLngs={LARGADA_RECINTO_LATLNGS} />
+            <FitBounds places={MAP_PLACES} extraLatLngs={fitExtra} />
+            <LiveBullLayer labels={m} live={live} />
             {LARGADA_RECINTOS.map((zone) => (
               <Polygon
                 key={zone.id}

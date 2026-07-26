@@ -1,4 +1,5 @@
 import { isRouteMapEvent, isStreetBullEvent, parseLocations } from '../lib/locations'
+import { routeFromPolygonRing } from '../lib/routeGeom'
 
 /**
  * Pontos do mapa geral das festas (Leaflet).
@@ -190,14 +191,15 @@ export const ENTRADA_ROUTE = [
 ]
 
 /**
- * Recintos das largadas (barreras) — GeoJSON LineString fechada → [lat, lng].
- * Fonte: traçados do utilizador.
+ * Recintos das largadas — GeoJSON do utilizador + match ao `local` do cartaz.
+ * O percurso do toiro (ida/volta) deriva do GPS do polígono.
  */
 export const LARGADA_RECINTOS = [
   {
     id: 'largada-quebrada',
     nameKey: 'recintoQuebrada',
     hintKey: 'recintoQuebradaHint',
+    match: /quebrada|jos[eé]\s*andr[eé]|andr[eé]\s+dos\s+santos/i,
     positions: [
       [38.7553571, -8.9631805],
       [38.7551155, -8.9627364],
@@ -214,6 +216,7 @@ export const LARGADA_RECINTOS = [
     id: 'largada-5outubro',
     nameKey: 'recinto5Outubro',
     hintKey: 'recinto5OutubroHint',
+    match: /5\s*(de\s+)?outubro|av\.?\s*5/i,
     positions: [
       [38.7559609, -8.9603317],
       [38.7560394, -8.9603405],
@@ -225,6 +228,19 @@ export const LARGADA_RECINTOS = [
     ],
   },
 ]
+
+/**
+ * Percursos animados — um por recinto, a partir do GPS do polígono.
+ */
+export const LARGADA_STREET_ROUTES = LARGADA_RECINTOS.map((r) => ({
+  id: r.id,
+  nameKey: r.nameKey,
+  match: r.match,
+  route: routeFromPolygonRing(r.positions),
+}))
+
+/** @deprecated use LARGADA_STREET_ROUTES */
+export const LARGADA_ROUTE = LARGADA_STREET_ROUTES.flatMap((s) => s.route)
 
 /** @deprecated use LARGADA_RECINTOS */
 export const LARGADA_RECINTO = LARGADA_RECINTOS[0].positions
