@@ -6,6 +6,7 @@ import {
   eventMatchesPlace,
   getMapPlace,
 } from '../data/mapPlaces'
+import { CATEGORIES } from '../data/categories'
 import {
   findNextOrCurrentEvent,
   sortEvents,
@@ -290,6 +291,20 @@ export default function PublicProgram() {
     })
   }, [events, category, query])
 
+  const categoriesInDay = useMemo(() => {
+    const set = new Set()
+    for (const e of events || []) {
+      if (e?.categoria) set.add(e.categoria)
+    }
+    return CATEGORIES.filter((c) => set.has(c))
+  }, [events])
+
+  useEffect(() => {
+    if (category && !categoriesInDay.includes(category)) {
+      setCategory(null)
+    }
+  }, [category, categoriesInDay])
+
   const hasExtraFilter = Boolean(
     category || favoritesOnly || query.trim() || showNow || placeFilter
   )
@@ -307,6 +322,7 @@ export default function PublicProgram() {
       />
       <CategoryFilter
         selected={category}
+        available={categoriesInDay}
         onSelect={(cat) => {
           track('filter_category', { category: cat || 'all' })
           setCategory(cat)

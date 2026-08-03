@@ -1,8 +1,16 @@
 import { CATEGORIES, CATEGORY_COLORS } from '../data/categories'
 import { useLang } from '../context/LangContext'
 
-export default function CategoryFilter({ selected, onSelect }) {
+export default function CategoryFilter({ selected, onSelect, available }) {
   const { t } = useLang()
+  const cats =
+    available === undefined
+      ? CATEGORIES
+      : CATEGORIES.filter((c) => available.includes(c))
+
+  if (available !== undefined && cats.length === 0) {
+    return null
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-4 sm:px-6">
@@ -15,13 +23,13 @@ export default function CategoryFilter({ selected, onSelect }) {
           onClick={() => onSelect(null)}
           className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${
             selected === null
-              ? 'bg-barrete text-white shadow-sm'
+              ? 'bg-barrete text-white'
               : 'bg-white text-ink/70 shadow-sm hover:bg-barrete/5'
           }`}
         >
           {t.filterAll}
         </button>
-        {CATEGORIES.map((cat) => {
+        {cats.map((cat) => {
           const colors = CATEGORY_COLORS[cat]
           const active = selected === cat
           return (
