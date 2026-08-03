@@ -11,10 +11,8 @@ import {
 } from './routeGeom.js'
 import {
   bullAnimsForLive,
-  demoLiveBulls,
   findLiveStreetBulls,
   nextLiveBullWakeAt,
-  parseDemoToiroParam,
   routesForStreetBull,
 } from './liveStreetBulls.js'
 import {
@@ -221,40 +219,20 @@ describe('liveStreetBulls', () => {
     expect(findLiveStreetBulls(events, new Date(2026, 7, 8, 22, 15, 0))).toEqual([])
   })
 
-  it('parses demoToiro window and only shows inside it', () => {
-    expect(parseDemoToiroParam('1')).toEqual({ mode: 'always' })
-    expect(parseDemoToiroParam('18:49-18:51')).toEqual({
-      mode: 'window',
-      startHora: '18:49',
-      endHora: '18:51',
-    })
-    const schedule = parseDemoToiroParam('18:49-18:51')
-    expect(
-      demoLiveBulls(new Date(2026, 7, 2, 18, 48, 30), schedule),
-    ).toHaveLength(0)
-    const live = demoLiveBulls(new Date(2026, 7, 2, 18, 49, 30), schedule)
-    expect(live).toHaveLength(1)
-    expect(live[0].event.dia).toBe('2026-08-02')
-    expect(demoLiveBulls(new Date(2026, 7, 2, 18, 51, 0), schedule)).toHaveLength(
-      0,
+  it('wakes at next real bull start/end', () => {
+    const events = [
+      {
+        id: '1',
+        dia: '2026-08-08',
+        hora: '21:00',
+        titulo: 'Largada de Toiros',
+        categoria: 'Toiros',
+        local: 'Av. 5 de Outubro',
+      },
+    ]
+    const before = new Date(2026, 7, 8, 20, 59, 0)
+    expect(nextLiveBullWakeAt(before, events)).toBe(
+      new Date(2026, 7, 8, 21, 0, 0).getTime(),
     )
-    const before = new Date(2026, 7, 2, 18, 48, 0)
-    expect(nextLiveBullWakeAt(before, schedule)).toBe(
-      new Date(2026, 7, 2, 18, 49, 0).getTime(),
-    )
-  })
-
-  it('demoLive stacks several fake events in the window', async () => {
-    const { demoLiveNowItems, parseDemoLiveParam } = await import(
-      './liveStreetBulls.js'
-    )
-    const schedule = parseDemoLiveParam('19:00-19:05')
-    expect(demoLiveNowItems(new Date(2026, 7, 2, 18, 59, 0), schedule)).toEqual(
-      [],
-    )
-    const items = demoLiveNowItems(new Date(2026, 7, 2, 19, 2, 0), schedule)
-    expect(items.length).toBeGreaterThanOrEqual(2)
-    expect(items.every((i) => i.demo)).toBe(true)
-    expect(new Set(items.map((i) => i.categoria)).size).toBeGreaterThan(1)
   })
 })

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMap } from 'react-leaflet'
 import L from 'leaflet'
-import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import {
   findLiveEvents,
@@ -9,13 +8,9 @@ import {
 } from '../../lib/datetime'
 import {
   bullAnimsForLive,
-  demoLiveBulls,
-  demoLiveNowItems,
   findLiveStreetBulls,
   isMapLiveBullEvent,
   nextLiveBullWakeAt,
-  parseDemoLiveParam,
-  parseDemoToiroParam,
 } from '../../lib/liveStreetBulls'
 import { bullPinIcon } from '../../lib/mapPinIcon'
 
@@ -44,7 +39,7 @@ function FocusLiveBullOnce({ position, active }) {
 /**
  * Toiros animados no Leaflet (rAF + setLatLng) — não depende do Marker do react-leaflet.
  */
-function AnimatedBullMarkers({ primary, alwaysDemo, labels }) {
+function AnimatedBullMarkers({ primary, labels }) {
   const map = useMap()
   const markersRef = useRef([])
   const liveRef = useRef(primary)
@@ -57,13 +52,8 @@ function AnimatedBullMarkers({ primary, alwaysDemo, labels }) {
 
     const markers = []
     const Lbl = labelsRef.current
-    // alwaysDemo: relógio artificial. Janela/real: hora do cartaz.
-    const animStart = alwaysDemo
-      ? new Date(Date.now() - 10 * 60 * 1000)
-      : primary.start
-    const animEnd = alwaysDemo
-      ? new Date(animStart.getTime() + 60 * 60 * 1000)
-      : primary.end
+    const animStart = primary.start
+    const animEnd = primary.end
 
     const initialLive = {
       ...primary,
@@ -84,13 +74,10 @@ function AnimatedBullMarkers({ primary, alwaysDemo, labels }) {
         Lbl?.bullLiveTitle ||
         primary.event?.titulo ||
         ''
-      const note = alwaysDemo || primary.event?.id === 'demo-largada'
-        ? ` · ${Lbl?.bullDemoNote || 'demo'}`
-        : ''
       marker.bindPopup(
         `<div class="min-w-[10rem] space-y-1 text-sm">
           <strong class="block text-ink">${title}</strong>
-          <p class="text-xs text-ink/65">${primary.event?.titulo || ''}${note}</p>
+          <p class="text-xs text-ink/65">${primary.event?.titulo || ''}</p>
           <p class="text-xs leading-relaxed text-ink/55">${Lbl?.bullSimHint || ''}</p>
         </div>`,
       )
@@ -125,31 +112,13 @@ function AnimatedBullMarkers({ primary, alwaysDemo, labels }) {
       }
       markersRef.current = []
     }
-  }, [
-    map,
-    primary?.event?.id,
-    alwaysDemo ? 0 : primary?.start?.getTime?.() ?? 0,
-    alwaysDemo,
-    BULL_ICON_REV,
-  ])
+  }, [map, primary?.event?.id, primary?.start?.getTime?.() ?? 0, BULL_ICON_REV])
 
   return null
 }
 
-/** Estado live: banner + layer.
- * Demo toiro: ?demoToiro=1 ou ?demoToiro=19:14-19:16
- * Demo banners: ?demoLive=1 ou ?demoLive=19:21-19:23
- */
+/** Estado live: banner + layer — só eventos reais do programa. */
 export function useLiveStreetBull() {
-  const [searchParams] = useSearchParams()
-  const demoSchedule = useMemo(
-    () => parseDemoToiroParam(searchParams.get('demoToiro')),
-    [searchParams],
-  )
-  const demoLiveSchedule = useMemo(
-    () => parseDemoLiveParam(searchParams.get('demoLive')),
-    [searchParams],
-  )
   const [events, setEvents] = useState([])
   const [now, setNow] = useState(() => new Date())
 
@@ -171,7 +140,6 @@ export function useLiveStreetBull() {
     }
   }, [])
 
-  // Actualiza `now` à hora exacta de início/fim (+ poll de reserva)
   useEffect(() => {
     let timeoutId = 0
     let intervalId = 0
@@ -183,19 +151,9 @@ export function useLiveStreetBull() {
 
     const armTimeout = () => {
       window.clearTimeout(timeoutId)
-      const bullWake = nextLiveBullWakeAt(new Date(), demoSchedule, events)
-      const liveDemoWake = nextLiveBullWakeAt(
-        new Date(),
-        demoLiveSchedule,
-        [],
-      )
-      const eventWake =
-        demoSchedule || demoLiveSchedule
-          ? null
-          : nextLiveEventWakeAt(events, new Date())
-      const candidates = [bullWake, liveDemoWake, eventWake].filter(
-        (t) => t != null,
-      )
+      const bullWake = nextLiveBullWakeAt(new Date(), events)
+      const eventWake = nextLiveEventWakeAt(events, new Date())
+      const candidates = [bullWake, eventWake].filter((t) => t != null)
       if (!candidates.length) return
       const wakeAt = Math.min(...candidates)
       const delay = Math.max(50, wakeAt - Date.now() + 50)
@@ -208,10 +166,7 @@ export function useLiveStreetBull() {
 
     tick()
     armTimeout()
-    const windowDemo =
-      demoSchedule?.mode === 'window' || demoLiveSchedule?.mode === 'window'
-    const pollMs = windowDemo ? 1000 : 5_000
-    intervalId = window.setInterval(tick, pollMs)
+    intervalId = window.setInterval(tick, 5_000)
 
     const onVis = () => {
       if (document.visibilityState === 'visible') {
@@ -227,54 +182,29 @@ export function useLiveStreetBull() {
       window.clearInterval(intervalId)
       document.removeEventListener('visibilitychange', onVis)
     }
-  }, [demoSchedule, demoLiveSchedule, events])
+  }, [events])
 
   return useMemo(() => {
-    const bullList = demoSchedule
-      ? demoLiveBulls(now, demoSchedule)
-      : findLiveStreetBulls(events, now)
+    const bullList = findLiveStreetBulls(events, now)
     const primary = bullList[0] || null
     const anims = primary ? bullAnimsForLive(primary, now) : []
-    const alwaysDemo = demoSchedule?.mode === 'always'
 
-    const bullBanners = demoSchedule
-      ? bullList.map((b) => ({
-          id: b.event?.id || 'demo-largada',
-          title: b.event?.titulo || 'Largada de Toiros (demo)',
-          categoria: b.event?.categoria || 'Toiros',
-          local: b.event?.local || '',
-          kind: 'bull',
-          demo: true,
-        }))
-      : []
-
-    const demoBanners = demoLiveNowItems(now, demoLiveSchedule)
-
-    const realBanners =
-      demoSchedule || demoLiveSchedule
-        ? []
-        : findLiveEvents(events, now).map((row) => ({
-            id: row.event.id,
-            title: row.event.titulo,
-            categoria: row.event.categoria,
-            local: row.event.local || '',
-            kind: isMapLiveBullEvent(row.event) ? 'bull' : 'event',
-            demo: false,
-          }))
-
-    // Sem demo de toiro: se houver largada real, entra nos banners reais
-    const liveNow = [...bullBanners, ...demoBanners, ...realBanners]
+    const liveNow = findLiveEvents(events, now).map((row) => ({
+      id: row.event.id,
+      title: row.event.titulo,
+      categoria: row.event.categoria,
+      local: row.event.local || '',
+      kind: isMapLiveBullEvent(row.event) ? 'bull' : 'event',
+    }))
 
     return {
-      demo: Boolean(demoSchedule || demoLiveSchedule),
-      alwaysDemo,
       primary,
       liveTitle: primary?.event?.titulo || null,
       liveNow,
       anims,
       anim: anims[0] || null,
     }
-  }, [demoSchedule, demoLiveSchedule, events, now])
+  }, [events, now])
 }
 
 const LIVE_NOW_PREF_KEY = 'fbv-map-live-now'
@@ -365,10 +295,6 @@ export function LiveNowBanners({ labels, items }) {
         <ul className="divide-y divide-white/10">
           {list.map((item) => {
             const { bg, glyph } = liveNowStyle(item)
-            const note =
-              item.demo || item.id === 'demo-largada'
-                ? ` · ${labels?.bullDemoNote || 'demo'}`
-                : ''
             return (
               <li key={item.id} className="flex items-center gap-2.5 px-3 py-2.5">
                 <span
@@ -383,9 +309,6 @@ export function LiveNowBanners({ labels, items }) {
                 </span>
                 <span className="min-w-0 flex-1 truncate text-xs font-semibold leading-snug text-white">
                   {item.title}
-                  {note ? (
-                    <span className="font-medium text-white/55">{note}</span>
-                  ) : null}
                 </span>
               </li>
             )
@@ -411,18 +334,14 @@ export function LiveBullBanner({ labels, liveTitle }) {
  * Toiros live nos recintos (sem linhas de percurso — o polígono basta).
  */
 export default function LiveBullLayer({ labels, live }) {
-  const { alwaysDemo, primary, anims = [] } = live || {}
+  const { primary, anims = [] } = live || {}
   const hasLive = Boolean(primary) && anims.length > 0
 
   if (!hasLive) return null
 
   return (
     <>
-      <AnimatedBullMarkers
-        primary={primary}
-        alwaysDemo={Boolean(alwaysDemo)}
-        labels={labels}
-      />
+      <AnimatedBullMarkers primary={primary} labels={labels} />
       <FocusLiveBullOnce position={anims[0]?.position} active />
     </>
   )

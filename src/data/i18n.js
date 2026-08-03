@@ -173,7 +173,6 @@ export const translations = {
       bullLiveTitle: 'Toiros na rua',
       bullSimHint:
         'Posição ilustrativa dentro do recinto — não é GPS em tempo real do animal.',
-      bullDemoNote: 'modo demo',
       places: {
         sede: 'Sede do Aposento',
         igreja: 'Igreja Matriz',
@@ -842,7 +841,6 @@ export const translations = {
       bullLiveTitle: 'Bulls in the streets',
       bullSimHint:
         'Illustrative position inside the enclosure — not live GPS of the animal.',
-      bullDemoNote: 'demo mode',
       places: {
         sede: 'Aposento HQ',
         igreja: 'Parish church',
@@ -1508,7 +1506,6 @@ export const translations = {
       bullLiveTitle: 'Taureaux en rue',
       bullSimHint:
         'Position illustrative dans l’enclos — pas de GPS en temps réel de l’animal.',
-      bullDemoNote: 'mode démo',
       places: {
         sede: 'Siège de l’Aposento',
         igreja: 'Église Matriz',
@@ -2079,7 +2076,6 @@ export const translations = {
       bullLiveTitle: 'Toros en la calle',
       bullSimHint:
         'Posición ilustrativa dentro del recinto — no es GPS en tiempo real del animal.',
-      bullDemoNote: 'modo demo',
       places: {
         sede: 'Sede del Aposento',
         igreja: 'Iglesia Matriz',

@@ -1,4 +1,4 @@
-import { eventDateTime, eventDurationMinutes, localDateIso } from './datetime'
+import { eventDateTime, eventDurationMinutes } from './datetime'
 import { isRouteMapEvent, isStreetBullEvent } from './locations'
 import { ENTRADA_ROUTE, LARGADA_STREET_ROUTES } from '../data/mapPlaces'
 import { pointAlongRoute, wanderInPolygon } from './routeGeom'
@@ -20,7 +20,7 @@ export function isMapLiveBullEvent(event) {
 
 /**
  * Entradas/largadas actualmente em curso (hora do cartaz → + duração).
- * Fora desse intervalo o toiro não aparece (excepto ?demoToiro=1).
+ * Fora desse intervalo o toiro não aparece.
  */
 export function findLiveStreetBulls(events, now = new Date()) {
   const live = []
@@ -116,149 +116,10 @@ export function bullProgressOnRoute(live, now = new Date()) {
 }
 
 /**
- * Query demo (`demoToiro` / `demoLive`):
- * - `1` → sempre visível (dev)
- * - `18:49-18:51` → janela no dia de hoje (aparecer / desaparecer à hora)
- */
-export function parseDemoToiroParam(raw) {
-  if (raw == null || raw === '') return null
-  const s = String(raw).trim()
-  if (s === '1' || /^true$/i.test(s)) return { mode: 'always' }
-  const m = s.match(/^(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/)
-  if (!m) return null
-  const pad = (h) => {
-    const [a, b] = h.split(':')
-    return `${String(a).padStart(2, '0')}:${b}`
-  }
-  return { mode: 'window', startHora: pad(m[1]), endHora: pad(m[2]) }
-}
-
-/** Alias — mesma sintaxe para ?demoLive=… */
-export const parseDemoLiveParam = parseDemoToiroParam
-
-function demoEvent(dia, hora) {
-  return {
-    id: 'demo-largada',
-    dia,
-    hora,
-    titulo: 'Largada de Toiros (demo)',
-    local: 'Rua José André dos Santos e Av. 5 de Outubro',
-    categoria: 'Toiros',
-  }
-}
-
-/** Eventos falsos para testar banners empilhados (?demoLive=…). */
-const DEMO_LIVE_CATALOG = [
-  {
-    id: 'demo-musica',
-    titulo: 'Concerto no Salineiro (demo)',
-    local: 'Palco Salineiro',
-    categoria: 'Música',
-  },
-  {
-    id: 'demo-feira',
-    titulo: 'Abertura da Feira (demo)',
-    local: 'Feira dos Carrosséis',
-    categoria: 'Institucional',
-  },
-  {
-    id: 'demo-religioso',
-    titulo: 'Procissão (demo)',
-    local: 'Igreja Matriz',
-    categoria: 'Religioso',
-  },
-]
-
-/**
- * Itens de banner para ?demoLive=1 ou ?demoLive=HH:MM-HH:MM.
- * @returns {Array<{ id, title, categoria, local, kind, demo }>}
- */
-export function demoLiveNowItems(now, schedule) {
-  if (!schedule) return []
-  let start
-  let end
-  let dia
-  let hora
-  if (schedule.mode === 'always') {
-    start = new Date(now.getTime() - 10 * 60 * 1000)
-    end = new Date(now.getTime() + 50 * 60 * 1000)
-    dia = localDateIso(now)
-    hora = '21:00'
-  } else {
-    const bounds = demoWindowBounds(now, schedule)
-    if (!bounds) return []
-    if (now < bounds.start || now >= bounds.end) return []
-    ;({ dia, start, end } = bounds)
-    hora = schedule.startHora
-  }
-  return DEMO_LIVE_CATALOG.map((e) => ({
-    id: e.id,
-    title: e.titulo,
-    categoria: e.categoria,
-    local: e.local,
-    kind: 'event',
-    demo: true,
-    start,
-    end,
-    event: { ...e, dia, hora },
-  }))
-}
-
-/** Sessão demo sempre activa (?demoToiro=1). */
-export function demoLiveBull(now = new Date()) {
-  const start = new Date(now.getTime() - 10 * 60 * 1000)
-  const end = new Date(now.getTime() + 50 * 60 * 1000)
-  return {
-    event: demoEvent(localDateIso(now), '21:00'),
-    start,
-    end,
-  }
-}
-
-/**
- * Lista live para demo (0 ou 1 sessão).
- * Em modo `window`, só entre startHora e endHora do dia civil actual.
- */
-export function demoLiveBulls(now, schedule) {
-  if (!schedule) return []
-  if (schedule.mode === 'always') return [demoLiveBull(now)]
-
-  const bounds = demoWindowBounds(now, schedule)
-  if (!bounds) return []
-  const { dia, start, end } = bounds
-  if (now < start || now >= end) return []
-  return [{ event: demoEvent(dia, schedule.startHora), start, end }]
-}
-
-/** Início/fim da janela demo no dia civil de `now`. */
-export function demoWindowBounds(now, schedule) {
-  if (!schedule || schedule.mode !== 'window') return null
-  const dia = localDateIso(now)
-  const start = eventDateTime(dia, schedule.startHora)
-  let end = eventDateTime(dia, schedule.endHora)
-  if (end.getTime() <= start.getTime()) {
-    end = new Date(end.getTime() + 24 * 60 * 60 * 1000)
-  }
-  return { dia, start, end }
-}
-
-/**
  * Próximo instante em que o mapa deve reavaliar live (aparecer/desaparecer).
  * @returns {number|null} epoch ms
  */
-export function nextLiveBullWakeAt(now, demoSchedule, events = []) {
-  if (demoSchedule?.mode === 'always') return null
-
-  if (demoSchedule?.mode === 'window') {
-    const bounds = demoWindowBounds(now, demoSchedule)
-    if (!bounds) return null
-    const { start, end } = bounds
-    if (now < start) return start.getTime()
-    if (now < end) return end.getTime()
-    // Amanhã à mesma hora de início
-    return start.getTime() + 24 * 60 * 60 * 1000
-  }
-
+export function nextLiveBullWakeAt(now, events = []) {
   let next = null
   for (const e of events || []) {
     if (!isMapLiveBullEvent(e)) continue
