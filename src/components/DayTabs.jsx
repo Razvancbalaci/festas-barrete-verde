@@ -126,7 +126,7 @@ export default function DayTabs({ selectedDate, onSelect }) {
           className="flex shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl bg-tejo/90 px-2.5 py-2 text-white shadow-sm transition hover:bg-tejo sm:px-3"
           title={t.mapLink}
         >
-          <Map className="h-4 w-4" aria-hidden />
+          <MapIcon className="h-4 w-4" aria-hidden />
           <span className="text-[0.6rem] font-bold leading-tight tracking-wide">
             {t.mapLinkShort}
           </span>
