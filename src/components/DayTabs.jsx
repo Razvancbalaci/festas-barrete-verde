@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { Map, Store } from 'lucide-react'
+import { Map as MapIcon, Store } from 'lucide-react'
 import { FESTIVAL_DAYS } from '../data/days'
 import { useLang } from '../context/LangContext'
 
@@ -26,7 +26,7 @@ function scrollSelectedIntoView(scroller, button, behavior) {
 export default function DayTabs({ selectedDate, onSelect }) {
   const { t } = useLang()
   const scrollerRef = useRef(null)
-  const btnRefs = useRef(new Map())
+  const btnRefs = useRef(new globalThis.Map())
   const firstScroll = useRef(true)
   const userTouching = useRef(false)
 
