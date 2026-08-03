@@ -246,6 +246,10 @@ export const translations = {
       corridaHint: '1 hora antes das corridas na Praça de Touros.',
       sjoao: 'Palco S. João',
       sjoaoHint: '15 min antes das atuações neste palco.',
+      fogos: 'Fogos de artifício',
+      fogosHint: '15 min antes do espetáculo piromusical.',
+      inicio: 'Começo das festas',
+      inicioHint: '30 min antes do Hastear das bandeiras.',
       broadcast: 'Avisos gerais',
       broadcastHint: 'Mensagens enviadas pela gestão (alterações, info útil).',
       remindersNote:
@@ -395,7 +399,7 @@ export const translations = {
       syncAlerts: 'Atualizar alertas',
       alertOfferTitle: 'Atualizar alertas do programa?',
       alertOfferBody:
-        'Alteraste um evento com avisos automáticos (toiros, corridas ou Palco S. João). Convém regenerar os alertas para ficarem alinhados com o cartaz.',
+        'Alteraste um evento com avisos automáticos (toiros, corridas, Palco S. João, fogos ou abertura). Convém regenerar os alertas para ficarem alinhados com o cartaz.',
       alertOfferDismiss: 'Agora não',
       autoAlertBadge: 'Alerta auto',
       eventDayJump: 'Dia',
@@ -476,7 +480,7 @@ export const translations = {
       notifyStatusCancelled: 'Cancelada',
       notifyAutoGenerate: 'Gerar alertas do programa',
       notifyAutoHint:
-        'Cria avisos automáticos: 15 min antes de largadas/entradas, 1 h antes de corridas, 15 min antes de actuações no Palco S. João. Podes voltar a gerar se o programa mudar.',
+        'Cria avisos automáticos: 15 min antes de largadas/entradas, 1 h antes de corridas, 15 min antes de actuações no Palco S. João, 15 min antes dos fogos, 30 min antes do Hastear das bandeiras. Podes voltar a gerar se o programa mudar.',
       notifyAutoSuccess: 'Alertas automáticos atualizados',
       notifyAutoEmpty: 'Não há alertas futuros a gerar (programa vazio ou tudo já passou).',
       notifyTest5Min: 'Teste em 5 min',
@@ -957,6 +961,10 @@ export const translations = {
       corridaHint: '1 hour before bullfights at the arena.',
       sjoao: 'S. João stage',
       sjoaoHint: '15 min before shows on this stage.',
+      fogos: 'Fireworks',
+      fogosHint: '15 min before the pyromusical show.',
+      inicio: 'Festival opening',
+      inicioHint: '30 min before the flag-raising ceremony.',
       broadcast: 'General alerts',
       broadcastHint: 'Messages from the organisers (changes, useful info).',
       remindersNote:
@@ -1104,7 +1112,7 @@ export const translations = {
       syncAlerts: 'Update alerts',
       alertOfferTitle: 'Update programme alerts?',
       alertOfferBody:
-        'You changed an event with automatic alerts (bulls, corridas or Palco S. João). Regenerate so they match the programme.',
+        'You changed an event with automatic alerts (bulls, corridas, Palco S. João, fireworks or opening). Regenerate so they match the programme.',
       alertOfferDismiss: 'Not now',
       autoAlertBadge: 'Auto alert',
       eventDayJump: 'Day',
@@ -1184,7 +1192,7 @@ export const translations = {
       notifyStatusCancelled: 'Cancelled',
       notifyAutoGenerate: 'Generate programme alerts',
       notifyAutoHint:
-        'Creates automatic alerts: 15 min before street bull events, 1 h before bullfights, 15 min before S. João stage shows. Re-run if the programme changes.',
+        'Creates automatic alerts: 15 min before street bull events, 1 h before bullfights, 15 min before S. João stage shows, 15 min before fireworks, 30 min before the flag-raising. Re-run if the programme changes.',
       notifyAutoSuccess: 'Automatic alerts updated',
       notifyAutoEmpty: 'No future alerts to generate (empty programme or everything already past).',
       notifyTest5Min: 'Test in 5 min',
@@ -1665,6 +1673,10 @@ export const translations = {
       corridaHint: '1 heure avant les corridas à l’arène.',
       sjoao: 'Scène S. João',
       sjoaoHint: '15 min avant les spectacles sur cette scène.',
+      fogos: 'Feux d’artifice',
+      fogosHint: '15 min avant le spectacle pyromusical.',
+      inicio: 'Ouverture des fêtes',
+      inicioHint: '30 min avant la cérémonie des drapeaux.',
       broadcast: 'Alertes générales',
       broadcastHint: 'Messages de l’équipe (changements, infos utiles).',
       remindersNote:
@@ -1843,7 +1855,7 @@ export const translations = {
       notifyStatusCancelled: 'Annulée',
       notifyAutoGenerate: 'Générer les alertes du programme',
       notifyAutoHint:
-        'Crée des alertes auto : 15 min avant lâchers/entrées, 1 h avant corridas, 15 min avant le plateau S. João. À régénérer si le programme change.',
+        'Crée des alertes auto : 15 min avant lâchers/entrées, 1 h avant corridas, 15 min avant le plateau S. João, 15 min avant les feux, 30 min avant la cérémonie des drapeaux. À régénérer si le programme change.',
       notifyAutoSuccess: 'Alertes automatiques mises à jour',
       notifyAutoEmpty: 'Aucune alerte future à générer.',
       notifyTest5Min: 'Test dans 5 min',
@@ -2278,6 +2290,10 @@ export const translations = {
       corridaHint: '1 hora antes de las corridas en la plaza.',
       sjoao: 'Palco S. João',
       sjoaoHint: '15 min antes de las actuaciones en este escenario.',
+      fogos: 'Fuegos artificiales',
+      fogosHint: '15 min antes del espectáculo piromusical.',
+      inicio: 'Inicio de las fiestas',
+      inicioHint: '30 min antes del izado de banderas.',
       broadcast: 'Avisos generales',
       broadcastHint: 'Mensajes de la organización (cambios, info útil).',
       remindersNote:
@@ -2457,7 +2473,7 @@ export const translations = {
       notifyStatusCancelled: 'Cancelada',
       notifyAutoGenerate: 'Generar alertas del programa',
       notifyAutoHint:
-        'Crea avisos automáticos: 15 min antes de sueltas/entradas, 1 h antes de corridas, 15 min antes del Palco S. João. Vuelve a generar si cambia el programa.',
+        'Crea avisos automáticos: 15 min antes de sueltas/entradas, 1 h antes de corridas, 15 min antes del Palco S. João, 15 min antes de los fuegos, 30 min antes del izado de banderas. Vuelve a generar si cambia el programa.',
       notifyAutoSuccess: 'Alertas automáticas actualizadas',
       notifyAutoEmpty: 'No hay alertas futuras que generar.',
       notifyTest5Min: 'Prueba en 5 min',

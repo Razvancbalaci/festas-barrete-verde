@@ -52,12 +52,12 @@ async function pushOne(sub, title, body, url = '/', tag = null) {
   )
 }
 
+const PUSH_CATEGORIES = ['street', 'corrida', 'sjoao', 'fogos', 'inicio', 'broadcast']
+
 async function sendToAll(admin, title, body, url = '/', category = 'broadcast', tag = null) {
   vapidReady()
 
-  const cat = ['street', 'corrida', 'sjoao', 'broadcast'].includes(category)
-    ? category
-    : 'broadcast'
+  const cat = PUSH_CATEGORIES.includes(category) ? category : 'broadcast'
   const prefCol =
     cat === 'street'
       ? 'pref_street'
@@ -65,7 +65,11 @@ async function sendToAll(admin, title, body, url = '/', category = 'broadcast', 
         ? 'pref_corrida'
         : cat === 'sjoao'
           ? 'pref_sjoao'
-          : 'pref_broadcast'
+          : cat === 'fogos'
+            ? 'pref_fogos'
+            : cat === 'inicio'
+              ? 'pref_inicio'
+              : 'pref_broadcast'
 
   let query = admin
     .from('push_subscriptions')
@@ -101,11 +105,11 @@ async function sendToAll(admin, title, body, url = '/', category = 'broadcast', 
 }
 
 function categoryFromSchedule(job) {
-  if (job?.category && ['street', 'corrida', 'sjoao', 'broadcast'].includes(job.category)) {
+  if (job?.category && PUSH_CATEGORIES.includes(job.category)) {
     return job.category
   }
   const m = String(job?.dedupe_key || '').match(/^auto:([a-z]+):/)
-  if (m && ['street', 'corrida', 'sjoao'].includes(m[1])) return m[1]
+  if (m && ['street', 'corrida', 'sjoao', 'fogos', 'inicio'].includes(m[1])) return m[1]
   return 'broadcast'
 }
 

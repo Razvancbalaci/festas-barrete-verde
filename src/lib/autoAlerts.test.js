@@ -66,8 +66,21 @@ describe('buildAutoAlertJobs — timing precision', () => {
     const jobs = buildAutoAlertJobs([event], now)
     expect(jobs).toHaveLength(1)
     expect(jobs[0].dedupe_key).toBe('auto:street:largada-1:15')
+    expect(jobs[0].title).toBe('Largada de toiros em 15 minutos!')
     expect(minutesBetween(start.toISOString(), jobs[0].scheduled_for)).toBe(15)
     expect(jobs[0]._minutes_before).toBe(15)
+  })
+
+  it('entrada uses entrada title wording', () => {
+    const event = {
+      id: 'entrada-1',
+      dia: '2026-08-07',
+      hora: '18:00',
+      titulo: '1ª Entrada de Touros na Vila',
+      categoria: 'Toiros',
+    }
+    const jobs = buildAutoAlertJobs([event], now)
+    expect(jobs[0].title).toBe('Entrada de toiros em 15 minutos!')
   })
 
   it('corrida: exactly 60 minutes before, never 15', () => {
@@ -101,6 +114,54 @@ describe('buildAutoAlertJobs — timing precision', () => {
     const jobs = buildAutoAlertJobs([event], now)
     expect(jobs).toHaveLength(1)
     expect(minutesBetween(start.toISOString(), jobs[0].scheduled_for)).toBe(15)
+  })
+
+  it('fogos / piromusical: exactly 15 minutes before', () => {
+    const event = {
+      id: 'fogos-1',
+      dia: '2026-08-13',
+      hora: '00:30',
+      titulo: 'Espetáculo Piromusical',
+      categoria: 'Pirotecnia',
+    }
+    const start = eventDateTime(event.dia, event.hora)
+    const jobs = buildAutoAlertJobs([event], now)
+    expect(jobs).toHaveLength(1)
+    expect(jobs[0].dedupe_key).toBe('auto:fogos:fogos-1:15')
+    expect(jobs[0].title).toBe('Fogos de artifício em 15 minutos!')
+    expect(jobs[0].body).toBe('Espetáculo Piromusical pelo Passeio do Tejo!')
+    expect(minutesBetween(start.toISOString(), jobs[0].scheduled_for)).toBe(15)
+  })
+
+  it('does not treat alvorada morteiros as fireworks', () => {
+    const event = {
+      id: 'alvorada',
+      dia: '2026-08-08',
+      hora: '08:00',
+      titulo: 'Alvorada com salva de 21 morteiros',
+      categoria: 'Institucional',
+    }
+    expect(buildAutoAlertJobs([event], now)).toHaveLength(0)
+  })
+
+  it('festival opening: exactly 30 minutes before Hastear', () => {
+    const event = {
+      id: 'inicio-1',
+      dia: '2026-08-07',
+      hora: '17:00',
+      titulo: 'Hastear das bandeiras',
+      local: 'Avenida D. Manuel I',
+      categoria: 'Institucional',
+    }
+    const start = eventDateTime(event.dia, event.hora)
+    const jobs = buildAutoAlertJobs([event], now)
+    expect(jobs).toHaveLength(1)
+    expect(jobs[0].dedupe_key).toBe('auto:inicio:inicio-1:30')
+    expect(jobs[0].title).toBe(
+      'As festas de Alcochete começam em 30 minutos!',
+    )
+    expect(jobs[0].body).toBe('Hastear das bandeiras')
+    expect(minutesBetween(start.toISOString(), jobs[0].scheduled_for)).toBe(30)
   })
 
   it('overnight largada (01:00 cartaz): alert on correct calendar night', () => {
@@ -348,6 +409,8 @@ describe('buildAutoAlertJobs — no early / random / duplicate sends', () => {
       streetMinutes: 15,
       corridaMinutes: 60,
       sjoaoMinutes: 15,
+      fogosMinutes: 15,
+      inicioMinutes: 30,
     })
   })
 })

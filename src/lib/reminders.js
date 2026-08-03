@@ -144,6 +144,8 @@ const DEFAULT_PREFS = {
   pref_street: true,
   pref_corrida: true,
   pref_sjoao: true,
+  pref_fogos: true,
+  pref_inicio: true,
   pref_broadcast: true,
 }
 
@@ -166,6 +168,8 @@ export async function fetchPushPreferences() {
       pref_street: data.pref_street !== false,
       pref_corrida: data.pref_corrida !== false,
       pref_sjoao: data.pref_sjoao !== false,
+      pref_fogos: data.pref_fogos !== false,
+      pref_inicio: data.pref_inicio !== false,
       pref_broadcast: data.pref_broadcast !== false,
     }
   } catch {
@@ -182,6 +186,8 @@ export async function savePushPreferences(prefs) {
     p_pref_street: Boolean(prefs.pref_street),
     p_pref_corrida: Boolean(prefs.pref_corrida),
     p_pref_sjoao: Boolean(prefs.pref_sjoao),
+    p_pref_fogos: Boolean(prefs.pref_fogos),
+    p_pref_inicio: Boolean(prefs.pref_inicio),
     p_pref_broadcast: Boolean(prefs.pref_broadcast),
   })
   if (error) return { ok: false, reason: 'rpc', error }

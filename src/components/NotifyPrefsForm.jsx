@@ -11,6 +11,8 @@ const PREF_KEYS = [
   { key: 'pref_street', labelKey: 'street', hintKey: 'streetHint' },
   { key: 'pref_corrida', labelKey: 'corrida', hintKey: 'corridaHint' },
   { key: 'pref_sjoao', labelKey: 'sjoao', hintKey: 'sjoaoHint' },
+  { key: 'pref_fogos', labelKey: 'fogos', hintKey: 'fogosHint' },
+  { key: 'pref_inicio', labelKey: 'inicio', hintKey: 'inicioHint' },
   { key: 'pref_broadcast', labelKey: 'broadcast', hintKey: 'broadcastHint' },
 ]
 
@@ -21,6 +23,8 @@ export default function NotifyPrefsForm({ open, onClose, onEnabled }) {
     pref_street: true,
     pref_corrida: true,
     pref_sjoao: true,
+    pref_fogos: true,
+    pref_inicio: true,
     pref_broadcast: true,
   })
   const [subscribed, setSubscribed] = useState(false)
@@ -42,6 +46,8 @@ export default function NotifyPrefsForm({ open, onClose, onEnabled }) {
           pref_street: data.pref_street,
           pref_corrida: data.pref_corrida,
           pref_sjoao: data.pref_sjoao,
+          pref_fogos: data.pref_fogos,
+          pref_inicio: data.pref_inicio,
           pref_broadcast: data.pref_broadcast,
         })
         setSubscribed(Boolean(data.subscribed))

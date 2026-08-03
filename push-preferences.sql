@@ -3,11 +3,13 @@
 -- Corre no SQL Editor DEPOIS de security-hardening.sql
 -- ============================================================
 
--- Tipos: street | corrida | sjoao | broadcast
+-- Tipos: street | corrida | sjoao | fogos | inicio | broadcast
 alter table push_subscriptions
   add column if not exists pref_street boolean not null default true,
   add column if not exists pref_corrida boolean not null default true,
   add column if not exists pref_sjoao boolean not null default true,
+  add column if not exists pref_fogos boolean not null default true,
+  add column if not exists pref_inicio boolean not null default true,
   add column if not exists pref_broadcast boolean not null default true;
 
 alter table push_schedules
@@ -26,17 +28,10 @@ where category is null;
 alter table push_schedules
   alter column category set default 'broadcast';
 
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint
-    where conname = 'push_schedules_category_check'
-  ) then
-    alter table push_schedules
-      add constraint push_schedules_category_check
-      check (category in ('street', 'corrida', 'sjoao', 'broadcast'));
-  end if;
-end $$;
+alter table push_schedules drop constraint if exists push_schedules_category_check;
+alter table push_schedules
+  add constraint push_schedules_category_check
+  check (category in ('street', 'corrida', 'sjoao', 'fogos', 'inicio', 'broadcast'));
 
 create or replace function public.get_push_preferences(p_endpoint text)
 returns jsonb
@@ -60,6 +55,8 @@ begin
       'pref_street', true,
       'pref_corrida', true,
       'pref_sjoao', true,
+      'pref_fogos', true,
+      'pref_inicio', true,
       'pref_broadcast', true
     );
   end if;
@@ -69,6 +66,8 @@ begin
     'pref_street', row.pref_street,
     'pref_corrida', row.pref_corrida,
     'pref_sjoao', row.pref_sjoao,
+    'pref_fogos', coalesce(row.pref_fogos, true),
+    'pref_inicio', coalesce(row.pref_inicio, true),
     'pref_broadcast', row.pref_broadcast
   );
 end;
@@ -77,12 +76,17 @@ $$;
 revoke all on function public.get_push_preferences(text) from public;
 grant execute on function public.get_push_preferences(text) to anon, authenticated;
 
+drop function if exists public.update_push_preferences(text, boolean, boolean, boolean, boolean);
+drop function if exists public.update_push_preferences(text, boolean, boolean, boolean, boolean, boolean, boolean);
+
 create or replace function public.update_push_preferences(
   p_endpoint text,
-  p_pref_street boolean,
-  p_pref_corrida boolean,
-  p_pref_sjoao boolean,
-  p_pref_broadcast boolean
+  p_pref_street boolean default true,
+  p_pref_corrida boolean default true,
+  p_pref_sjoao boolean default true,
+  p_pref_fogos boolean default true,
+  p_pref_inicio boolean default true,
+  p_pref_broadcast boolean default true
 ) returns jsonb
 language plpgsql
 security definer
@@ -101,6 +105,8 @@ begin
     pref_street = coalesce(p_pref_street, true),
     pref_corrida = coalesce(p_pref_corrida, true),
     pref_sjoao = coalesce(p_pref_sjoao, true),
+    pref_fogos = coalesce(p_pref_fogos, true),
+    pref_inicio = coalesce(p_pref_inicio, true),
     pref_broadcast = coalesce(p_pref_broadcast, true)
   where endpoint = sid;
 
@@ -114,10 +120,12 @@ begin
     'pref_street', coalesce(p_pref_street, true),
     'pref_corrida', coalesce(p_pref_corrida, true),
     'pref_sjoao', coalesce(p_pref_sjoao, true),
+    'pref_fogos', coalesce(p_pref_fogos, true),
+    'pref_inicio', coalesce(p_pref_inicio, true),
     'pref_broadcast', coalesce(p_pref_broadcast, true)
   );
 end;
 $$;
 
-revoke all on function public.update_push_preferences(text, boolean, boolean, boolean, boolean) from public;
-grant execute on function public.update_push_preferences(text, boolean, boolean, boolean, boolean) to anon, authenticated;
+revoke all on function public.update_push_preferences(text, boolean, boolean, boolean, boolean, boolean, boolean) from public;
+grant execute on function public.update_push_preferences(text, boolean, boolean, boolean, boolean, boolean, boolean) to anon, authenticated;

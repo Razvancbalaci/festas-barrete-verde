@@ -1037,7 +1037,7 @@ export default function Admin() {
                 </p>
                 <p className="mt-1 text-xs text-ink/65">
                   {a.alertOfferBody ||
-                    'Alteraste um evento com avisos automáticos (toiros, corridas ou Palco S. João). Convém regenerar os alertas.'}
+                    'Alteraste um evento com avisos automáticos (toiros, corridas, Palco S. João, fogos ou abertura). Convém regenerar os alertas.'}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button

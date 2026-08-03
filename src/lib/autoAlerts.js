@@ -6,11 +6,28 @@ export const AUTO_ALERT_OFFSETS = {
   streetMinutes: 15,
   corridaMinutes: 60,
   sjoaoMinutes: 15,
+  fogosMinutes: 15,
+  inicioMinutes: 30,
 }
 
 /** Actuação no Palco S. João (não confundir com rotas que passam no Largo). */
 export function isPalcoSJoaoShow(event) {
   return /palco\s*(?:s\.?\s*|são\s+)jo[aã]o/i.test(String(event?.local || ''))
+}
+
+/** Fogos / espetáculo piromusical (não inclui alvoradas com morteiros). */
+export function isFireworksEvent(event) {
+  const cat = String(event?.categoria || '')
+  const title = String(event?.titulo || '')
+  if (/pirotecnia/i.test(cat)) return true
+  return /piromusical|fogos?\s+de\s+artif|fogo\s+de\s+artif|castelo\s+de\s+fogos/i.test(
+    title,
+  )
+}
+
+/** Cerimónia de abertura oficial (Hastear das bandeiras). */
+export function isFestivalOpeningEvent(event) {
+  return /hastear\s+das\s+bandeiras/i.test(String(event?.titulo || ''))
 }
 
 /** Eventos que geram alertas automáticos do programa. */
@@ -19,7 +36,9 @@ export function eventNeedsAutoAlert(event) {
   return (
     isStreetBullEvent(event) ||
     isCorridaEvent(event) ||
-    isPalcoSJoaoShow(event)
+    isPalcoSJoaoShow(event) ||
+    isFireworksEvent(event) ||
+    isFestivalOpeningEvent(event)
   )
 }
 
@@ -52,6 +71,8 @@ export function alertFireTime(eventStart, minutesBefore, now = new Date()) {
  * - 15 min antes de largadas/entradas/toiros de rua
  * - 1 h antes de corridas
  * - 15 min antes de actuações no Palco S. João
+ * - 15 min antes dos fogos / piromusical
+ * - 30 min antes do Hastear das bandeiras (começo das festas)
  */
 export function buildAutoAlertJobs(events, now = new Date()) {
   const jobs = []
@@ -63,7 +84,7 @@ export function buildAutoAlertJobs(events, now = new Date()) {
     if (Number.isNaN(start.getTime())) continue
     const titulo = String(event.titulo || '').trim() || 'Evento das festas'
 
-    const pushJob = (kind, minutes, title) => {
+    const pushJob = (kind, minutes, title, bodyText = titulo) => {
       const when = alertFireTime(start, minutes, now)
       if (!when) return
       const dedupe_key = `auto:${kind}:${event.id}:${minutes}`
@@ -73,7 +94,7 @@ export function buildAutoAlertJobs(events, now = new Date()) {
         dedupe_key,
         category: kind,
         title,
-        body: titulo.slice(0, 200),
+        body: String(bodyText || titulo).slice(0, 200),
         scheduled_for: when.toISOString(),
         // metadados só para testes / debug (não vão para a BD se o insert os ignorar)
         _event_id: event.id,
@@ -83,19 +104,56 @@ export function buildAutoAlertJobs(events, now = new Date()) {
     }
 
     if (isStreetBullEvent(event)) {
-      pushJob('street', AUTO_ALERT_OFFSETS.streetMinutes, 'Toiros em 15 min')
+      pushJob(
+        'street',
+        AUTO_ALERT_OFFSETS.streetMinutes,
+        streetBullAlertTitle(event),
+      )
     }
 
     if (isCorridaEvent(event)) {
-      pushJob('corrida', AUTO_ALERT_OFFSETS.corridaMinutes, 'Corrida em 1 hora')
+      pushJob(
+        'corrida',
+        AUTO_ALERT_OFFSETS.corridaMinutes,
+        'Corrida de toiros em 1 hora!',
+      )
     }
 
     if (isPalcoSJoaoShow(event)) {
-      pushJob('sjoao', AUTO_ALERT_OFFSETS.sjoaoMinutes, 'Palco S. João em 15 min')
+      pushJob(
+        'sjoao',
+        AUTO_ALERT_OFFSETS.sjoaoMinutes,
+        'Espetáculo no Palco S. João em 15 minutos!',
+      )
+    }
+
+    if (isFireworksEvent(event)) {
+      pushJob(
+        'fogos',
+        AUTO_ALERT_OFFSETS.fogosMinutes,
+        'Fogos de artifício em 15 minutos!',
+        'Espetáculo Piromusical pelo Passeio do Tejo!',
+      )
+    }
+
+    if (isFestivalOpeningEvent(event)) {
+      pushJob(
+        'inicio',
+        AUTO_ALERT_OFFSETS.inicioMinutes,
+        'As festas de Alcochete começam em 30 minutos!',
+      )
     }
   }
 
   return jobs
+}
+
+/** Título do push para toiros de rua (entrada / largada / outros). */
+export function streetBullAlertTitle(event) {
+  const title = String(event?.titulo || '')
+  if (/entrada/i.test(title)) return 'Entrada de toiros em 15 minutos!'
+  if (/largada/i.test(title)) return 'Largada de toiros em 15 minutos!'
+  return 'Toiros na rua em 15 minutos!'
 }
 
 /** Remove campos internos antes de gravar na BD. */

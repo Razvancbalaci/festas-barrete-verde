@@ -145,7 +145,7 @@ insert into eventos (dia, hora, titulo, local, categoria, ordem) values
 ('2026-08-13', '23:00', 'Animação Musical com Bibe', 'Palco Forcado', 'Música', 1),
 ('2026-08-13', '23:30', 'Animação Musical com Nuno Rupio', 'Palco Coreto', 'Música', 0),
 ('2026-08-13', '00:00', 'Arrear das Bandeiras', null, 'Institucional', 0),
-('2026-08-13', '00:30', 'Espetáculo Piromusical', null, 'Pirotecnia', 0);
+('2026-08-13', '00:30', 'Espetáculo Piromusical', 'Passeio do Tejo', 'Pirotecnia', 0);
 
 -- Detalhes cartazes + bilheteiras CCS (links por dia)
 update eventos set
