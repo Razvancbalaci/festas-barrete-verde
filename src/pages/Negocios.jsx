@@ -17,6 +17,15 @@ import Footer from '../components/Footer'
 import { mapsUrl } from '../lib/locations'
 import { track } from '../lib/analytics'
 import { sanitizeHttpUrl } from '../lib/safeUrl'
+import HoneypotField from '../components/HoneypotField'
+import {
+  FORM_COOLDOWN_MS,
+  FORM_SUBMIT_KEYS,
+  formatCooldownSeconds,
+  getCooldownRemainingMs,
+  isHoneypotFilled,
+  markFormSubmitted,
+} from '../lib/formSpamGuard'
 
 const emptyForm = {
   nome: '',
@@ -27,6 +36,7 @@ const emptyForm = {
   email: '',
   website: '',
   horario: '',
+  url_extra: '',
 }
 
 export default function Negocios() {
@@ -40,6 +50,9 @@ export default function Negocios() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [cooldownMs, setCooldownMs] = useState(() =>
+    getCooldownRemainingMs(FORM_SUBMIT_KEYS.negocios),
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -65,6 +78,16 @@ export default function Negocios() {
     }
   }, [])
 
+  useEffect(() => {
+    if (cooldownMs <= 0) return
+    const id = window.setInterval(() => {
+      const left = getCooldownRemainingMs(FORM_SUBMIT_KEYS.negocios)
+      setCooldownMs(left)
+      if (left <= 0) window.clearInterval(id)
+    }, 500)
+    return () => window.clearInterval(id)
+  }, [cooldownMs > 0])
+
   const filtered = useMemo(() => {
     if (!typeFilter) return list
     return list.filter((n) => n.tipo === typeFilter)
@@ -78,6 +101,18 @@ export default function Negocios() {
     e.preventDefault()
     setError('')
     setSuccess('')
+    if (isHoneypotFilled(form.url_extra)) {
+      setSuccess(b.success)
+      setForm({ ...emptyForm })
+      setShowForm(false)
+      return
+    }
+    const left = getCooldownRemainingMs(FORM_SUBMIT_KEYS.negocios)
+    if (left > 0) {
+      setCooldownMs(left)
+      setError(b.wait.replace('{seconds}', String(formatCooldownSeconds(left))))
+      return
+    }
     const required = ['nome', 'tipo', 'descricao', 'morada']
     if (required.some((k) => !String(form[k]).trim())) {
       setError(b.required)
@@ -106,14 +141,22 @@ export default function Negocios() {
     setSubmitting(false)
     if (err) {
       console.error(err)
-      setError(b.error)
+      const msg = String(err.message || '')
+      setError(/rate limit/i.test(msg) ? b.rateLimited : b.error)
       return
     }
+    markFormSubmitted(FORM_SUBMIT_KEYS.negocios)
+    setCooldownMs(FORM_COOLDOWN_MS)
     setSuccess(b.success)
     track('comercio_submit', { tipo: payload.tipo })
     setForm({ ...emptyForm })
     setShowForm(false)
   }
+
+  const coolingDown = cooldownMs > 0
+  const submitLabel = coolingDown
+    ? b.wait.replace('{seconds}', String(formatCooldownSeconds(cooldownMs)))
+    : b.submit
 
   const inputClass =
     'w-full rounded-xl border border-barrete/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-barrete focus:ring-2 focus:ring-barrete/20'
@@ -281,6 +324,11 @@ export default function Negocios() {
             onSubmit={handleSubmit}
             className="relative z-10 max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-creme p-5 shadow-xl animate-fade-up sm:rounded-2xl sm:p-6"
           >
+            <HoneypotField
+              id="negocios_url_extra"
+              value={form.url_extra}
+              onChange={(e) => update('url_extra', e.target.value)}
+            />
             <h2 className="font-display text-xl font-bold text-barrete">
               {b.promoteTitle}
             </h2>
@@ -396,11 +444,11 @@ export default function Negocios() {
               </button>
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || coolingDown}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-barrete px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {b.submit}
+                {submitLabel}
               </button>
             </div>
           </form>

@@ -12,6 +12,15 @@ describe('buildAnalyticsCsv', () => {
           yesterday: { day: '2026-07-23', sessions: 5, reminders_set: 0, shares: 1 },
         },
         visits_by_day: [{ day: '2026-07-23', views: 8, sessions: 5 }],
+        visits_by_lang: [
+          { lang: 'pt', sessions: 7 },
+          { lang: 'en', sessions: 3 },
+        ],
+        retention: {
+          returning_sessions: 2,
+          one_day_sessions: 8,
+          total_sessions: 10,
+        },
         top_favorites: [{ event_id: 'e1', adds: 2 }],
         top_shares: [],
         top_reminders: [],
@@ -37,6 +46,10 @@ describe('buildAnalyticsCsv', () => {
           exportYesterday: 'Yesterday',
           viewsByDay: 'By day',
           exportViews: 'Views',
+          visitsByLang: 'By language',
+          retentionTitle: 'Retention',
+          retentionReturning: 'Returning',
+          retentionOneDay: 'One-day',
           topFavorites: 'Favorites',
           topShares: 'Shares top',
           topReminders: 'Reminders top',
@@ -54,5 +67,7 @@ describe('buildAnalyticsCsv', () => {
     expect(csv).toContain('Sessions,10')
     expect(csv).toContain('Event e1,2')
     expect(csv).toContain('2026-07-23,8,5')
+    expect(csv).toContain('PT,7')
+    expect(csv).toContain('Returning,2')
   })
 })

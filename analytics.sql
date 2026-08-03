@@ -21,10 +21,14 @@ create index if not exists analytics_events_name_created_idx
 alter table analytics_events enable row level security;
 
 drop policy if exists "Auth read analytics" on analytics_events;
-create policy "Auth read analytics"
+drop policy if exists "Admin read analytics" on analytics_events;
+create policy "Admin read analytics"
   on analytics_events for select
   to authenticated
-  using (true);
+  using (
+    lower(trim(coalesce(auth.jwt() -> 'app_metadata' ->> 'role', 'admin')))
+      not in ('avisos', 'notify', 'governance')
+  );
 
 -- Sem INSERT directo; só via RPC
 
@@ -117,9 +121,17 @@ declare
   has_active_col boolean := false;
   recent_sends jsonb := '[]'::jsonb;
   reminders_pending int := 0;
+  jwt_role text;
 begin
   if auth.role() <> 'authenticated' then
     raise exception 'unauthorized';
+  end if;
+
+  -- Só admin: contas avisos/notify/governance não leem o painel (nem via RPC directa).
+  -- Sem role em app_metadata → trata-se como admin (igual ao resolveAdminRole do cliente).
+  jwt_role := lower(trim(coalesce(auth.jwt() -> 'app_metadata' ->> 'role', 'admin')));
+  if jwt_role in ('avisos', 'notify', 'governance') then
+    raise exception 'forbidden';
   end if;
 
   p_days := greatest(1, least(coalesce(p_days, 14), 90));
@@ -348,6 +360,49 @@ begin
         group by 1
       ) l
     ), '[]'::jsonb),
+    -- Sessões únicas por idioma (a partir de page_view.payload.lang)
+    'visits_by_lang', coalesce((
+      select jsonb_agg(
+        jsonb_build_object('lang', lang, 'sessions', sessions)
+        order by sessions desc
+      )
+      from (
+        select
+          lower(coalesce(nullif(trim(payload->>'lang'), ''), '?')) as lang,
+          count(distinct session_id)::int as sessions
+        from analytics_events
+        where event_name = 'page_view'
+          and created_at >= since and created_at < until_ts
+        group by 1
+      ) vl
+    ), '[]'::jsonb),
+    -- Retenção intra-período: sessões em >1 dia vs 1 dia só
+    'retention', coalesce((
+      with session_days as (
+        select
+          session_id,
+          count(distinct (created_at at time zone 'Europe/Lisbon')::date) as day_count
+        from analytics_events
+        where event_name = 'page_view'
+          and created_at >= since and created_at < until_ts
+        group by session_id
+      )
+      select jsonb_build_object(
+        'returning_sessions', (
+          select count(*)::int from session_days where day_count > 1
+        ),
+        'one_day_sessions', (
+          select count(*)::int from session_days where day_count = 1
+        ),
+        'total_sessions', (
+          select count(*)::int from session_days
+        )
+      )
+    ), jsonb_build_object(
+      'returning_sessions', 0,
+      'one_day_sessions', 0,
+      'total_sessions', 0
+    )),
     'categories', coalesce((
       select jsonb_agg(jsonb_build_object('category', category, 'count', count) order by count desc)
       from (

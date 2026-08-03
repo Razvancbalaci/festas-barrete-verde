@@ -60,6 +60,19 @@ export function buildAnalyticsCsv(data, { eventLabel, placeLabel, labels: a }) {
   }
   lines.push(row([]))
 
+  lines.push(row([a.visitsByLang || 'Visits by language', a.uniqueSessions]))
+  for (const r of data?.visits_by_lang || []) {
+    lines.push(row([String(r.lang || '?').toUpperCase(), r.sessions ?? 0]))
+  }
+  lines.push(row([]))
+
+  const retention = data?.retention || {}
+  lines.push(row([a.retentionTitle || 'Retention']))
+  lines.push(row([a.retentionReturning || 'Returning', retention.returning_sessions ?? 0]))
+  lines.push(row([a.retentionOneDay || 'One-day', retention.one_day_sessions ?? 0]))
+  lines.push(row([a.uniqueSessions, retention.total_sessions ?? 0]))
+  lines.push(row([]))
+
   lines.push(row([a.topFavorites, a.exportCount || 'Count']))
   for (const r of data?.top_favorites || []) {
     lines.push(row([eventLabel(r.event_id), r.adds ?? 0]))

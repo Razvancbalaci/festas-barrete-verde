@@ -251,6 +251,7 @@ export default function AnalyticsPanel({ t, events = [] }) {
   const summary = data?.summary || {}
   const today = summary.today || {}
   const yesterday = summary.yesterday || {}
+  const retention = data?.retention || {}
   const eventLabel = (id) => eventTitles[id] || (id ? `${String(id).slice(0, 8)}…` : '—')
   const placeLabel = (id) => placeNames[id] || id || '—'
   const isDayScope = Boolean(filterDay)
@@ -535,6 +536,56 @@ export default function AnalyticsPanel({ t, events = [] }) {
                   />
                 </div>
               )}
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+                  <p className="mb-2 text-xs font-medium text-ink/50">
+                    {a.visitsByLang || a.languages}
+                  </p>
+                  <p className="mb-2 text-[0.65rem] leading-snug text-ink/45">
+                    {a.visitsByLangHint}
+                  </p>
+                  <RankList
+                    rows={data.visits_by_lang || []}
+                    empty={a.empty}
+                    valueKey="sessions"
+                    renderLabel={(row) =>
+                      String(row.lang || '?').toUpperCase()
+                    }
+                  />
+                </div>
+                <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+                  <p className="mb-2 text-xs font-medium text-ink/50">
+                    {a.retentionTitle}
+                  </p>
+                  {isDayScope ? (
+                    <p className="text-sm text-ink/45">{a.retentionDayScopeHint}</p>
+                  ) : (
+                    <>
+                      <p className="mb-3 text-[0.65rem] leading-snug text-ink/45">
+                        {a.retentionHint}
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <StatCard
+                          label={a.retentionReturning}
+                          value={retention.returning_sessions ?? 0}
+                          hint={pct(
+                            retention.returning_sessions ?? 0,
+                            retention.total_sessions ?? 0,
+                          )}
+                        />
+                        <StatCard
+                          label={a.retentionOneDay}
+                          value={retention.one_day_sessions ?? 0}
+                          hint={pct(
+                            retention.one_day_sessions ?? 0,
+                            retention.total_sessions ?? 0,
+                          )}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </Section>
           ) : null}
 

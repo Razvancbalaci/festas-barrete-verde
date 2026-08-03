@@ -2,8 +2,17 @@ import { useEffect, useState } from 'react'
 import { Loader2, MessageSquarePlus, X } from 'lucide-react'
 import { useLang } from '../context/LangContext'
 import { supabase } from '../lib/supabase'
+import HoneypotField from './HoneypotField'
+import {
+  FORM_COOLDOWN_MS,
+  FORM_SUBMIT_KEYS,
+  formatCooldownSeconds,
+  getCooldownRemainingMs,
+  isHoneypotFilled,
+  markFormSubmitted,
+} from '../lib/formSpamGuard'
 
-const empty = { tipo: 'sugestao', mensagem: '' }
+const empty = { tipo: 'sugestao', mensagem: '', url_extra: '' }
 
 export default function FeedbackForm({ open, onClose }) {
   const { t } = useLang()
@@ -12,13 +21,25 @@ export default function FeedbackForm({ open, onClose }) {
   const [sending, setSending] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState(null)
+  const [cooldownMs, setCooldownMs] = useState(0)
 
   useEffect(() => {
     if (!open) return
     setForm(empty)
     setDone(false)
     setError(null)
+    setCooldownMs(getCooldownRemainingMs(FORM_SUBMIT_KEYS.feedback))
   }, [open])
+
+  useEffect(() => {
+    if (!open || cooldownMs <= 0) return
+    const id = window.setInterval(() => {
+      const left = getCooldownRemainingMs(FORM_SUBMIT_KEYS.feedback)
+      setCooldownMs(left)
+      if (left <= 0) window.clearInterval(id)
+    }, 500)
+    return () => window.clearInterval(id)
+  }, [open, cooldownMs > 0])
 
   useEffect(() => {
     if (!open) return
@@ -33,6 +54,16 @@ export default function FeedbackForm({ open, onClose }) {
 
   async function submit(e) {
     e.preventDefault()
+    if (isHoneypotFilled(form.url_extra)) {
+      setDone(true)
+      return
+    }
+    const left = getCooldownRemainingMs(FORM_SUBMIT_KEYS.feedback)
+    if (left > 0) {
+      setCooldownMs(left)
+      setError(f.wait.replace('{seconds}', String(formatCooldownSeconds(left))))
+      return
+    }
     const mensagem = form.mensagem.trim()
     if (mensagem.length < 5) {
       setError(f.required)
@@ -52,11 +83,21 @@ export default function FeedbackForm({ open, onClose }) {
     setSending(false)
     if (err) {
       console.error(err)
-      setError(f.error)
+      const msg = String(err.message || '')
+      setError(
+        /rate limit/i.test(msg) ? f.rateLimited : f.error,
+      )
       return
     }
+    markFormSubmitted(FORM_SUBMIT_KEYS.feedback)
+    setCooldownMs(FORM_COOLDOWN_MS)
     setDone(true)
   }
+
+  const coolingDown = cooldownMs > 0
+  const waitLabel = coolingDown
+    ? f.wait.replace('{seconds}', String(formatCooldownSeconds(cooldownMs)))
+    : f.send
 
   return (
     <div
@@ -102,7 +143,14 @@ export default function FeedbackForm({ open, onClose }) {
             </button>
           </div>
         ) : (
-          <form onSubmit={submit} className="space-y-3">
+          <form onSubmit={submit} className="relative space-y-3">
+            <HoneypotField
+              id="feedback_url_extra"
+              value={form.url_extra}
+              onChange={(e) =>
+                setForm((s) => ({ ...s, url_extra: e.target.value }))
+              }
+            />
             <fieldset>
               <legend className="mb-2 text-sm font-medium text-ink/80">{f.type}</legend>
               <div className="flex gap-2">
@@ -147,13 +195,13 @@ export default function FeedbackForm({ open, onClose }) {
 
             <button
               type="submit"
-              disabled={sending}
+              disabled={sending || coolingDown}
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-dourado px-4 py-3 text-sm font-bold text-ink shadow-sm hover:brightness-105 disabled:opacity-60"
             >
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : (
                 <MessageSquarePlus className="h-4 w-4" />
               )}
-              {f.send}
+              {waitLabel}
             </button>
           </form>
         )}

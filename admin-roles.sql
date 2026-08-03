@@ -20,6 +20,13 @@
 --
 -- Listar users (também pode falhar com permission denied):
 -- select email, raw_app_meta_data ->> 'role' as role from auth.users;
+--
+-- --- Analytics (RPC + SELECT) ---
+-- get_analytics_dashboard e a policy de leitura em analytics_events
+-- bloqueiam JWT com app_metadata.role in (avisos, notify, governance).
+-- Contas só listadas em VITE_AVISOS_EMAILS (sem role no JWT) ainda
+-- podem chamar a RPC se souberem o endpoint — define app_metadata.role
+-- para fechar o acesso ao nível da base.
 -- ============================================================
 
 select 1 as ok;

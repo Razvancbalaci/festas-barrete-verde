@@ -233,6 +233,8 @@ export const translations = {
       success: 'Obrigado! A tua mensagem foi enviada.',
       error: 'Não foi possível enviar. Tenta de novo.',
       required: 'Escreve uma mensagem com pelo menos algumas palavras.',
+      wait: 'Aguarda {seconds}s…',
+      rateLimited: 'Demasiados envios. Tenta novamente dentro de alguns minutos.',
     },
     notifyPrefs: {
       link: 'Notificações',
@@ -305,6 +307,8 @@ export const translations = {
       error: 'Não foi possível enviar. Verifica os dados e tenta de novo.',
       required: 'Preenche os campos obrigatórios (nome, tipo, descrição e morada).',
       invalidUrl: 'O website tem de ser um link http:// ou https://.',
+      wait: 'Aguarda {seconds}s…',
+      rateLimited: 'Demasiados pedidos. Tenta novamente dentro de alguns minutos.',
       call: 'Ligar',
       maps: 'Ver no mapa',
       types: {
@@ -629,6 +633,15 @@ export const translations = {
         topCategories: 'Categorias filtradas',
         categoryAll: 'Todas',
         languages: 'Mudanças de idioma',
+        visitsByLang: 'Visitas por idioma',
+        visitsByLangHint: 'Sessões únicas com page_view nesse idioma (no período).',
+        retentionTitle: 'Sessões recorrentes',
+        retentionHint:
+          'No período seleccionado: sessões que aparecem em mais do que um dia vs. só num dia.',
+        retentionDayScopeHint:
+          'Escolhe o período Geral (vários dias) para ver retenção entre dias.',
+        retentionReturning: 'Visitantes que voltaram',
+        retentionOneDay: 'Visitantes de um dia só',
         a11yOn: 'A+ ativado',
         a11yToggles: 'alternâncias',
         sectionEngagement: 'Interação com eventos',
@@ -903,6 +916,8 @@ export const translations = {
       success: 'Thanks! Your message was sent.',
       error: 'Could not send. Please try again.',
       required: 'Please write a short message.',
+      wait: 'Wait {seconds}s…',
+      rateLimited: 'Too many submissions. Please try again in a few minutes.',
     },
     notifyPrefs: {
       link: 'Notifications',
@@ -973,6 +988,8 @@ export const translations = {
       error: 'Could not submit. Check the details and try again.',
       required: 'Please fill in the required fields (name, type, description and address).',
       invalidUrl: 'The website must be an http:// or https:// link.',
+      wait: 'Wait {seconds}s…',
+      rateLimited: 'Too many requests. Please try again in a few minutes.',
       call: 'Call',
       maps: 'View on map',
       types: {
@@ -1295,6 +1312,15 @@ export const translations = {
         topCategories: 'Category filters',
         categoryAll: 'All',
         languages: 'Language switches',
+        visitsByLang: 'Visits by language',
+        visitsByLangHint: 'Unique sessions with a page_view in that language (in the period).',
+        retentionTitle: 'Returning sessions',
+        retentionHint:
+          'In the selected period: sessions seen on more than one day vs. a single day only.',
+        retentionDayScopeHint:
+          'Pick the overall period (multiple days) to see cross-day retention.',
+        retentionReturning: 'Visitors who came back',
+        retentionOneDay: 'Single-day visitors',
         a11yOn: 'A+ enabled',
         a11yToggles: 'toggles',
         sectionEngagement: 'Event engagement',
@@ -1570,6 +1596,8 @@ export const translations = {
       success: 'Merci ! Votre message a été envoyé.',
       error: 'Envoi impossible. Réessayez.',
       required: 'Écrivez un court message.',
+      wait: 'Attendez {seconds}s…',
+      rateLimited: 'Trop d’envois. Réessayez dans quelques minutes.',
     },
     notifyPrefs: {
       link: 'Notifications',
@@ -1642,6 +1670,8 @@ export const translations = {
       error: 'Envoi impossible. Vérifiez les données et réessayez.',
       required: 'Remplissez les champs obligatoires (nom, type, description et adresse).',
       invalidUrl: 'Le site doit être un lien http:// ou https://.',
+      wait: 'Attendez {seconds}s…',
+      rateLimited: 'Trop de demandes. Réessayez dans quelques minutes.',
       call: 'Appeler',
       maps: 'Voir sur la carte',
       types: {
@@ -1867,6 +1897,15 @@ export const translations = {
         topCategories: 'Filtres catégories',
         categoryAll: 'Toutes',
         languages: 'Changements de langue',
+        visitsByLang: 'Visites par langue',
+        visitsByLangHint: 'Sessions uniques avec un page_view dans cette langue (période).',
+        retentionTitle: 'Sessions récurrentes',
+        retentionHint:
+          'Sur la période : sessions vues sur plus d’un jour vs. un seul jour.',
+        retentionDayScopeHint:
+          'Choisissez la période générale (plusieurs jours) pour la rétention.',
+        retentionReturning: 'Visiteurs qui sont revenus',
+        retentionOneDay: 'Visiteurs d’un seul jour',
         a11yOn: 'A+ activé',
         a11yToggles: 'bascules',
         sectionEngagement: 'Engagement événements',
@@ -2142,6 +2181,8 @@ export const translations = {
       success: '¡Gracias! Tu mensaje se ha enviado.',
       error: 'No se pudo enviar. Inténtalo de nuevo.',
       required: 'Escribe un mensaje con al menos algunas palabras.',
+      wait: 'Espera {seconds}s…',
+      rateLimited: 'Demasiados envíos. Inténtalo de nuevo en unos minutos.',
     },
     notifyPrefs: {
       link: 'Notificaciones',
@@ -2215,6 +2256,8 @@ export const translations = {
       error: 'No se pudo enviar. Revisa los datos e inténtalo de nuevo.',
       required: 'Rellena los campos obligatorios (nombre, tipo, descripción y dirección).',
       invalidUrl: 'El sitio web debe ser un enlace http:// o https://.',
+      wait: 'Espera {seconds}s…',
+      rateLimited: 'Demasiadas solicitudes. Inténtalo de nuevo en unos minutos.',
       call: 'Llamar',
       maps: 'Ver en el mapa',
       types: {
@@ -2440,6 +2483,15 @@ export const translations = {
         topCategories: 'Filtros de categoría',
         categoryAll: 'Todas',
         languages: 'Cambios de idioma',
+        visitsByLang: 'Visitas por idioma',
+        visitsByLangHint: 'Sesiones únicas con page_view en ese idioma (en el periodo).',
+        retentionTitle: 'Sesiones recurrentes',
+        retentionHint:
+          'En el periodo seleccionado: sesiones en más de un día vs. solo un día.',
+        retentionDayScopeHint:
+          'Elige el periodo general (varios días) para ver retención entre días.',
+        retentionReturning: 'Visitantes que volvieron',
+        retentionOneDay: 'Visitantes de un solo día',
         a11yOn: 'A+ activado',
         a11yToggles: 'cambios',
         sectionEngagement: 'Interacción con eventos',
