@@ -2,7 +2,7 @@ import { isRouteMapEvent, isStreetBullEvent, parseLocations } from '../lib/locat
 import { routeFromPolygonRing } from '../lib/routeGeom'
 
 /**
- * Pontos do mapa geral das festas (Leaflet).
+ * Locais do mapa geral das festas (Leaflet).
  * Coordenadas: preferência a GPS dados pelo projecto / Nominatim / fontes oficiais.
  * matchTerms: strings para filtrar eventos.local / título no programa.
  */
@@ -10,7 +10,28 @@ export const MAP_CENTER = [38.7554, -8.9615]
 export const MAP_ZOOM = 16
 
 /** Praça de Touros (relação OSM / Av. 5 de Outubro). */
-export const PRACA_TOUROS = { lat: 38.755608, lng: -8.95553 }
+export const PRACA_TOUROS = { lat: 38.75558936727605, lng: -8.95583129462169 }
+
+/**
+ * Estacionamento privado (centros comerciais): estilo + i18n ficam no código,
+ * mas pins e legenda ficam off até haver coords / decisão de mostrar.
+ */
+export const MAP_SHOW_PRIVATE_PARKING = false
+
+export function isMapPlaceVisible(place) {
+  if (!place || place.hidden) return false
+  if (
+    !MAP_SHOW_PRIVATE_PARKING &&
+    place.kind === 'estacionamentoPrivado'
+  ) {
+    return false
+  }
+  return true
+}
+
+export function visibleMapPlaces(places = MAP_PLACES) {
+  return places.filter(isMapPlaceVisible)
+}
 
 export const MAP_PLACES = [
   {
@@ -19,16 +40,18 @@ export const MAP_PLACES = [
     name: 'Sede do Aposento',
     lat: 38.755349,
     lng: -8.963055,
-    kind: 'ponto',
+    kind: 'local',
+    iconKey: 'barrete',
     matchTerms: ['Sede do Aposento', 'em frente à sede'],
   },
   {
     id: 'igreja',
     nameKey: 'igreja',
     name: 'Igreja Matriz',
-    lat: 38.756124,
-    lng: -8.96028,
-    kind: 'ponto',
+    lat: 38.75618,
+    lng: -8.960071,
+    kind: 'local',
+    emoji: '⛪',
     matchTerms: ['Igreja Matriz'],
   },
   {
@@ -37,7 +60,8 @@ export const MAP_PLACES = [
     name: 'Pavilhão Municipal',
     lat: 38.747627,
     lng: -8.967168,
-    kind: 'ponto',
+    kind: 'local',
+    emoji: '🏟️',
     matchTerms: ['Pavilhão Municipal'],
   },
   {
@@ -46,7 +70,8 @@ export const MAP_PLACES = [
     name: 'Jardim do Rossio',
     lat: 38.754176,
     lng: -8.964545,
-    kind: 'ponto',
+    kind: 'local',
+    emoji: '🌳',
     matchTerms: ['Rossio'],
   },
   {
@@ -55,7 +80,8 @@ export const MAP_PLACES = [
     name: 'Antigo Armazém das Filmagens',
     lat: 38.75519,
     lng: -8.963924,
-    kind: 'ponto',
+    kind: 'local',
+    emoji: '🎬',
     matchTerms: ['Armazém das Filmagens', 'Filmagens'],
   },
   {
@@ -80,8 +106,8 @@ export const MAP_PLACES = [
     id: 'sjoao',
     nameKey: 'palcoSJoao',
     name: 'Palco S. João',
-    lat: 38.756038,
-    lng: -8.960828,
+    lat: 38.756124,
+    lng: -8.96028,
     kind: 'palco',
     matchTerms: ['Palco S. João', 'Palco São João', 'Palco S.João'],
   },
@@ -119,6 +145,15 @@ export const MAP_PLACES = [
     lat: 38.756166,
     lng: -8.959483,
     kind: 'wc',
+    matchTerms: [],
+  },
+  {
+    id: 'estacionamento-1',
+    nameKey: 'estacionamentoPublico1',
+    name: 'Estacionamento público',
+    lat: 38.75636806255362,
+    lng: -8.957217155731923,
+    kind: 'estacionamentoPublico',
     matchTerms: [],
   },
 ]
@@ -178,16 +213,19 @@ export function eventMatchesPlace(event, place) {
   })
 }
 
-/** Percurso das entradas (vias do cartaz → Nominatim / GPS do projecto). */
+/** Percurso das entradas (GPS do projecto → Praça de Touros). */
 export const ENTRADA_ROUTE = [
-  [38.753737, -8.965142], // Av. D. Manuel I
-  [38.755386, -8.963509], // Rua da Quebrada
-  [38.755115, -8.962691], // Rua José André dos Santos
-  [38.755521, -8.961591], // Rua João de Deus
-  [38.755835, -8.96148], // Largo da Revolução de 1910
-  [38.756038, -8.960828], // Largo de S. João
-  [38.756045, -8.956002], // Av. 5 de Outubro
-  [PRACA_TOUROS.lat, PRACA_TOUROS.lng], // Praça de Touros
+  [38.753653, -8.965251],
+  [38.755386, -8.963838],
+  [38.755398, -8.963246],
+  [38.755392, -8.963178],
+  [38.755274, -8.962905],
+  [38.754754, -8.962253],
+  [38.755089, -8.961776],
+  [38.755687, -8.961567],
+  [38.756019, -8.960465],
+  [38.756038, -8.956092],
+  [38.755795489178034, -8.9557509571414],
 ]
 
 /**
@@ -230,12 +268,13 @@ export const LARGADA_RECINTOS = [
 ]
 
 /**
- * Percursos animados — um por recinto, a partir do GPS do polígono.
+ * Recintos das largadas — animação vagueia dentro do polígono GPS.
  */
 export const LARGADA_STREET_ROUTES = LARGADA_RECINTOS.map((r) => ({
   id: r.id,
   nameKey: r.nameKey,
   match: r.match,
+  polygon: r.positions,
   route: routeFromPolygonRing(r.positions),
 }))
 

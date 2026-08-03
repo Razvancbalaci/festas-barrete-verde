@@ -13,13 +13,13 @@ const PLACE_ALIASES = {
   'Palco São João': '38.756038,-8.960828',
   'Palco S.João': '38.756038,-8.960828',
   'Palco Coreto': '38.756493,-8.959684',
-  'Praça de Touros': '38.755608,-8.95553',
-  'Praça de Touros de Alcochete': '38.755608,-8.95553',
+  'Praça de Touros': '38.75558936727605,-8.95583129462169',
+  'Praça de Touros de Alcochete': '38.75558936727605,-8.95583129462169',
   'Feira dos Carrosséis': '38.750396,-8.968931',
-  'Av. D. Manuel I': '38.753737,-8.965142',
-  'Avenida D. Manuel I': '38.753737,-8.965142',
-  'Avenida Dom Manuel I': '38.753737,-8.965142',
-  'Av. Dom Manuel I': '38.753737,-8.965142',
+  'Av. D. Manuel I': '38.753653,-8.965251',
+  'Avenida D. Manuel I': '38.753653,-8.965251',
+  'Avenida Dom Manuel I': '38.753653,-8.965251',
+  'Av. Dom Manuel I': '38.753653,-8.965251',
   'Rua da Quebrada': '38.755386,-8.963509',
   'Rua José André dos Santos': '38.755115,-8.962691',
   'Rua João de Deus': '38.755521,-8.961591',
@@ -39,10 +39,10 @@ const PLACE_ALIASES = {
   'Jardim do Rossio': '38.754176,-8.964545',
   'Antigo Armazém das Filmagens': '38.755190,-8.963924',
   'Instalações Sanitárias Públicas': '38.756166,-8.959483',
-  'Nacional 119': '38.755608,-8.95553',
-  'EN 119': '38.755608,-8.95553',
-  'N 119': '38.755608,-8.95553',
-  N119: '38.755608,-8.95553',
+  'Nacional 119': '38.75558936727605,-8.95583129462169',
+  'EN 119': '38.75558936727605,-8.95583129462169',
+  'N 119': '38.75558936727605,-8.95583129462169',
+  N119: '38.75558936727605,-8.95583129462169',
 }
 
 /** Rótulos amigáveis no ecrã (o Maps continua a usar PLACE_ALIASES) */
@@ -121,10 +121,19 @@ function mapsQuery(place) {
 
 /** Direcções a pé até um ponto (origem = localização actual do Maps). */
 export function mapsWalkToUrl(lat, lng) {
+  return mapsDirectionsToLatLng(lat, lng, 'walking')
+}
+
+/** Direcções de carro até um ponto (estacionamentos, etc.). */
+export function mapsDriveToUrl(lat, lng) {
+  return mapsDirectionsToLatLng(lat, lng, 'driving')
+}
+
+function mapsDirectionsToLatLng(lat, lng, travelmode) {
   const params = new URLSearchParams({
     api: '1',
     destination: `${lat},${lng}`,
-    travelmode: 'walking',
+    travelmode,
   })
   return `https://www.google.com/maps/dir/?${params.toString()}`
 }

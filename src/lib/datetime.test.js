@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   eventDateTime,
+  findLiveEvents,
   findNextOrCurrentEvent,
   formatLocalReminderValue,
   isValidEventTime,
@@ -73,6 +74,42 @@ describe('findNextOrCurrentEvent', () => {
   })
 })
 
+describe('findLiveEvents', () => {
+  const events = [
+    {
+      id: '1',
+      dia: '2026-08-02',
+      hora: '19:00',
+      titulo: 'Largada de Toiros',
+      categoria: 'Toiros',
+    },
+    {
+      id: '2',
+      dia: '2026-08-02',
+      hora: '19:00',
+      titulo: 'Concerto no Salineiro',
+      categoria: 'Música',
+    },
+    {
+      id: '3',
+      dia: '2026-08-02',
+      hora: '21:00',
+      titulo: 'Fogos',
+      categoria: 'Pirotecnia',
+    },
+  ]
+
+  it('returns all events in the 1h window, stacked by start', () => {
+    const live = findLiveEvents(events, new Date(2026, 7, 2, 19, 30, 0))
+    expect(live.map((r) => r.event.id).sort()).toEqual(['1', '2'])
+    expect(live).toHaveLength(2)
+  })
+
+  it('excludes events after the 1h window', () => {
+    expect(findLiveEvents(events, new Date(2026, 7, 2, 20, 0, 0))).toEqual([])
+  })
+})
+
 describe('local reminder values', () => {
   it('round-trips dia', () => {
     const raw = formatLocalReminderValue('2026-08-07T21:00:00.000Z', '2026-08-07')
@@ -94,6 +131,15 @@ describe('mapsWalkToUrl', () => {
   it('builds walking directions to lat,lng', () => {
     const url = mapsWalkToUrl(38.75, -8.96)
     expect(url).toContain('travelmode=walking')
+    expect(url).toContain(encodeURIComponent('38.75,-8.96'))
+  })
+})
+
+describe('mapsDriveToUrl', () => {
+  it('builds driving directions to lat,lng', async () => {
+    const { mapsDriveToUrl } = await import('./locations.js')
+    const url = mapsDriveToUrl(38.75, -8.96)
+    expect(url).toContain('travelmode=driving')
     expect(url).toContain(encodeURIComponent('38.75,-8.96'))
   })
 })

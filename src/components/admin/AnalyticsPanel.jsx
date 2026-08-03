@@ -6,8 +6,19 @@ import { buildAnalyticsCsv, downloadCsv } from '../../lib/analyticsExport'
 
 function formatDay(iso) {
   if (!iso) return '—'
-  const [, m, d] = String(iso).split('-')
+  const s = String(iso).slice(0, 10)
+  const [, m, d] = s.split('-')
   return `${d}/${m}`
+}
+
+function lisbonTodayISO() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Lisbon' })
+}
+
+function shiftISODate(iso, deltaDays) {
+  const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d + deltaDays))
+  return dt.toISOString().slice(0, 10)
 }
 
 function formatDelta(todayVal, yesterdayVal, a) {
@@ -49,7 +60,9 @@ function StatCard({ label, value, hint }) {
 function Section({ title, children }) {
   return (
     <section className="rounded-2xl bg-creme/40 p-4 ring-1 ring-barrete/5 sm:p-5">
-      <h3 className="mb-3 font-display text-base font-semibold text-barrete">{title}</h3>
+      {title ? (
+        <h3 className="mb-3 font-display text-base font-semibold text-barrete">{title}</h3>
+      ) : null}
       {children}
     </section>
   )
@@ -114,12 +127,53 @@ function pct(part, whole) {
   return `${Math.round((100 * part) / whole)}%`
 }
 
+function ScopeBtn({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
+        active
+          ? 'bg-barrete text-white'
+          : 'bg-white text-ink/65 ring-1 ring-barrete/10 hover:bg-barrete/5'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+const TABS = [
+  { id: 'summary', labelKey: 'sectionSummary' },
+  { id: 'visits', labelKey: 'sectionVisits' },
+  { id: 'program', labelKey: 'sectionProgram' },
+  { id: 'engagement', labelKey: 'sectionEngagement' },
+  { id: 'map', labelKey: 'sectionMap' },
+  { id: 'install', labelKey: 'sectionInstallPush' },
+  { id: 'comercio', labelKey: 'sectionComercio' },
+  { id: 'server', labelKey: 'sectionServer' },
+]
+
 export default function AnalyticsPanel({ t, events = [] }) {
   const a = t.admin.analytics
   const [days, setDays] = useState(14)
+  /** @type {'period' | 'today' | 'yesterday' | 'day'} */
+  const [scope, setScope] = useState('period')
+  const [pickedDay, setPickedDay] = useState(() => lisbonTodayISO())
+  const [tab, setTab] = useState('summary')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [dayFilterBlocked, setDayFilterBlocked] = useState(false)
+  /** Chips de dias do modo geral (mantém-se ao filtrar um dia). */
+  const [periodDayChips, setPeriodDayChips] = useState([])
+
+  const filterDay = useMemo(() => {
+    if (scope === 'today') return lisbonTodayISO()
+    if (scope === 'yesterday') return shiftISODate(lisbonTodayISO(), -1)
+    if (scope === 'day') return pickedDay || lisbonTodayISO()
+    return null
+  }, [scope, pickedDay])
 
   const eventTitles = useMemo(() => {
     const map = {}
@@ -138,19 +192,56 @@ export default function AnalyticsPanel({ t, events = [] }) {
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
-    const { data: dash, error: err } = await supabase.rpc('get_analytics_dashboard', {
-      p_days: days,
-    })
+    setDayFilterBlocked(false)
+    const args = { p_days: days }
+    if (filterDay) args.p_day = filterDay
+
+    const { data: dash, error: err } = await supabase.rpc(
+      'get_analytics_dashboard',
+      args,
+    )
+
     if (err) {
       console.error(err)
+      // Função antiga (só p_days): tenta período geral e avisa
+      if (filterDay) {
+        const retry = await supabase.rpc('get_analytics_dashboard', {
+          p_days: days,
+        })
+        if (!retry.error && retry.data) {
+          setData(retry.data)
+          setDayFilterBlocked(true)
+          setLoading(false)
+          return
+        }
+      }
       const detail = [err.message, err.details, err.hint].filter(Boolean).join(' — ')
       setError(detail ? `${a.errorLoad} (${detail})` : a.errorLoad)
       setData(null)
-    } else {
-      setData(dash)
+      setLoading(false)
+      return
     }
+
+    const applied = dash?.filter_day
+      ? String(dash.filter_day).slice(0, 10)
+      : null
+    if (filterDay && applied !== filterDay) {
+      // Resposta sem filtro de dia (SQL desactualizado que ignora p_day)
+      setDayFilterBlocked(true)
+    }
+
+    if (!filterDay && Array.isArray(dash?.visits_by_day)) {
+      setPeriodDayChips(
+        dash.visits_by_day
+          .map((r) => String(r.day).slice(0, 10))
+          .filter(Boolean)
+          .slice(-14),
+      )
+    }
+
+    setData(dash)
     setLoading(false)
-  }, [days, a.errorLoad])
+  }, [days, filterDay, a.errorLoad])
 
   useEffect(() => {
     load()
@@ -162,6 +253,7 @@ export default function AnalyticsPanel({ t, events = [] }) {
   const yesterday = summary.yesterday || {}
   const eventLabel = (id) => eventTitles[id] || (id ? `${String(id).slice(0, 8)}…` : '—')
   const placeLabel = (id) => placeNames[id] || id || '—'
+  const isDayScope = Boolean(filterDay)
 
   const pwaPct =
     totals.unique_sessions > 0
@@ -200,11 +292,36 @@ export default function AnalyticsPanel({ t, events = [] }) {
     }))
   }, [data])
 
+  const hourDayLabel = useMemo(() => {
+    const raw = data?.visits_by_hour_day || filterDay || lisbonTodayISO()
+    return formatDay(raw)
+  }, [data, filterDay])
+
+  const dayChips = periodDayChips.length
+    ? periodDayChips
+    : (data?.visits_by_day || [])
+        .map((r) => String(r.day).slice(0, 10))
+        .filter(Boolean)
+        .slice(-14)
+
+  const viewsByHourTitle =
+    a.viewsByHourDay?.replace('{day}', hourDayLabel) ||
+    `${a.viewsByHour} · ${hourDayLabel}`
+
+  const scopeLabel = isDayScope
+    ? `${a.scopeDayLabel || a.todayLabel}: ${formatDay(filterDay)}`
+    : a.scopePeriodHint?.replace('{n}', String(days)) || `${days}d`
+
   function exportCsv() {
     if (!data) return
     const csv = buildAnalyticsCsv(data, { eventLabel, placeLabel, labels: a })
-    const stamp = new Date().toISOString().slice(0, 10)
+    const stamp = filterDay || new Date().toISOString().slice(0, 10)
     downloadCsv(`festas-analytics-${stamp}.csv`, csv)
+  }
+
+  function pickDay(iso) {
+    setPickedDay(iso)
+    setScope('day')
   }
 
   return (
@@ -215,15 +332,6 @@ export default function AnalyticsPanel({ t, events = [] }) {
           <p className="mt-0.5 text-sm text-ink/55">{a.subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
-            className="rounded-xl border border-barrete/15 bg-white px-3 py-2 text-sm font-medium text-ink"
-          >
-            <option value={7}>{a.range7}</option>
-            <option value={14}>{a.range14}</option>
-            <option value={30}>{a.range30}</option>
-          </select>
           <button
             type="button"
             onClick={exportCsv}
@@ -245,6 +353,91 @@ export default function AnalyticsPanel({ t, events = [] }) {
         </div>
       </div>
 
+      <div className="flex flex-col gap-2 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+        <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-ink/40">
+          {a.scopeTitle || 'Período'}
+        </p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <ScopeBtn active={scope === 'period'} onClick={() => setScope('period')}>
+            {a.scopePeriod || 'Geral'}
+          </ScopeBtn>
+          <ScopeBtn active={scope === 'today'} onClick={() => setScope('today')}>
+            {a.todayLabel}
+          </ScopeBtn>
+          <ScopeBtn active={scope === 'yesterday'} onClick={() => setScope('yesterday')}>
+            {a.scopeYesterday || a.exportYesterday || 'Ontem'}
+          </ScopeBtn>
+          <ScopeBtn active={scope === 'day'} onClick={() => setScope('day')}>
+            {a.scopePickDay || 'Escolher dia'}
+          </ScopeBtn>
+          {scope === 'period' ? (
+            <select
+              value={days}
+              onChange={(e) => setDays(Number(e.target.value))}
+              className="ml-1 rounded-lg border border-barrete/15 bg-creme/40 px-2.5 py-1.5 text-xs font-medium text-ink"
+            >
+              <option value={7}>{a.range7}</option>
+              <option value={14}>{a.range14}</option>
+              <option value={30}>{a.range30}</option>
+            </select>
+          ) : null}
+          {scope === 'day' ? (
+            <input
+              type="date"
+              value={pickedDay}
+              max={lisbonTodayISO()}
+              onChange={(e) => setPickedDay(e.target.value)}
+              className="ml-1 rounded-lg border border-barrete/15 bg-creme/40 px-2.5 py-1.5 text-xs font-medium text-ink"
+            />
+          ) : null}
+        </div>
+        {dayChips.length ? (
+          <div className="flex flex-wrap gap-1 pt-1">
+            {dayChips.map((iso) => (
+              <button
+                key={iso}
+                type="button"
+                onClick={() => pickDay(iso)}
+                className={`rounded-md px-2 py-0.5 text-[0.65rem] font-semibold tabular-nums ${
+                  filterDay === iso
+                    ? 'bg-barrete/15 text-barrete'
+                    : 'text-ink/45 hover:bg-creme hover:text-ink/70'
+                }`}
+              >
+                {formatDay(iso)}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <p className="text-xs text-ink/50">{scopeLabel}</p>
+      </div>
+
+      <div className="flex gap-1 overflow-x-auto pb-0.5">
+        {TABS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setTab(item.id)}
+            className={`shrink-0 rounded-xl px-3 py-2 text-xs font-semibold transition ${
+              tab === item.id
+                ? 'bg-barrete text-white shadow-sm'
+                : 'bg-white text-ink/60 ring-1 ring-barrete/10 hover:bg-barrete/5'
+            }`}
+          >
+            {a[item.labelKey]}
+          </button>
+        ))}
+      </div>
+
+      {dayFilterBlocked ? (
+        <div className="rounded-xl bg-dourado/20 px-4 py-3 text-sm text-ink ring-1 ring-dourado/40">
+          <p className="font-semibold">{a.dayFilterBlockedTitle}</p>
+          <p className="mt-1 text-xs leading-relaxed text-ink/70">
+            {a.dayFilterBlockedBody}
+          </p>
+        </div>
+      ) : null}
+
       {error ? (
         <div className="rounded-xl bg-vermelho/10 px-4 py-3 text-sm text-vermelho">
           {error}
@@ -258,305 +451,371 @@ export default function AnalyticsPanel({ t, events = [] }) {
         </div>
       ) : data ? (
         <>
-          <Section title={a.sectionSummary}>
-            <p className="mb-3 text-xs text-ink/50">{a.summaryHint}</p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              <StatCard
-                label={a.uniqueSessions}
-                value={totals.unique_sessions}
-                hint={
-                  summary.today
-                    ? `${a.todayLabel}: ${today.sessions ?? 0} · ${formatDelta(today.sessions, yesterday.sessions, a)}`
-                    : undefined
-                }
-              />
-              <StatCard
-                label={a.pwaPct}
-                value={`${pwaPct}%`}
-                hint={a.pwaSessionsHint}
-              />
-              <StatCard
-                label={a.pushActive}
-                value={
-                  pushActive == null && pushTotal == null
-                    ? '—'
-                    : pushActive != null && pushTotal != null && pushActive !== pushTotal
-                      ? `${pushActive} / ${pushTotal}`
-                      : (pushActive ?? pushTotal)
-                }
-                hint={a.pushActiveHint}
-              />
-              <StatCard
-                label={a.remindersSet}
-                value={totals.reminders_set}
-                hint={
-                  summary.today
-                    ? `${a.todayLabel}: ${today.reminders_set ?? 0} · ${formatDelta(today.reminders_set, yesterday.reminders_set, a)}`
-                    : undefined
-                }
-              />
-              <StatCard
-                label={a.shares}
-                value={totals.shares}
-                hint={
-                  summary.today
-                    ? `${a.todayLabel}: ${today.shares ?? 0} · ${formatDelta(today.shares, yesterday.shares, a)}`
-                    : undefined
-                }
-              />
-            </div>
-          </Section>
-
-          <Section title={a.sectionPushHealth}>
-            <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <StatCard label={a.pushShows} value={totals.push_prompt_shows} />
-              <StatCard label={a.pushEnables} value={totals.push_enables} />
-              <StatCard
-                label={a.funnelPush}
-                value={pct(totals.push_enables, totals.push_prompt_shows)}
-              />
-              <StatCard
-                label={a.pushActive}
-                value={pushActive ?? pushTotal ?? '—'}
-                hint={
-                  pushTotal != null
-                    ? `${a.pushSubscribers}: ${pushTotal}`
-                    : undefined
-                }
-              />
-            </div>
-            <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
-              <p className="mb-2 text-xs font-medium text-ink/50">{a.recentSends}</p>
-              {(data.recent_push_sends || []).length ? (
-                <ul className="flex flex-col gap-2">
-                  {(data.recent_push_sends || []).map((send, i) => (
-                    <li
-                      key={`${send.sent_at}-${i}`}
-                      className="border-b border-barrete/5 pb-2 last:border-0 last:pb-0"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-semibold text-ink">{send.title}</p>
-                        <time className="shrink-0 text-[0.65rem] text-ink/45">
-                          {formatSentAt(send.sent_at)}
-                        </time>
-                      </div>
-                      {send.body ? (
-                        <p className="mt-0.5 line-clamp-2 text-xs text-ink/55">{send.body}</p>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-ink/45">{a.empty}</p>
-              )}
-            </div>
-          </Section>
-
-          <Section title={a.sectionVisits}>
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <StatCard label={a.totalViews} value={totals.page_views} />
-              <StatCard label={a.uniqueSessions} value={totals.unique_sessions} />
-              <StatCard
-                label={a.pwaSessions}
-                value={totals.pwa_sessions}
-                hint={a.pwaSessionsHint}
-              />
-              <StatCard label={a.pwaInstalls} value={totals.pwa_installs} hint={a.pwaInstallsHint} />
-            </div>
-            <div className="mb-3 rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
-              <p className="mb-2 text-xs font-medium text-ink/50">{a.viewsByDay}</p>
-              <BarChart
-                rows={data.visits_by_day || []}
-                labelKey="day"
-                valueKey="views"
-                formatLabel={formatDay}
-                maxBars={days}
-              />
-            </div>
-            <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
-              <p className="mb-2 text-xs font-medium text-ink/50">{a.viewsByHour}</p>
-              <BarChart
-                rows={hourRows}
-                labelKey="hour"
-                valueKey="views"
-                formatLabel={(h) => `${h}h`}
-                maxBars={24}
-              />
-            </div>
-            <div className="mt-3 rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
-              <p className="mb-2 text-xs font-medium text-ink/50">{a.topRoutes}</p>
-              <RankList
-                rows={data.routes || []}
-                empty={a.empty}
-                valueKey="views"
-                renderLabel={(row) => <span className="font-mono">{row.route}</span>}
-              />
-            </div>
-          </Section>
-
-          <Section title={a.sectionProgram}>
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <StatCard label={a.filterToday} value={totals.filter_today} />
-              <StatCard label={a.filterNow} value={totals.filter_now} />
-              <StatCard label={a.filterFavorites} value={totals.filter_favorites} />
-              <StatCard label={a.searches} value={totals.searches} />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
-                <p className="mb-2 text-xs font-medium text-ink/50">{a.topCategories}</p>
-                <RankList
-                  rows={data.categories || []}
-                  empty={a.empty}
-                  renderLabel={(row) =>
-                    row.category === 'all'
-                      ? a.categoryAll
-                      : t.categories?.[row.category] || row.category
+          {tab === 'summary' ? (
+            <Section title={a.sectionSummary}>
+              <p className="mb-3 text-xs text-ink/50">
+                {isDayScope ? a.summaryHintDay || a.summaryHint : a.summaryHint}
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <StatCard
+                  label={a.uniqueSessions}
+                  value={totals.unique_sessions}
+                  hint={
+                    !isDayScope && summary.today
+                      ? `${a.todayLabel}: ${today.sessions ?? 0} · ${formatDelta(today.sessions, yesterday.sessions, a)}`
+                      : undefined
+                  }
+                />
+                <StatCard
+                  label={a.totalViews}
+                  value={totals.page_views}
+                  hint={
+                    !isDayScope && summary.today
+                      ? `${a.todayLabel}: ${today.page_views ?? 0}`
+                      : undefined
+                  }
+                />
+                <StatCard
+                  label={a.pwaPct}
+                  value={`${pwaPct}%`}
+                  hint={a.pwaSessionsHint}
+                />
+                <StatCard
+                  label={a.pushActive}
+                  value={
+                    pushActive == null && pushTotal == null
+                      ? '—'
+                      : pushActive != null &&
+                          pushTotal != null &&
+                          pushActive !== pushTotal
+                        ? `${pushActive} / ${pushTotal}`
+                        : (pushActive ?? pushTotal)
+                  }
+                  hint={a.pushActiveHint}
+                />
+                <StatCard
+                  label={a.remindersSet}
+                  value={totals.reminders_set}
+                  hint={
+                    !isDayScope && summary.today
+                      ? `${a.todayLabel}: ${today.reminders_set ?? 0} · ${formatDelta(today.reminders_set, yesterday.reminders_set, a)}`
+                      : undefined
+                  }
+                />
+                <StatCard
+                  label={a.shares}
+                  value={totals.shares}
+                  hint={
+                    !isDayScope && summary.today
+                      ? `${a.todayLabel}: ${today.shares ?? 0} · ${formatDelta(today.shares, yesterday.shares, a)}`
+                      : undefined
                   }
                 />
               </div>
-              <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
-                <p className="mb-2 text-xs font-medium text-ink/50">{a.languages}</p>
-                <RankList
-                  rows={data.languages || []}
-                  empty={a.empty}
-                  renderLabel={(row) => String(row.lang).toUpperCase()}
-                />
-                <p className="mt-3 text-xs text-ink/45">
-                  {a.a11yOn}: <strong className="text-barrete">{totals.a11y_on ?? 0}</strong>
-                  {' · '}
-                  {a.a11yToggles}: {totals.a11y_toggles ?? 0}
-                </p>
-              </div>
-            </div>
-          </Section>
+              {!isDayScope ? (
+                <div className="mt-4 rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+                  <p className="mb-2 text-xs font-medium text-ink/50">{a.viewsByDay}</p>
+                  <BarChart
+                    rows={data.visits_by_day || []}
+                    labelKey="day"
+                    valueKey="views"
+                    formatLabel={formatDay}
+                    maxBars={days}
+                  />
+                </div>
+              ) : (
+                <div className="mt-4 rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+                  <p className="mb-2 text-xs font-medium text-ink/50">{viewsByHourTitle}</p>
+                  <BarChart
+                    rows={hourRows}
+                    labelKey="hour"
+                    valueKey="views"
+                    formatLabel={(h) => `${h}h`}
+                    maxBars={24}
+                  />
+                </div>
+              )}
+            </Section>
+          ) : null}
 
-          <Section title={a.sectionEngagement}>
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <StatCard label={a.favoriteAdds} value={totals.favorite_adds} />
-              <StatCard label={a.favoriteUsers} value={totals.favorite_users} />
-              <StatCard label={a.remindersSet} value={totals.reminders_set} />
-              <StatCard label={a.shares} value={totals.shares} />
-              <StatCard label={a.ticketClicks} value={totals.ticket_clicks} />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
-                <p className="mb-2 text-xs font-medium text-ink/50">{a.topFavorites}</p>
-                <RankList
-                  rows={data.top_favorites || []}
-                  empty={a.empty}
-                  valueKey="adds"
-                  renderLabel={(row) => eventLabel(row.event_id)}
+          {tab === 'visits' ? (
+            <Section title={a.sectionVisits}>
+              <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <StatCard label={a.totalViews} value={totals.page_views} />
+                <StatCard label={a.uniqueSessions} value={totals.unique_sessions} />
+                <StatCard
+                  label={a.pwaSessions}
+                  value={totals.pwa_sessions}
+                  hint={a.pwaSessionsHint}
+                />
+                <StatCard
+                  label={a.pwaInstalls}
+                  value={totals.pwa_installs}
+                  hint={a.pwaInstallsHint}
                 />
               </div>
+              {!isDayScope ? (
+                <div className="mb-3 rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+                  <p className="mb-2 text-xs font-medium text-ink/50">{a.viewsByDay}</p>
+                  <BarChart
+                    rows={data.visits_by_day || []}
+                    labelKey="day"
+                    valueKey="views"
+                    formatLabel={formatDay}
+                    maxBars={days}
+                  />
+                </div>
+              ) : null}
               <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
-                <p className="mb-2 text-xs font-medium text-ink/50">{a.topReminders}</p>
-                <RankList
-                  rows={data.top_reminders || []}
-                  empty={a.empty}
-                  renderLabel={(row) => eventLabel(row.event_id)}
+                <p className="mb-2 text-xs font-medium text-ink/50">{viewsByHourTitle}</p>
+                <BarChart
+                  rows={hourRows}
+                  labelKey="hour"
+                  valueKey="views"
+                  formatLabel={(h) => `${h}h`}
+                  maxBars={24}
                 />
               </div>
-              <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
-                <p className="mb-2 text-xs font-medium text-ink/50">{a.topShares}</p>
+              <div className="mt-3 rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+                <p className="mb-2 text-xs font-medium text-ink/50">{a.topRoutes}</p>
                 <RankList
-                  rows={data.top_shares || []}
-                  empty={a.empty}
-                  renderLabel={(row) => eventLabel(row.event_id)}
-                />
-              </div>
-              <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
-                <p className="mb-2 text-xs font-medium text-ink/50">{a.topTickets}</p>
-                <RankList
-                  rows={data.top_tickets || []}
-                  empty={a.empty}
-                  renderLabel={(row) => eventLabel(row.event_id)}
-                />
-              </div>
-            </div>
-          </Section>
-
-          <Section title={a.sectionMap}>
-            <div className="mb-4 grid grid-cols-2 gap-3">
-              <StatCard label={a.mapWalks} value={totals.map_walks} />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
-                <p className="mb-2 text-xs font-medium text-ink/50">{a.topMapPlaces}</p>
-                <RankList
-                  rows={data.top_map_places || []}
+                  rows={data.routes || []}
                   empty={a.empty}
                   valueKey="views"
-                  renderLabel={(row) => placeLabel(row.place_id)}
+                  renderLabel={(row) => <span className="font-mono">{row.route}</span>}
                 />
+              </div>
+            </Section>
+          ) : null}
+
+          {tab === 'program' ? (
+            <Section title={a.sectionProgram}>
+              <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <StatCard label={a.filterToday} value={totals.filter_today} />
+                <StatCard label={a.filterNow} value={totals.filter_now} />
+                <StatCard label={a.filterFavorites} value={totals.filter_favorites} />
+                <StatCard label={a.searches} value={totals.searches} />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+                  <p className="mb-2 text-xs font-medium text-ink/50">{a.topCategories}</p>
+                  <RankList
+                    rows={data.categories || []}
+                    empty={a.empty}
+                    renderLabel={(row) =>
+                      row.category === 'all'
+                        ? a.categoryAll
+                        : t.categories?.[row.category] || row.category
+                    }
+                  />
+                </div>
+                <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+                  <p className="mb-2 text-xs font-medium text-ink/50">{a.languages}</p>
+                  <RankList
+                    rows={data.languages || []}
+                    empty={a.empty}
+                    renderLabel={(row) => String(row.lang).toUpperCase()}
+                  />
+                  <p className="mt-3 text-xs text-ink/45">
+                    {a.a11yOn}: <strong className="text-barrete">{totals.a11y_on ?? 0}</strong>
+                    {' · '}
+                    {a.a11yToggles}: {totals.a11y_toggles ?? 0}
+                  </p>
+                </div>
+              </div>
+            </Section>
+          ) : null}
+
+          {tab === 'engagement' ? (
+            <Section title={a.sectionEngagement}>
+              <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <StatCard label={a.favoriteAdds} value={totals.favorite_adds} />
+                <StatCard label={a.favoriteUsers} value={totals.favorite_users} />
+                <StatCard label={a.remindersSet} value={totals.reminders_set} />
+                <StatCard label={a.shares} value={totals.shares} />
+                <StatCard label={a.ticketClicks} value={totals.ticket_clicks} />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+                  <p className="mb-2 text-xs font-medium text-ink/50">{a.topFavorites}</p>
+                  <RankList
+                    rows={data.top_favorites || []}
+                    empty={a.empty}
+                    valueKey="adds"
+                    renderLabel={(row) => eventLabel(row.event_id)}
+                  />
+                </div>
+                <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+                  <p className="mb-2 text-xs font-medium text-ink/50">{a.topReminders}</p>
+                  <RankList
+                    rows={data.top_reminders || []}
+                    empty={a.empty}
+                    renderLabel={(row) => eventLabel(row.event_id)}
+                  />
+                </div>
+                <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+                  <p className="mb-2 text-xs font-medium text-ink/50">{a.topShares}</p>
+                  <RankList
+                    rows={data.top_shares || []}
+                    empty={a.empty}
+                    renderLabel={(row) => eventLabel(row.event_id)}
+                  />
+                </div>
+                <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+                  <p className="mb-2 text-xs font-medium text-ink/50">{a.topTickets}</p>
+                  <RankList
+                    rows={data.top_tickets || []}
+                    empty={a.empty}
+                    renderLabel={(row) => eventLabel(row.event_id)}
+                  />
+                </div>
+              </div>
+            </Section>
+          ) : null}
+
+          {tab === 'map' ? (
+            <Section title={a.sectionMap}>
+              <div className="mb-4 grid grid-cols-2 gap-3">
+                <StatCard label={a.mapWalks} value={totals.map_walks} />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+                  <p className="mb-2 text-xs font-medium text-ink/50">{a.topMapPlaces}</p>
+                  <RankList
+                    rows={data.top_map_places || []}
+                    empty={a.empty}
+                    valueKey="views"
+                    renderLabel={(row) => placeLabel(row.place_id)}
+                  />
+                </div>
+                <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+                  <p className="mb-2 text-xs font-medium text-ink/50">{a.topMapWalks}</p>
+                  <RankList
+                    rows={data.top_map_walks || []}
+                    empty={a.empty}
+                    renderLabel={(row) => placeLabel(row.place_id)}
+                  />
+                </div>
+              </div>
+            </Section>
+          ) : null}
+
+          {tab === 'install' ? (
+            <>
+              <Section title={a.sectionPushHealth}>
+                <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <StatCard label={a.pushShows} value={totals.push_prompt_shows} />
+                  <StatCard label={a.pushEnables} value={totals.push_enables} />
+                  <StatCard
+                    label={a.funnelPush}
+                    value={pct(totals.push_enables, totals.push_prompt_shows)}
+                  />
+                  <StatCard
+                    label={a.pushActive}
+                    value={pushActive ?? pushTotal ?? '—'}
+                    hint={
+                      pushTotal != null
+                        ? `${a.pushSubscribers}: ${pushTotal}`
+                        : undefined
+                    }
+                  />
+                </div>
+                <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
+                  <p className="mb-2 text-xs font-medium text-ink/50">{a.recentSends}</p>
+                  {(data.recent_push_sends || []).length ? (
+                    <ul className="flex flex-col gap-2">
+                      {(data.recent_push_sends || []).map((send, i) => (
+                        <li
+                          key={`${send.sent_at}-${i}`}
+                          className="border-b border-barrete/5 pb-2 last:border-0 last:pb-0"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-semibold text-ink">{send.title}</p>
+                            <time className="shrink-0 text-[0.65rem] text-ink/45">
+                              {formatSentAt(send.sent_at)}
+                            </time>
+                          </div>
+                          {send.body ? (
+                            <p className="mt-0.5 line-clamp-2 text-xs text-ink/55">
+                              {send.body}
+                            </p>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-ink/45">{a.empty}</p>
+                  )}
+                </div>
+              </Section>
+              <Section title={a.sectionInstallPush}>
+                <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <StatCard label={a.installShows} value={totals.install_prompt_shows} />
+                  <StatCard label={a.installAccepts} value={totals.install_prompt_accepts} />
+                  <StatCard
+                    label={a.installDismisses}
+                    value={totals.install_prompt_dismisses}
+                  />
+                  <StatCard label={a.pushShows} value={totals.push_prompt_shows} />
+                  <StatCard label={a.pushEnables} value={totals.push_enables} />
+                  <StatCard label={a.pushSubscribers} value={data.push_subscribers} />
+                </div>
+                <div className="rounded-xl bg-white p-3 text-sm text-ink/70 shadow-sm ring-1 ring-barrete/5">
+                  <p className="font-medium text-ink/80">{a.funnelTitle}</p>
+                  <ul className="mt-2 space-y-1 text-xs">
+                    <li>
+                      {a.funnelInstall}:{' '}
+                      <strong className="text-barrete">
+                        {pct(totals.install_prompt_accepts, totals.install_prompt_shows)}
+                      </strong>
+                    </li>
+                    <li>
+                      {a.funnelPush}:{' '}
+                      <strong className="text-barrete">
+                        {pct(totals.push_enables, totals.push_prompt_shows)}
+                      </strong>
+                    </li>
+                  </ul>
+                </div>
+              </Section>
+            </>
+          ) : null}
+
+          {tab === 'comercio' ? (
+            <Section title={a.sectionComercio}>
+              <p className="mb-3 text-xs text-ink/50">{a.comercioScopeNote}</p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <StatCard label={a.comercioSubmits} value={totals.comercio_submits} />
+                <StatCard label={a.negociosPending} value={data.negocios_pending} />
+                <StatCard label={a.negociosApproved} value={data.negocios_approved} />
+              </div>
+            </Section>
+          ) : null}
+
+          {tab === 'server' ? (
+            <Section title={a.sectionServer}>
+              <p className="mb-3 text-xs text-ink/50">{a.serverScopeNote}</p>
+              <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <StatCard label={a.remindersActive} value={data.reminders_active} />
+                <StatCard label={a.feedbackTotal} value={data.feedback_total} />
+                <StatCard label={a.feedbackUnread} value={data.feedback_unread} />
               </div>
               <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
-                <p className="mb-2 text-xs font-medium text-ink/50">{a.topMapWalks}</p>
+                <p className="mb-2 text-xs font-medium text-ink/50">{a.feedbackByType}</p>
                 <RankList
-                  rows={data.top_map_walks || []}
+                  rows={data.feedback_by_type || []}
                   empty={a.empty}
-                  renderLabel={(row) => placeLabel(row.place_id)}
+                  renderLabel={(row) =>
+                    row.tipo === 'problema'
+                      ? t.feedback?.problem || row.tipo
+                      : row.tipo === 'sugestao'
+                        ? t.feedback?.suggestion || row.tipo
+                        : row.tipo
+                  }
                 />
               </div>
-            </div>
-          </Section>
-
-          <Section title={a.sectionInstallPush}>
-            <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <StatCard label={a.installShows} value={totals.install_prompt_shows} />
-              <StatCard label={a.installAccepts} value={totals.install_prompt_accepts} />
-              <StatCard label={a.installDismisses} value={totals.install_prompt_dismisses} />
-              <StatCard label={a.pushShows} value={totals.push_prompt_shows} />
-              <StatCard label={a.pushEnables} value={totals.push_enables} />
-              <StatCard label={a.pushSubscribers} value={data.push_subscribers} />
-            </div>
-            <div className="rounded-xl bg-white p-3 text-sm text-ink/70 shadow-sm ring-1 ring-barrete/5">
-              <p className="font-medium text-ink/80">{a.funnelTitle}</p>
-              <ul className="mt-2 space-y-1 text-xs">
-                <li>
-                  {a.funnelInstall}:{' '}
-                  <strong className="text-barrete">
-                    {pct(totals.install_prompt_accepts, totals.install_prompt_shows)}
-                  </strong>
-                </li>
-                <li>
-                  {a.funnelPush}:{' '}
-                  <strong className="text-barrete">
-                    {pct(totals.push_enables, totals.push_prompt_shows)}
-                  </strong>
-                </li>
-              </ul>
-            </div>
-          </Section>
-
-          <Section title={a.sectionComercio}>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <StatCard label={a.comercioSubmits} value={totals.comercio_submits} />
-              <StatCard label={a.negociosPending} value={data.negocios_pending} />
-              <StatCard label={a.negociosApproved} value={data.negocios_approved} />
-            </div>
-          </Section>
-
-          <Section title={a.sectionServer}>
-            <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <StatCard label={a.remindersActive} value={data.reminders_active} />
-              <StatCard label={a.feedbackTotal} value={data.feedback_total} />
-              <StatCard label={a.feedbackUnread} value={data.feedback_unread} />
-            </div>
-            <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
-              <p className="mb-2 text-xs font-medium text-ink/50">{a.feedbackByType}</p>
-              <RankList
-                rows={data.feedback_by_type || []}
-                empty={a.empty}
-                renderLabel={(row) =>
-                  row.tipo === 'problema'
-                    ? t.feedback?.problem || row.tipo
-                    : row.tipo === 'sugestao'
-                      ? t.feedback?.suggestion || row.tipo
-                      : row.tipo
-                }
-              />
-            </div>
-          </Section>
+            </Section>
+          ) : null}
 
           <p className="text-xs leading-relaxed text-ink/40">{a.privacyNote}</p>
         </>

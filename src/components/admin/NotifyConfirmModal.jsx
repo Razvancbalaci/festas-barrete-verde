@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { AlertTriangle, Loader2, X } from 'lucide-react'
 
 /**
@@ -14,20 +14,27 @@ export default function NotifyConfirmModal({
   t,
 }) {
   const a = t
+  const [confirmText, setConfirmText] = useState('')
 
   useEffect(() => {
     if (!open) return
+    setConfirmText('')
     const onKey = (e) => {
       if (e.key === 'Escape' && !busy) onCancel()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, busy, onCancel])
+  }, [open, busy, onCancel, draft?.mode])
 
   if (!open || !draft) return null
 
   const isDevices =
     draft.mode === 'deactivate_all' || draft.mode === 'reactivate_all'
+  const needsTypedConfirm = draft.mode === 'deactivate_all'
+  const expectedWord = (a.notifyDeactivateTypeWord || 'DESACTIVAR').trim()
+  const typedOk =
+    !needsTypedConfirm ||
+    confirmText.trim().toUpperCase() === expectedWord.toUpperCase()
 
   const modeLabel =
     draft.mode === 'now'
@@ -107,6 +114,27 @@ export default function NotifyConfirmModal({
               {draft.autoCount ?? 0}
             </p>
             <p className="text-xs text-ink/50">{a.notifyConfirmAutoJobs}</p>
+            {typeof draft.createCount === 'number' ||
+            typeof draft.updateCount === 'number' ? (
+              <ul className="mt-3 space-y-1 text-xs text-ink/60">
+                {typeof draft.createCount === 'number' ? (
+                  <li>
+                    {(a.notifyConfirmAutoCreate || 'Novos: {n}').replace(
+                      '{n}',
+                      String(draft.createCount),
+                    )}
+                  </li>
+                ) : null}
+                {typeof draft.updateCount === 'number' ? (
+                  <li>
+                    {(a.notifyConfirmAutoUpdate || 'Actualizar: {n}').replace(
+                      '{n}',
+                      String(draft.updateCount),
+                    )}
+                  </li>
+                ) : null}
+              </ul>
+            ) : null}
           </div>
         ) : isDevices ? (
           <div className="rounded-xl bg-white p-4 ring-1 ring-barrete/10">
@@ -156,6 +184,25 @@ export default function NotifyConfirmModal({
           </dl>
         )}
 
+        {needsTypedConfirm ? (
+          <label className="mt-4 block">
+            <span className="mb-1 block text-xs font-medium text-ink/70">
+              {(a.notifyDeactivateTypeHint || 'Escreve {word} para confirmar').replace(
+                '{word}',
+                expectedWord,
+              )}
+            </span>
+            <input
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              autoComplete="off"
+              className="w-full rounded-xl border border-vermelho/30 bg-white px-3 py-2.5 text-sm outline-none focus:border-vermelho/50"
+              placeholder={expectedWord}
+            />
+          </label>
+        ) : null}
+
         <div className="mt-5 flex flex-wrap gap-2">
           <button
             type="button"
@@ -167,7 +214,7 @@ export default function NotifyConfirmModal({
           </button>
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || !typedOk}
             onClick={onConfirm}
             className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-vermelho px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:brightness-105 disabled:opacity-60 sm:flex-none"
           >

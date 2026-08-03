@@ -106,14 +106,13 @@ body {
   display: none;
 }
 
-/* Pin do toiro live: sem fundo branco do .leaflet-div-icon */
+/* Pins do mapa (lugares + toiro live): sem fundo branco do .leaflet-div-icon */
+.leaflet-div-icon.fbv-map-marker,
 .leaflet-div-icon.fbv-bull-marker {
   background: transparent;
   border: none;
 }
-.fbv-bull-marker .fbv-bull-face {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.fbv-map-marker .fbv-pin-face,
+.fbv-bull-marker .fbv-pin-face {
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
 }

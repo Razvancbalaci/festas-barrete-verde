@@ -90,7 +90,14 @@ revoke all on function public.record_analytics_event(text, jsonb, text) from pub
 grant execute on function public.record_analytics_event(text, jsonb, text) to anon, authenticated;
 
 -- Resumo para o painel admin (só utilizadores autenticados)
-create or replace function public.get_analytics_dashboard(p_days int default 14)
+-- p_day: se definido (data Lisboa), filtra só esse dia; senão usa os últimos p_days.
+drop function if exists public.get_analytics_dashboard(int);
+drop function if exists public.get_analytics_dashboard(int, date);
+
+create or replace function public.get_analytics_dashboard(
+  p_days int default 14,
+  p_day date default null
+)
 returns jsonb
 language plpgsql
 security definer
@@ -98,6 +105,10 @@ set search_path = public
 as $$
 declare
   since timestamptz;
+  until_ts timestamptz;
+  hour_day date;
+  hour_since timestamptz;
+  hour_until timestamptz;
   result jsonb;
   today_lisbon date;
   yesterday_lisbon date;
@@ -112,9 +123,21 @@ begin
   end if;
 
   p_days := greatest(1, least(coalesce(p_days, 14), 90));
-  since := now() - (p_days || ' days')::interval;
   today_lisbon := (now() at time zone 'Europe/Lisbon')::date;
   yesterday_lisbon := today_lisbon - 1;
+
+  if p_day is not null then
+    since := (p_day::timestamp without time zone at time zone 'Europe/Lisbon');
+    until_ts := since + interval '1 day';
+  else
+    since := now() - (p_days || ' days')::interval;
+    until_ts := 'infinity'::timestamptz;
+  end if;
+
+  -- Visitas por hora: sempre um dia concreto (o filtro, ou hoje no modo geral)
+  hour_day := coalesce(p_day, today_lisbon);
+  hour_since := (hour_day::timestamp without time zone at time zone 'Europe/Lisbon');
+  hour_until := hour_since + interval '1 day';
 
   select count(*)::int into push_total from push_subscriptions;
 
@@ -168,7 +191,10 @@ begin
 
   select jsonb_build_object(
     'days', p_days,
+    'filter_day', p_day,
+    'visits_by_hour_day', hour_day,
     'since', since,
+    'until', until_ts,
     'visits_by_day', coalesce((
       select jsonb_agg(
         jsonb_build_object(
@@ -184,7 +210,7 @@ begin
           count(*) filter (where event_name = 'page_view') as views,
           count(distinct session_id) filter (where event_name = 'page_view') as sessions
         from analytics_events
-        where created_at >= since
+        where created_at >= since and created_at < until_ts
         group by 1
       ) d
     ), '[]'::jsonb),
@@ -203,7 +229,9 @@ begin
             extract(hour from created_at at time zone 'Europe/Lisbon')::int as hour,
             count(*)::int as views
           from analytics_events
-          where event_name = 'page_view' and created_at >= since
+          where event_name = 'page_view'
+            and created_at >= hour_since
+            and created_at < hour_until
           group by 1
         ) v on v.hour = gs.hour
       ) h
@@ -211,95 +239,95 @@ begin
     'totals', jsonb_build_object(
       'page_views', (
         select count(*) from analytics_events
-        where event_name = 'page_view' and created_at >= since
+        where event_name = 'page_view' and created_at >= since and created_at < until_ts
       ),
       'unique_sessions', (
         select count(distinct session_id) from analytics_events
-        where event_name = 'page_view' and created_at >= since
+        where event_name = 'page_view' and created_at >= since and created_at < until_ts
       ),
       'pwa_sessions', (
         select count(distinct session_id) from analytics_events
         where event_name = 'page_view'
-          and created_at >= since
+          and created_at >= since and created_at < until_ts
           and coalesce(payload->>'standalone', 'false') = 'true'
       ),
       'favorite_adds', (
         select count(*) from analytics_events
-        where event_name = 'favorite_add' and created_at >= since
+        where event_name = 'favorite_add' and created_at >= since and created_at < until_ts
       ),
       'favorite_users', (
         select count(distinct session_id) from analytics_events
-        where event_name = 'favorite_add' and created_at >= since
+        where event_name = 'favorite_add' and created_at >= since and created_at < until_ts
       ),
       'pwa_installs', (
         select count(*) from analytics_events
-        where event_name = 'pwa_install' and created_at >= since
+        where event_name = 'pwa_install' and created_at >= since and created_at < until_ts
       ),
       'install_prompt_shows', (
         select count(*) from analytics_events
-        where event_name = 'install_prompt_show' and created_at >= since
+        where event_name = 'install_prompt_show' and created_at >= since and created_at < until_ts
       ),
       'install_prompt_accepts', (
         select count(*) from analytics_events
-        where event_name = 'install_prompt_accept' and created_at >= since
+        where event_name = 'install_prompt_accept' and created_at >= since and created_at < until_ts
       ),
       'install_prompt_dismisses', (
         select count(*) from analytics_events
-        where event_name = 'install_prompt_dismiss' and created_at >= since
+        where event_name = 'install_prompt_dismiss' and created_at >= since and created_at < until_ts
       ),
       'push_prompt_shows', (
         select count(*) from analytics_events
-        where event_name = 'push_prompt_show' and created_at >= since
+        where event_name = 'push_prompt_show' and created_at >= since and created_at < until_ts
       ),
       'push_enables', (
         select count(*) from analytics_events
-        where event_name = 'push_prompt_enable' and created_at >= since
+        where event_name = 'push_prompt_enable' and created_at >= since and created_at < until_ts
       ),
       'reminders_set', (
         select count(*) from analytics_events
-        where event_name = 'reminder_set' and created_at >= since
+        where event_name = 'reminder_set' and created_at >= since and created_at < until_ts
       ),
       'shares', (
         select count(*) from analytics_events
-        where event_name = 'share' and created_at >= since
+        where event_name = 'share' and created_at >= since and created_at < until_ts
       ),
       'ticket_clicks', (
         select count(*) from analytics_events
-        where event_name = 'ticket_click' and created_at >= since
+        where event_name = 'ticket_click' and created_at >= since and created_at < until_ts
       ),
       'filter_today', (
         select count(*) from analytics_events
-        where event_name = 'filter_today' and created_at >= since
+        where event_name = 'filter_today' and created_at >= since and created_at < until_ts
       ),
       'filter_now', (
         select count(*) from analytics_events
-        where event_name = 'filter_now' and created_at >= since
+        where event_name = 'filter_now' and created_at >= since and created_at < until_ts
       ),
       'filter_favorites', (
         select count(*) from analytics_events
-        where event_name = 'filter_favorites' and created_at >= since
+        where event_name = 'filter_favorites' and created_at >= since and created_at < until_ts
       ),
       'searches', (
         select count(*) from analytics_events
-        where event_name = 'search' and created_at >= since
+        where event_name = 'search' and created_at >= since and created_at < until_ts
       ),
       'a11y_toggles', (
         select count(*) from analytics_events
-        where event_name = 'a11y_toggle' and created_at >= since
+        where event_name = 'a11y_toggle' and created_at >= since and created_at < until_ts
       ),
       'a11y_on', (
         select count(*) from analytics_events
         where event_name = 'a11y_toggle'
-          and created_at >= since
+          and created_at >= since and created_at < until_ts
           and coalesce(payload->>'on', 'false') = 'true'
       ),
       'map_walks', (
         select count(*) from analytics_events
-        where event_name = 'map_walk' and created_at >= since
+        where event_name = 'map_walk' and created_at >= since and created_at < until_ts
       ),
       'comercio_submits', (
         select count(*) from analytics_events
-        where event_name = 'comercio_submit' and created_at >= since
+        where event_name = 'comercio_submit' and created_at >= since and created_at < until_ts
       )
     ),
     'routes', coalesce((
@@ -307,7 +335,7 @@ begin
       from (
         select coalesce(payload->>'route', '/') as route, count(*) as views
         from analytics_events
-        where event_name = 'page_view' and created_at >= since
+        where event_name = 'page_view' and created_at >= since and created_at < until_ts
         group by 1
       ) r
     ), '[]'::jsonb),
@@ -316,7 +344,7 @@ begin
       from (
         select coalesce(payload->>'lang', '?') as lang, count(*) as count
         from analytics_events
-        where event_name = 'lang_change' and created_at >= since
+        where event_name = 'lang_change' and created_at >= since and created_at < until_ts
         group by 1
       ) l
     ), '[]'::jsonb),
@@ -325,7 +353,7 @@ begin
       from (
         select coalesce(payload->>'category', 'all') as category, count(*) as count
         from analytics_events
-        where event_name = 'filter_category' and created_at >= since
+        where event_name = 'filter_category' and created_at >= since and created_at < until_ts
         group by 1
       ) c
     ), '[]'::jsonb),
@@ -335,7 +363,7 @@ begin
         select payload->>'event_id' as event_id, count(*) as adds
         from analytics_events
         where event_name = 'favorite_add'
-          and created_at >= since
+          and created_at >= since and created_at < until_ts
           and payload ? 'event_id'
         group by 1
         order by adds desc
@@ -348,7 +376,7 @@ begin
         select payload->>'event_id' as event_id, count(*) as count
         from analytics_events
         where event_name = 'share'
-          and created_at >= since
+          and created_at >= since and created_at < until_ts
           and payload ? 'event_id'
         group by 1
         order by count desc
@@ -361,7 +389,7 @@ begin
         select payload->>'event_id' as event_id, count(*) as count
         from analytics_events
         where event_name = 'reminder_set'
-          and created_at >= since
+          and created_at >= since and created_at < until_ts
           and payload ? 'event_id'
         group by 1
         order by count desc
@@ -374,7 +402,7 @@ begin
         select payload->>'event_id' as event_id, count(*) as count
         from analytics_events
         where event_name = 'ticket_click'
-          and created_at >= since
+          and created_at >= since and created_at < until_ts
           and payload ? 'event_id'
         group by 1
         order by count desc
@@ -387,7 +415,7 @@ begin
         select payload->>'place_id' as place_id, count(*) as views
         from analytics_events
         where event_name = 'map_place_view'
-          and created_at >= since
+          and created_at >= since and created_at < until_ts
           and payload ? 'place_id'
         group by 1
         order by views desc
@@ -400,7 +428,7 @@ begin
         select payload->>'place_id' as place_id, count(*) as count
         from analytics_events
         where event_name = 'map_walk'
-          and created_at >= since
+          and created_at >= since and created_at < until_ts
           and payload ? 'place_id'
         group by 1
         order by count desc
@@ -499,5 +527,5 @@ begin
 end;
 $$;
 
-revoke all on function public.get_analytics_dashboard(int) from public;
-grant execute on function public.get_analytics_dashboard(int) to authenticated;
+revoke all on function public.get_analytics_dashboard(int, date) from public;
+grant execute on function public.get_analytics_dashboard(int, date) to authenticated;

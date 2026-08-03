@@ -14,7 +14,7 @@ const PREF_KEYS = [
   { key: 'pref_broadcast', labelKey: 'broadcast', hintKey: 'broadcastHint' },
 ]
 
-export default function NotifyPrefsForm({ open, onClose }) {
+export default function NotifyPrefsForm({ open, onClose, onEnabled }) {
   const { t } = useLang()
   const p = t.notifyPrefs
   const [prefs, setPrefs] = useState({
@@ -71,8 +71,8 @@ export default function NotifyPrefsForm({ open, onClose }) {
     setEnabling(true)
     setMessage(null)
     const ready = await ensurePushForReminders()
-    setEnabling(false)
     if (!ready.ok) {
+      setEnabling(false)
       if (ready.reason === 'needInstall') setMessage({ type: 'err', text: p.needInstall })
       else if (ready.reason === 'denied') setMessage({ type: 'err', text: p.denied })
       else if (ready.reason === 'timeout' || ready.reason === 'sw')
@@ -80,8 +80,16 @@ export default function NotifyPrefsForm({ open, onClose }) {
       else setMessage({ type: 'err', text: p.enableError })
       return
     }
+    const savedPrefs = await savePushPreferences(prefs)
+    setEnabling(false)
+    if (!savedPrefs.ok) {
+      setSubscribed(true)
+      setMessage({ type: 'err', text: p.saveError })
+      return
+    }
     setSubscribed(true)
     setMessage({ type: 'ok', text: p.enabled })
+    onEnabled?.()
   }
 
   async function save() {
@@ -97,6 +105,7 @@ export default function NotifyPrefsForm({ open, onClose }) {
       setMessage({ type: 'err', text: p.saveError })
       return
     }
+    onEnabled?.()
     onClose()
   }
 
@@ -147,21 +156,6 @@ export default function NotifyPrefsForm({ open, onClose }) {
           </div>
         ) : (
           <>
-            {!subscribed ? (
-              <div className="mb-4 rounded-xl bg-dourado/15 px-4 py-3 text-sm text-ink/80 ring-1 ring-dourado/30">
-                <p>{p.needEnable}</p>
-                <button
-                  type="button"
-                  disabled={enabling}
-                  onClick={enableNotifications}
-                  className="mt-3 inline-flex items-center gap-2 rounded-xl bg-barrete px-3.5 py-2 text-xs font-bold text-white disabled:opacity-60"
-                >
-                  {enabling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                  {p.enable}
-                </button>
-              </div>
-            ) : null}
-
             <ul className="flex flex-col gap-2">
               {PREF_KEYS.map(({ key, labelKey, hintKey }) => (
                 <li key={key}>
@@ -171,7 +165,6 @@ export default function NotifyPrefsForm({ open, onClose }) {
                       className="mt-1 h-4 w-4 accent-barrete"
                       checked={Boolean(prefs[key])}
                       onChange={() => toggle(key)}
-                      disabled={!subscribed}
                     />
                     <span className="min-w-0">
                       <span className="block text-sm font-semibold text-ink">
@@ -206,15 +199,27 @@ export default function NotifyPrefsForm({ open, onClose }) {
               >
                 {p.close}
               </button>
-              <button
-                type="button"
-                disabled={!subscribed || saving}
-                onClick={save}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-dourado px-4 py-2.5 text-sm font-bold text-ink disabled:opacity-50 sm:flex-none"
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {p.save}
-              </button>
+              {!subscribed ? (
+                <button
+                  type="button"
+                  disabled={enabling}
+                  onClick={enableNotifications}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-dourado px-4 py-2.5 text-sm font-bold text-ink disabled:opacity-60 sm:flex-none"
+                >
+                  {enabling ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {p.enable}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={save}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-dourado px-4 py-2.5 text-sm font-bold text-ink disabled:opacity-50 sm:flex-none"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {p.save}
+                </button>
+              )}
             </div>
           </>
         )}

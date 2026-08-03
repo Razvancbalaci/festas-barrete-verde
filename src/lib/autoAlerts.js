@@ -13,6 +13,16 @@ export function isPalcoSJoaoShow(event) {
   return /palco\s*(?:s\.?\s*|são\s+)jo[aã]o/i.test(String(event?.local || ''))
 }
 
+/** Eventos que geram alertas automáticos do programa. */
+export function eventNeedsAutoAlert(event) {
+  if (!event) return false
+  return (
+    isStreetBullEvent(event) ||
+    isCorridaEvent(event) ||
+    isPalcoSJoaoShow(event)
+  )
+}
+
 /**
  * Calcula o instante do alerta = início − N minutos.
  * Devolve null se já passou, se o offset for inválido, ou se o cálculo não bater certo.

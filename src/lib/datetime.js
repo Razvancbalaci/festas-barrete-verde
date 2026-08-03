@@ -59,7 +59,62 @@ export function eventDurationMinutes(event) {
   if (event?.categoria === 'Música') return 120
   if (event?.categoria === 'Pirotecnia') return 30
   if (event?.categoria === 'Religioso') return 90
-  return 90
+  return 60
+}
+
+/** Janela «a decorrer agora» no mapa quando não há hora de fim (min). */
+export const LIVE_NOW_DURATION_MINUTES = 60
+
+/**
+ * Todos os eventos em curso (início → +1 h por defeito).
+ * Ordenados por hora de início.
+ */
+export function findLiveEvents(
+  events,
+  now = new Date(),
+  durationMinutes = LIVE_NOW_DURATION_MINUTES,
+) {
+  const live = []
+  for (const e of events || []) {
+    if (!e?.dia || !e?.hora) continue
+    const start = eventDateTime(e.dia, e.hora)
+    if (Number.isNaN(start.getTime())) continue
+    const end = new Date(start.getTime() + durationMinutes * 60 * 1000)
+    if (now >= start && now < end) {
+      live.push({ event: e, start, end })
+    }
+  }
+  live.sort((a, b) => {
+    const t = a.start.getTime() - b.start.getTime()
+    if (t !== 0) return t
+    return String(a.event?.titulo || '').localeCompare(
+      String(b.event?.titulo || ''),
+      'pt',
+    )
+  })
+  return live
+}
+
+/**
+ * Próximo instante em que a lista «a decorrer» muda (início ou fim de algum evento).
+ * @returns {number|null} epoch ms
+ */
+export function nextLiveEventWakeAt(
+  events,
+  now = new Date(),
+  durationMinutes = LIVE_NOW_DURATION_MINUTES,
+) {
+  let next = null
+  for (const e of events || []) {
+    if (!e?.dia || !e?.hora) continue
+    const start = eventDateTime(e.dia, e.hora)
+    if (Number.isNaN(start.getTime())) continue
+    const end = new Date(start.getTime() + durationMinutes * 60 * 1000)
+    for (const t of [start.getTime(), end.getTime()]) {
+      if (t > now.getTime() && (next == null || t < next)) next = t
+    }
+  }
+  return next
 }
 
 /** Evento em curso ou o próximo ainda por começar. */

@@ -1,0 +1,25 @@
+-- ============================================================
+-- Papéis do back-office (/admin)
+-- ============================================================
+--
+-- Na prática (recomendado): no ficheiro .env da app:
+--
+--   VITE_AVISOS_EMAILS=ze@exemplo.com
+--
+-- Reinicia o Vite. Esse email só vê o separador Avisos.
+-- A tua conta (fora da lista) continua com acesso total.
+--
+-- --- Alternativa SQL (muitas vezes falha com "permission denied") ---
+-- O SQL Editor do projeto por vezes não pode UPDATE auth.users.
+-- Se tiveres role postgres/service, podes tentar:
+--
+-- update auth.users
+-- set raw_app_meta_data =
+--   coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"avisos"}'::jsonb
+-- where email = 'ze@exemplo.com';
+--
+-- Listar users (também pode falhar com permission denied):
+-- select email, raw_app_meta_data ->> 'role' as role from auth.users;
+-- ============================================================
+
+select 1 as ok;

@@ -1,39 +1,43 @@
 /**
  * Camadas do mapa.
- * - Com VITE_MAPTILER_KEY: ruas MapTiler (melhor estilo) + satélite MapTiler
- * - Sem key: OSM (ruas) + Esri World Imagery (satélite gratuito)
+ *
+ * Escolhe o estilo em https://cloud.maptiler.com/maps/ (abre um mapa → o ID
+ * está no URL, ex. /maps/streets-v2/ → streets-v2).
+ * Depois mete no .env: VITE_MAPTILER_STYLE=streets-v2 e reinicia o Vite.
+ *
+ * Sem VITE_MAPTILER_KEY: Carto Voyager (ruas) + Esri (satélite).
  */
 
 const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_KEY?.trim() || ''
 
+/** ID do mapa MapTiler (ex. bright-v2, streets-v2, voyager-v2, basic-v2, outdoor-v2). */
+const MAPTILER_STYLE =
+  import.meta.env.VITE_MAPTILER_STYLE?.trim() || 'dataviz-v4'
+
 export const hasMapTiler = Boolean(MAPTILER_KEY)
 
-const OSM = {
-  url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  attribution:
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-  maxZoom: 19,
+const MAPTILER_ATTR =
+  '&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+
+function mapTilerRaster(mapId, ext = 'png') {
+  return {
+    url: `https://api.maptiler.com/maps/${mapId}/{z}/{x}/{y}.${ext}?key=${MAPTILER_KEY}`,
+    attribution: MAPTILER_ATTR,
+    maxZoom: 20,
+    tileSize: 512,
+    zoomOffset: -1,
+  }
 }
 
-const MAPTILER_STREETS = {
-  url: `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`,
+/** Fallback sem key — água azul, limpo. */
+const CARTO_VOYAGER = {
+  url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
   attribution:
-    '&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
   maxZoom: 20,
-  tileSize: 512,
-  zoomOffset: -1,
+  subdomains: 'abcd',
 }
 
-const MAPTILER_SAT = {
-  url: `https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=${MAPTILER_KEY}`,
-  attribution:
-    '&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-  maxZoom: 20,
-  tileSize: 512,
-  zoomOffset: -1,
-}
-
-/** Satélite Esri — gratuito com atribuição (sem API key). */
 const ESRI_SAT = {
   url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   attribution:
@@ -42,14 +46,11 @@ const ESRI_SAT = {
 }
 
 export function getMapLayers() {
-  if (hasMapTiler) {
-    return {
-      streets: MAPTILER_STREETS,
-      satellite: MAPTILER_SAT,
-    }
+  if (!hasMapTiler) {
+    return { streets: CARTO_VOYAGER, satellite: ESRI_SAT }
   }
   return {
-    streets: OSM,
-    satellite: ESRI_SAT,
+    streets: mapTilerRaster(MAPTILER_STYLE, 'png'),
+    satellite: mapTilerRaster('hybrid', 'jpg'),
   }
 }

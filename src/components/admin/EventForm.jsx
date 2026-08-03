@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Loader2, X } from 'lucide-react'
 import { CATEGORIES } from '../../data/categories'
-import { FESTIVAL_DAYS } from '../../data/days'
+import { FESTIVAL_DAYS, programDayIso } from '../../data/days'
 import { isValidEventTime } from '../../lib/datetime'
 import { sanitizeHttpUrl } from '../../lib/safeUrl'
 
 const emptyForm = {
-  dia: '2026-08-07',
+  dia: '',
   hora: '',
   titulo: '',
   subtitulo: '',
@@ -31,7 +31,7 @@ export default function EventForm({ event, onSave, onCancel, t, uiT }) {
           descricao: event.descricao || '',
           bilhetes_url: event.bilhetes_url || '',
         }
-      : { ...emptyForm }
+      : { ...emptyForm, dia: programDayIso() }
   )
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)

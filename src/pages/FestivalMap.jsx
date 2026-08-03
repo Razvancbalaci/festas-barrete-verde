@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Contrast, Navigation } from 'lucide-react'
@@ -10,45 +10,67 @@ import {
   LARGADA_RECINTO_LATLNGS,
   LARGADA_RECINTOS,
   MAP_CENTER,
-  MAP_PLACES,
+  MAP_SHOW_PRIVATE_PARKING,
   MAP_ZOOM,
+  visibleMapPlaces,
 } from '../data/mapPlaces'
-import { mapsWalkToUrl } from '../lib/locations'
+import { loadVisibleMapPlaces } from '../lib/mapPlaceOverrides'
+import { mapsDriveToUrl, mapsWalkToUrl } from '../lib/locations'
 import { track } from '../lib/analytics'
 import { getMapLayers } from '../lib/mapTiles'
+import { pinIconForPlace, resolveMapPinStyle } from '../lib/mapPinIcon'
 import LiveBullLayer, {
-  LiveBullBanner,
+  LiveNowBanners,
   useLiveStreetBull,
 } from '../components/map/LiveBullLayer'
+import LocateMeControl from '../components/map/LocateMeControl'
 import Footer from '../components/Footer'
 import 'leaflet/dist/leaflet.css'
 
-const kindColor = {
-  palco: '#1B6CA8',
-  ponto: '#1B5E3F',
-  toiros: '#C0392B',
-  feira: '#E8A13A',
-  wc: '#5B7C8A',
+/** Mini-pin igual ao do mapa (creme + borda + glyph). */
+function LegendPin({ kind }) {
+  const { border, glyph, text, fill, color, radius, fontSize } =
+    resolveMapPinStyle(kind)
+  return (
+    <span
+      className="inline-flex h-6 w-6 shrink-0 items-center justify-center border-2 leading-none shadow-sm"
+      style={{
+        background: fill,
+        borderColor: border,
+        borderRadius: radius,
+        color,
+        fontSize: fontSize ? Math.max(10, fontSize - 4) : text ? 8 : 13,
+        fontWeight: text ? 800 : 400,
+      }}
+      aria-hidden
+    >
+      {glyph}
+    </span>
+  )
 }
 
-function pinIcon(kind) {
-  const color = kindColor[kind] || kindColor.ponto
-  const inner =
-    kind === 'wc'
-      ? `<text x="14" y="15.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="#fff" font-family="Arial,sans-serif">WC</text>`
-      : `<circle cx="14" cy="12.5" r="4.5" fill="#fff"/>`
-  const svg = encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 28 40">
-      <path fill="${color}" stroke="#fff" stroke-width="2" d="M14 1c-6.6 0-12 5.2-12 11.6 0 8.7 12 25.4 12 25.4S26 21.3 26 12.6C26 6.2 20.6 1 14 1z"/>
-      ${inner}
-    </svg>`
+function LegendRecinto() {
+  return (
+    <span
+      className="inline-block h-3.5 w-4 shrink-0 rounded-[3px]"
+      style={{
+        background: 'rgba(192, 57, 43, 0.28)',
+        boxShadow: 'inset 0 0 0 1.5px #C0392B',
+      }}
+      aria-hidden
+    />
   )
-  return L.icon({
-    iconUrl: `data:image/svg+xml,${svg}`,
-    iconSize: [28, 40],
-    iconAnchor: [14, 40],
-    popupAnchor: [0, -36],
-  })
+}
+
+/** Traço discreto — alinhado com a polyline das entradas. */
+function LegendRoute() {
+  return (
+    <span
+      className="inline-block h-0 w-5 shrink-0 border-t-[2.5px] border-dashed"
+      style={{ borderColor: 'rgba(192, 57, 43, 0.55)' }}
+      aria-hidden
+    />
+  )
 }
 
 function FitBounds({ places, extraLatLngs = [] }) {
@@ -77,6 +99,18 @@ export default function FestivalMap() {
     () => [...LARGADA_RECINTO_LATLNGS, ...ENTRADA_ROUTE],
     []
   )
+  const [places, setPlaces] = useState(() => visibleMapPlaces())
+
+  useEffect(() => {
+    let cancelled = false
+    loadVisibleMapPlaces().then((res) => {
+      if (cancelled) return
+      setPlaces(res.places)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -110,29 +144,37 @@ export default function FestivalMap() {
           </div>
           <h1 className="font-display text-2xl font-bold">{m.title}</h1>
           <p className="mt-1 text-sm text-white/80">{m.subtitle}</p>
-          <ul className="mt-3 flex flex-wrap gap-3 text-[0.7rem] font-semibold uppercase tracking-wide text-white/85">
-            <li className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-tejo" /> {m.legendStage}
+          <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-white/90">
+            <li className="inline-flex items-center gap-2">
+              <LegendPin kind="palco" /> {m.legendStage}
             </li>
-            <li className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-barrete-light" /> {m.legendPlace}
+            <li className="inline-flex items-center gap-2">
+              <LegendPin kind="local" /> {m.legendPlace}
             </li>
-            <li className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-vermelho" /> {m.legendBulls}
+            <li className="inline-flex items-center gap-2">
+              <LegendPin kind="toiros" /> {m.legendBulls}
             </li>
-            <li className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-sm bg-vermelho/50 ring-1 ring-vermelho" />{' '}
-              {m.legendRecinto}
+            <li className="inline-flex items-center gap-2">
+              <LegendRecinto /> {m.legendRecinto}
             </li>
-            <li className="inline-flex items-center gap-1.5">
-              <span className="h-0.5 w-4 rounded-full bg-vermelho" /> {m.legendRoute}
+            <li className="inline-flex items-center gap-2">
+              <LegendRoute /> {m.legendRoute}
             </li>
-            <li className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-dourado" /> {m.legendFair}
+            <li className="inline-flex items-center gap-2">
+              <LegendPin kind="feira" /> {m.legendFair}
             </li>
-            <li className="inline-flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#5B7C8A]" /> {m.legendWc}
+            <li className="inline-flex items-center gap-2">
+              <LegendPin kind="wc" /> {m.legendWc}
             </li>
+            <li className="inline-flex items-center gap-2">
+              <LegendPin kind="estacionamentoPublico" /> {m.legendParkingPublic}
+            </li>
+            {MAP_SHOW_PRIVATE_PARKING ? (
+              <li className="inline-flex items-center gap-2">
+                <LegendPin kind="estacionamentoPrivado" />{' '}
+                {m.legendParkingPrivate}
+              </li>
+            ) : null}
           </ul>
         </div>
       </header>
@@ -164,7 +206,7 @@ export default function FestivalMap() {
             </button>
           </div>
 
-          <LiveBullBanner labels={m} liveTitle={live.liveTitle} />
+          <LiveNowBanners labels={m} items={live.liveNow} />
 
           <MapContainer
             center={MAP_CENTER}
@@ -173,16 +215,40 @@ export default function FestivalMap() {
             scrollWheelZoom
           >
             <TileLayer
-              key={basemap}
+              key={active.url}
               url={active.url}
               attribution={active.attribution}
               maxZoom={active.maxZoom ?? 19}
+              {...(active.subdomains ? { subdomains: active.subdomains } : {})}
               {...(active.tileSize
                 ? { tileSize: active.tileSize, zoomOffset: active.zoomOffset ?? 0 }
                 : {})}
             />
-            <FitBounds places={MAP_PLACES} extraLatLngs={fitExtra} />
+            <FitBounds places={places} extraLatLngs={fitExtra} />
+            <LocateMeControl labels={m} />
             <LiveBullLayer labels={m} live={live} />
+            <Polyline
+              positions={ENTRADA_ROUTE}
+              pathOptions={{
+                color: '#C0392B',
+                weight: 2.5,
+                opacity: 0.45,
+                dashArray: '5 9',
+                lineCap: 'round',
+                lineJoin: 'round',
+              }}
+            >
+              <Popup>
+                <div className="min-w-[10rem] space-y-1 text-sm">
+                  <strong className="block text-ink">
+                    {m.routeEntradaTitle || m.legendRoute}
+                  </strong>
+                  <p className="text-xs leading-relaxed text-ink/65">
+                    {m.routeEntradaHint}
+                  </p>
+                </div>
+              </Popup>
+            </Polyline>
             {LARGADA_RECINTOS.map((zone) => (
               <Polygon
                 key={zone.id}
@@ -207,8 +273,19 @@ export default function FestivalMap() {
                 </Popup>
               </Polygon>
             ))}
-            {MAP_PLACES.map((p) => (
-              <Marker key={p.id} position={[p.lat, p.lng]} icon={pinIcon(p.kind)}>
+            {places.map((p) => {
+              const isParking =
+                p.kind === 'estacionamento' ||
+                p.kind === 'estacionamentoPublico' ||
+                p.kind === 'estacionamentoPrivado'
+              const directionsUrl = isParking
+                ? mapsDriveToUrl(p.lat, p.lng)
+                : mapsWalkToUrl(p.lat, p.lng)
+              const directionsLabel = isParking
+                ? m.goThereDrive || 'Conduzir até (Google Maps)'
+                : m.goThere
+              return (
+              <Marker key={p.id} position={[p.lat, p.lng]} icon={pinIconForPlace(p)}>
                 <Popup>
                   <div className="min-w-[10rem] space-y-2 text-sm">
                     <strong className="block text-ink">
@@ -216,14 +293,18 @@ export default function FestivalMap() {
                     </strong>
                     <div className="flex flex-col gap-1.5">
                       <a
-                        href={mapsWalkToUrl(p.lat, p.lng)}
+                        href={directionsUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        onClick={() => track('map_walk', { place_id: p.id })}
+                        onClick={() =>
+                          track(isParking ? 'map_drive' : 'map_walk', {
+                            place_id: p.id,
+                          })
+                        }
                         className="inline-flex items-center gap-1 font-semibold text-barrete underline-offset-2 hover:underline"
                       >
                         <Navigation className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        {m.goThere}
+                        {directionsLabel}
                       </a>
                       {p.matchTerms?.length ? (
                         <Link
@@ -238,7 +319,8 @@ export default function FestivalMap() {
                   </div>
                 </Popup>
               </Marker>
-            ))}
+              )
+            })}
           </MapContainer>
         </div>
         <p className="px-4 pt-3 text-center text-xs text-ink/50 sm:px-0">{m.hint}</p>

@@ -4,7 +4,10 @@ import { Download, Share, X } from 'lucide-react'
 import { useLang } from '../context/LangContext'
 import { track } from '../lib/analytics'
 
-const STORAGE_KEY = 'fbv-install-dismissed'
+/** Só para esta visita no browser — na próxima visita (sem instalar) volta a mostrar. */
+export const INSTALL_DISMISS_KEY = 'fbv-install-dismissed'
+/** NotifyPrompt espera por isto antes de aparecer (no telemóvel). */
+export const INSTALL_SETTLED_EVENT = 'fbv-install-settled'
 const SHOW_DELAY_MS = 2500
 
 function isStandalone() {
@@ -25,12 +28,41 @@ function isAndroid() {
   return /Android/i.test(navigator.userAgent || '')
 }
 
-function wasDismissed() {
+function wasDismissedThisVisit() {
   try {
-    return localStorage.getItem(STORAGE_KEY) === '1'
+    return sessionStorage.getItem(INSTALL_DISMISS_KEY) === '1'
   } catch {
     return false
   }
+}
+
+function markDismissedThisVisit() {
+  try {
+    sessionStorage.setItem(INSTALL_DISMISS_KEY, '1')
+  } catch {
+    /* ignore */
+  }
+  try {
+    localStorage.removeItem(INSTALL_DISMISS_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+function emitInstallSettled() {
+  try {
+    window.dispatchEvent(new CustomEvent(INSTALL_SETTLED_EVENT))
+  } catch {
+    /* ignore */
+  }
+}
+
+/** No telemóvel o install sai primeiro; no desktop não bloqueamos o notify. */
+export function installBlocksNotify() {
+  if (typeof window === 'undefined') return false
+  if (isStandalone()) return false
+  if (wasDismissedThisVisit()) return false
+  return isIos() || isAndroid()
 }
 
 export default function InstallPrompt() {
@@ -43,8 +75,20 @@ export default function InstallPrompt() {
   const readyRef = useRef(false)
 
   useEffect(() => {
-    if (pathname.startsWith('/admin') || isStandalone() || wasDismissed()) {
+    try {
+      localStorage.removeItem(INSTALL_DISMISS_KEY)
+    } catch {
+      /* ignore */
+    }
+
+    if (pathname.startsWith('/admin')) {
       setVisible(false)
+      return
+    }
+
+    if (isStandalone() || wasDismissedThisVisit()) {
+      setVisible(false)
+      emitInstallSettled()
       return
     }
 
@@ -52,6 +96,11 @@ export default function InstallPrompt() {
     const android = isAndroid()
     setIosMode(ios)
     setAndroidMode(android)
+
+    // Desktop / sem ritual mobile: não bloquear o notify
+    if (!ios && !android) {
+      emitInstallSettled()
+    }
 
     const onBeforeInstall = (e) => {
       e.preventDefault()
@@ -63,7 +112,6 @@ export default function InstallPrompt() {
 
     const timer = window.setTimeout(() => {
       readyRef.current = true
-      // iOS e Android: mostrar sempre o ritual (no Android + botão Chrome se existir)
       if (ios || android) setVisible(true)
       setDeferredPrompt((current) => {
         if (current) setVisible(true)
@@ -93,11 +141,8 @@ export default function InstallPrompt() {
   const dismiss = () => {
     setVisible(false)
     track('install_prompt_dismiss')
-    try {
-      localStorage.setItem(STORAGE_KEY, '1')
-    } catch {
-      /* ignore */
-    }
+    markDismissedThisVisit()
+    emitInstallSettled()
   }
 
   const install = async () => {
@@ -111,11 +156,8 @@ export default function InstallPrompt() {
     }
     setDeferredPrompt(null)
     setVisible(false)
-    try {
-      localStorage.setItem(STORAGE_KEY, '1')
-    } catch {
-      /* ignore */
-    }
+    markDismissedThisVisit()
+    emitInstallSettled()
   }
 
   const copy = t.install
@@ -153,12 +195,13 @@ export default function InstallPrompt() {
                 />{' '}
                 {copy.iosSuffix}
               </>
-            ) : (
+            ) : deferredPrompt ? (
               copy.androidRitual
+            ) : (
+              copy.androidManual
             )}
           </p>
 
-          {/* Chrome: botão nativo Instalar, além do ritual ⋮ */}
           {!iosMode && deferredPrompt ? (
             <button
               type="button"
