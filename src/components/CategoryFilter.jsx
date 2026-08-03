@@ -3,14 +3,8 @@ import { useLang } from '../context/LangContext'
 
 export default function CategoryFilter({ selected, onSelect, available }) {
   const { t } = useLang()
-  const cats =
-    available === undefined
-      ? CATEGORIES
-      : CATEGORIES.filter((c) => available.includes(c))
-
-  if (available !== undefined && cats.length === 0) {
-    return null
-  }
+  const availableSet =
+    available === undefined ? null : new Set(available || [])
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-4 sm:px-6">
@@ -23,33 +17,51 @@ export default function CategoryFilter({ selected, onSelect, available }) {
           onClick={() => onSelect(null)}
           className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${
             selected === null
-              ? 'bg-barrete text-white'
+              ? 'bg-barrete text-white shadow-sm'
               : 'bg-white text-ink/70 shadow-sm hover:bg-barrete/5'
           }`}
         >
           {t.filterAll}
         </button>
-        {cats.map((cat) => {
+        {CATEGORIES.map((cat) => {
           const colors = CATEGORY_COLORS[cat]
           const active = selected === cat
+          const enabled = availableSet == null || availableSet.has(cat)
           return (
             <button
               key={cat}
               type="button"
-              onClick={() => onSelect(active ? null : cat)}
-              className="rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-200"
+              disabled={!enabled}
+              title={
+                enabled
+                  ? undefined
+                  : t.categoryEmptyDay || 'Sem eventos neste dia'
+              }
+              onClick={() => {
+                if (!enabled) return
+                onSelect(active ? null : cat)
+              }}
+              className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-200 ${
+                enabled ? '' : 'cursor-not-allowed opacity-35'
+              }`}
               style={
-                active
+                !enabled
                   ? {
-                      backgroundColor: colors.border,
-                      color: '#fff',
-                      borderColor: colors.border,
-                    }
-                  : {
-                      backgroundColor: colors.bg,
-                      color: colors.text,
+                      backgroundColor: '#F3F1EC',
+                      color: '#8A857C',
                       borderColor: 'transparent',
                     }
+                  : active
+                    ? {
+                        backgroundColor: colors.border,
+                        color: '#fff',
+                        borderColor: colors.border,
+                      }
+                    : {
+                        backgroundColor: colors.bg,
+                        color: colors.text,
+                        borderColor: 'transparent',
+                      }
               }
             >
               {t.categories[cat]}
