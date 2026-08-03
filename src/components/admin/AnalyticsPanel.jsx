@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Download, Loader2, RefreshCw } from 'lucide-react'
+import { Download, FileText, Loader2, RefreshCw } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { MAP_PLACES } from '../../data/mapPlaces'
 import { buildAnalyticsCsv, downloadCsv } from '../../lib/analyticsExport'
+import { clampFestivalDay } from '../../lib/analyticsReport'
+import AnalyticsReportModal from './AnalyticsReportModal'
 
 function formatDay(iso) {
   if (!iso) return '—'
@@ -167,6 +169,7 @@ export default function AnalyticsPanel({ t, events = [] }) {
   const [dayFilterBlocked, setDayFilterBlocked] = useState(false)
   /** Chips de dias do modo geral (mantém-se ao filtrar um dia). */
   const [periodDayChips, setPeriodDayChips] = useState([])
+  const [reportOpen, setReportOpen] = useState(false)
 
   const filterDay = useMemo(() => {
     if (scope === 'today') return lisbonTodayISO()
@@ -335,6 +338,15 @@ export default function AnalyticsPanel({ t, events = [] }) {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
+            onClick={() => setReportOpen(true)}
+            disabled={!data && loading}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-barrete px-3 py-2 text-sm font-semibold text-white hover:bg-barrete-light disabled:opacity-50"
+          >
+            <FileText className="h-4 w-4" />
+            {a.reportGenerate || 'Gerar relatório'}
+          </button>
+          <button
+            type="button"
             onClick={exportCsv}
             disabled={!data || loading}
             className="inline-flex items-center gap-1.5 rounded-xl bg-dourado/90 px-3 py-2 text-sm font-bold text-ink hover:brightness-105 disabled:opacity-50"
@@ -353,6 +365,46 @@ export default function AnalyticsPanel({ t, events = [] }) {
           </button>
         </div>
       </div>
+
+      {reportOpen ? (
+        <AnalyticsReportModal
+          open={reportOpen}
+          onClose={() => setReportOpen(false)}
+          a={a}
+          t={t}
+          eventLabel={eventLabel}
+          defaultDay={clampFestivalDay(filterDay)}
+        />
+      ) : null}
+
+      {data?.launch_at ? (
+        <div className="rounded-xl bg-barrete/5 px-4 py-3 text-sm text-ink/75 ring-1 ring-barrete/10">
+          <p className="font-semibold text-barrete">
+            {a.launchTitle || 'Lançamento oficial'}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed">
+            {(a.launchBody ||
+              'Telemetria de teste mantém-se na base; o painel conta só a partir de {when}. Push, feedback e negócios continuam totais operacionais.')
+              .replace(
+                '{when}',
+                (() => {
+                  try {
+                    return new Date(data.launch_at).toLocaleString('pt-PT', {
+                      timeZone: 'Europe/Lisbon',
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  } catch {
+                    return '3 Ago 2026, 16:00'
+                  }
+                })(),
+              )}
+          </p>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-2 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-barrete/5">
         <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-ink/40">

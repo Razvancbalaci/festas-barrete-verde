@@ -95,12 +95,20 @@ grant execute on function public.record_analytics_event(text, jsonb, text) to an
 
 -- Resumo para o painel admin (só utilizadores autenticados)
 -- p_day: se definido (data Lisboa), filtra só esse dia; senão usa os últimos p_days.
+-- p_from/p_until: intervalo inclusivo (Lisboa) para relatório final da edição.
+-- p_include_prelaunch: true = ler só o histórico antes do lançamento oficial (sem floor).
+-- Lançamento oficial: 2026-08-03 16:00 Europe/Lisbon (soft cutoff; linhas antigas mantêm-se).
 drop function if exists public.get_analytics_dashboard(int);
 drop function if exists public.get_analytics_dashboard(int, date);
+drop function if exists public.get_analytics_dashboard(int, date, date, date);
+drop function if exists public.get_analytics_dashboard(int, date, date, date, boolean);
 
 create or replace function public.get_analytics_dashboard(
   p_days int default 14,
-  p_day date default null
+  p_day date default null,
+  p_from date default null,
+  p_until date default null,
+  p_include_prelaunch boolean default false
 )
 returns jsonb
 language plpgsql
@@ -113,6 +121,8 @@ declare
   hour_day date;
   hour_since timestamptz;
   hour_until timestamptz;
+  launch_at timestamptz;
+  summary_floor timestamptz;
   result jsonb;
   today_lisbon date;
   yesterday_lisbon date;
@@ -134,6 +144,9 @@ begin
     raise exception 'forbidden';
   end if;
 
+  -- Soft cutoff: telemetria de teste fica na tabela mas o painel oficial começa aqui.
+  launch_at := ('2026-08-03 16:00:00'::timestamp without time zone at time zone 'Europe/Lisbon');
+
   p_days := greatest(1, least(coalesce(p_days, 14), 90));
   today_lisbon := (now() at time zone 'Europe/Lisbon')::date;
   yesterday_lisbon := today_lisbon - 1;
@@ -141,15 +154,36 @@ begin
   if p_day is not null then
     since := (p_day::timestamp without time zone at time zone 'Europe/Lisbon');
     until_ts := since + interval '1 day';
+  elsif p_from is not null then
+    -- Intervalo inclusivo [p_from, p_until] em hora de Lisboa
+    since := (p_from::timestamp without time zone at time zone 'Europe/Lisbon');
+    until_ts := (
+      (coalesce(p_until, p_from) + 1)::timestamp without time zone
+      at time zone 'Europe/Lisbon'
+    );
   else
     since := now() - (p_days || ' days')::interval;
     until_ts := 'infinity'::timestamptz;
   end if;
 
+  if coalesce(p_include_prelaunch, false) then
+    -- Arquivo pré-lançamento: nunca misturar com dados oficiais pós-16h
+    until_ts := least(until_ts, launch_at);
+    summary_floor := '-infinity'::timestamptz;
+  else
+    since := greatest(since, launch_at);
+    summary_floor := launch_at;
+  end if;
+
   -- Visitas por hora: sempre um dia concreto (o filtro, ou hoje no modo geral)
-  hour_day := coalesce(p_day, today_lisbon);
+  hour_day := coalesce(p_day, case when p_from is not null and p_from = coalesce(p_until, p_from) then p_from else null end, today_lisbon);
   hour_since := (hour_day::timestamp without time zone at time zone 'Europe/Lisbon');
   hour_until := hour_since + interval '1 day';
+  if coalesce(p_include_prelaunch, false) then
+    hour_until := least(hour_until, launch_at);
+  else
+    hour_since := greatest(hour_since, launch_at);
+  end if;
 
   select count(*)::int into push_total from push_subscriptions;
 
@@ -204,6 +238,10 @@ begin
   select jsonb_build_object(
     'days', p_days,
     'filter_day', p_day,
+    'filter_from', p_from,
+    'filter_until', p_until,
+    'include_prelaunch', coalesce(p_include_prelaunch, false),
+    'launch_at', launch_at,
     'visits_by_hour_day', hour_day,
     'since', since,
     'until', until_ts,
@@ -499,32 +537,38 @@ begin
         'sessions', (
           select count(distinct session_id) from analytics_events
           where event_name = 'page_view'
+            and created_at >= summary_floor
             and (created_at at time zone 'Europe/Lisbon')::date = today_lisbon
         ),
         'page_views', (
           select count(*) from analytics_events
           where event_name = 'page_view'
+            and created_at >= summary_floor
             and (created_at at time zone 'Europe/Lisbon')::date = today_lisbon
         ),
         'pwa_sessions', (
           select count(distinct session_id) from analytics_events
           where event_name = 'page_view'
+            and created_at >= summary_floor
             and (created_at at time zone 'Europe/Lisbon')::date = today_lisbon
             and coalesce(payload->>'standalone', 'false') = 'true'
         ),
         'reminders_set', (
           select count(*) from analytics_events
           where event_name = 'reminder_set'
+            and created_at >= summary_floor
             and (created_at at time zone 'Europe/Lisbon')::date = today_lisbon
         ),
         'shares', (
           select count(*) from analytics_events
           where event_name = 'share'
+            and created_at >= summary_floor
             and (created_at at time zone 'Europe/Lisbon')::date = today_lisbon
         ),
         'push_enables', (
           select count(*) from analytics_events
           where event_name = 'push_prompt_enable'
+            and created_at >= summary_floor
             and (created_at at time zone 'Europe/Lisbon')::date = today_lisbon
         )
       ),
@@ -533,32 +577,38 @@ begin
         'sessions', (
           select count(distinct session_id) from analytics_events
           where event_name = 'page_view'
+            and created_at >= summary_floor
             and (created_at at time zone 'Europe/Lisbon')::date = yesterday_lisbon
         ),
         'page_views', (
           select count(*) from analytics_events
           where event_name = 'page_view'
+            and created_at >= summary_floor
             and (created_at at time zone 'Europe/Lisbon')::date = yesterday_lisbon
         ),
         'pwa_sessions', (
           select count(distinct session_id) from analytics_events
           where event_name = 'page_view'
+            and created_at >= summary_floor
             and (created_at at time zone 'Europe/Lisbon')::date = yesterday_lisbon
             and coalesce(payload->>'standalone', 'false') = 'true'
         ),
         'reminders_set', (
           select count(*) from analytics_events
           where event_name = 'reminder_set'
+            and created_at >= summary_floor
             and (created_at at time zone 'Europe/Lisbon')::date = yesterday_lisbon
         ),
         'shares', (
           select count(*) from analytics_events
           where event_name = 'share'
+            and created_at >= summary_floor
             and (created_at at time zone 'Europe/Lisbon')::date = yesterday_lisbon
         ),
         'push_enables', (
           select count(*) from analytics_events
           where event_name = 'push_prompt_enable'
+            and created_at >= summary_floor
             and (created_at at time zone 'Europe/Lisbon')::date = yesterday_lisbon
         )
       )
@@ -582,5 +632,5 @@ begin
 end;
 $$;
 
-revoke all on function public.get_analytics_dashboard(int, date) from public;
-grant execute on function public.get_analytics_dashboard(int, date) to authenticated;
+revoke all on function public.get_analytics_dashboard(int, date, date, date, boolean) from public;
+grant execute on function public.get_analytics_dashboard(int, date, date, date, boolean) to authenticated;
