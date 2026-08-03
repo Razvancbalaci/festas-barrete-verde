@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { MapPin, Search, Star, X } from 'lucide-react'
+import { ChevronDown, Filter, MapPin, Search, Star, X } from 'lucide-react'
 import { FESTIVAL_DAYS, programDayIso } from '../data/days'
 import {
   eventMatchesPlace,
@@ -62,6 +62,7 @@ export default function PublicProgram() {
   const [eventDiaResolved, setEventDiaResolved] = useState(
     () => !(paramEvento && !paramDia)
   )
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const fetchGen = useRef(0)
 
   const needsEventDayResolve = Boolean(
@@ -309,6 +310,10 @@ export default function PublicProgram() {
     category || favoritesOnly || query.trim() || showNow || placeFilter
   )
 
+  const panelFilterCount = [category, showNow, favoritesOnly].filter(
+    Boolean
+  ).length
+
   const placeLabel = placeFilter
     ? t.map?.places?.[placeFilter.nameKey] || placeFilter.name
     : null
@@ -321,106 +326,161 @@ export default function PublicProgram() {
         onSelect={selectDay}
       />
       <div className="border-b border-barrete/10 bg-creme/80">
-        <div className="mx-auto flex max-w-3xl flex-col gap-2.5 px-4 pb-3 pt-4 sm:px-6">
-          <CategoryFilter
-            selected={category}
-            available={categoriesInDay}
-            onSelect={(cat) => {
-              track('filter_category', { category: cat || 'all' })
-              setCategory(cat)
-            }}
-          />
-          <label className="relative block">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35"
-              aria-hidden
-            />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => {
-                const value = e.target.value
-                setQuery(value)
-                if (value.trim().length === 1) track('search')
-              }}
-              placeholder={t.searchPlaceholder}
-              className="w-full rounded-xl border-0 bg-white py-2.5 pl-9 pr-3 text-sm text-ink shadow-sm ring-1 ring-barrete/10 placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-barrete/30"
-            />
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {todayInFestival ? (
-              <button
-                type="button"
-                onClick={goToday}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                  selectedDate === todayIso &&
-                  !showNow &&
-                  !favoritesOnly &&
-                  !placeFilter
-                    ? 'bg-barrete text-white'
-                    : 'bg-white text-ink/70 ring-1 ring-barrete/10 hover:bg-barrete/5'
+        <div className="mx-auto flex max-w-3xl flex-col gap-2 px-4 py-2.5 sm:px-6">
+          <div className="flex items-center gap-2">
+            <label className="relative min-w-0 flex-1">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35"
+                aria-hidden
+              />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setQuery(value)
+                  if (value.trim().length === 1) track('search')
+                }}
+                placeholder={t.searchPlaceholder}
+                className="w-full rounded-xl border-0 bg-white py-2.5 pl-9 pr-3 text-sm text-ink shadow-sm ring-1 ring-barrete/10 placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-barrete/30"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((v) => !v)}
+              aria-expanded={filtersOpen}
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-semibold shadow-sm transition ${
+                panelFilterCount > 0 || filtersOpen
+                  ? 'bg-barrete text-white'
+                  : 'bg-white text-ink/80 ring-1 ring-barrete/10'
+              }`}
+            >
+              <Filter className="h-4 w-4" aria-hidden />
+              {t.filtersOpen}
+              {panelFilterCount > 0 ? (
+                <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[0.7rem] tabular-nums">
+                  {panelFilterCount}
+                </span>
+              ) : (
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform duration-200 ${
+                    filtersOpen ? 'rotate-180' : ''
+                  }`}
+                  aria-hidden
+                />
+              )}
+            </button>
+          </div>
+
+          {placeFilter && !filtersOpen ? (
+            <button
+              type="button"
+              onClick={clearPlaceFilter}
+              className="inline-flex w-fit max-w-full items-center gap-1 truncate rounded-full bg-tejo/15 px-3 py-1.5 text-xs font-semibold text-tejo ring-1 ring-tejo/20"
+            >
+              <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="truncate">{placeLabel}</span>
+              <X className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="sr-only">{t.placeFilterClear}</span>
+            </button>
+          ) : null}
+
+          <div
+            className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+              filtersOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+            }`}
+          >
+            <div className="min-h-0 overflow-hidden">
+              <div
+                className={`flex flex-col gap-2.5 pt-1 transition-opacity duration-200 ${
+                  filtersOpen ? 'opacity-100' : 'opacity-0'
                 }`}
               >
-                {t.today}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => {
-                if (showNow) {
-                  setShowNow(false)
-                  setHighlightId(null)
-                } else {
-                  goNow()
-                }
-              }}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                showNow
-                  ? 'bg-vermelho text-white'
-                  : 'bg-white text-ink/70 ring-1 ring-barrete/10 hover:bg-barrete/5'
-              }`}
-            >
-              {t.now}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                const enabling = !favoritesOnly
-                if (enabling) track('filter_favorites')
-                setFavoritesOnly((v) => !v)
-                setShowNow(false)
-                setHighlightId(null)
-                if (!favoritesOnly) clearPlaceFilter()
-              }}
-              className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                favoritesOnly
-                  ? 'bg-dourado text-ink'
-                  : 'bg-white text-ink/70 ring-1 ring-barrete/10 hover:bg-barrete/5'
-              }`}
-            >
-              <Star className="h-3.5 w-3.5" aria-hidden />
-              {t.favoritesOnly}
-              {favCount > 0 ? (
-                <span className="tabular-nums opacity-80">({favCount})</span>
-              ) : null}
-            </button>
-            {placeFilter ? (
-              <button
-                type="button"
-                onClick={clearPlaceFilter}
-                className="inline-flex items-center gap-1 rounded-full bg-tejo/15 px-3 py-1.5 text-xs font-semibold text-tejo ring-1 ring-tejo/20"
-              >
-                <MapPin className="h-3.5 w-3.5" aria-hidden />
-                {placeLabel}
-                <X className="h-3.5 w-3.5" aria-hidden />
-                <span className="sr-only">{t.placeFilterClear}</span>
-              </button>
-            ) : null}
+                <CategoryFilter
+                  selected={category}
+                  available={categoriesInDay}
+                  onSelect={(cat) => {
+                    track('filter_category', { category: cat || 'all' })
+                    setCategory(cat)
+                  }}
+                />
+                <div className="flex flex-wrap gap-2">
+                  {todayInFestival ? (
+                    <button
+                      type="button"
+                      onClick={goToday}
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                        selectedDate === todayIso &&
+                        !showNow &&
+                        !favoritesOnly &&
+                        !placeFilter
+                          ? 'bg-barrete text-white'
+                          : 'bg-white text-ink/70 ring-1 ring-barrete/10 hover:bg-barrete/5'
+                      }`}
+                    >
+                      {t.today}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (showNow) {
+                        setShowNow(false)
+                        setHighlightId(null)
+                      } else {
+                        goNow()
+                      }
+                    }}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                      showNow
+                        ? 'bg-vermelho text-white'
+                        : 'bg-white text-ink/70 ring-1 ring-barrete/10 hover:bg-barrete/5'
+                    }`}
+                  >
+                    {t.now}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const enabling = !favoritesOnly
+                      if (enabling) track('filter_favorites')
+                      setFavoritesOnly((v) => !v)
+                      setShowNow(false)
+                      setHighlightId(null)
+                      if (!favoritesOnly) clearPlaceFilter()
+                    }}
+                    className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                      favoritesOnly
+                        ? 'bg-dourado text-ink'
+                        : 'bg-white text-ink/70 ring-1 ring-barrete/10 hover:bg-barrete/5'
+                    }`}
+                  >
+                    <Star className="h-3.5 w-3.5" aria-hidden />
+                    {t.favoritesOnly}
+                    {favCount > 0 ? (
+                      <span className="tabular-nums opacity-80">({favCount})</span>
+                    ) : null}
+                  </button>
+                  {placeFilter ? (
+                    <button
+                      type="button"
+                      onClick={clearPlaceFilter}
+                      className="inline-flex items-center gap-1 rounded-full bg-tejo/15 px-3 py-1.5 text-xs font-semibold text-tejo ring-1 ring-tejo/20"
+                    >
+                      <MapPin className="h-3.5 w-3.5" aria-hidden />
+                      {placeLabel}
+                      <X className="h-3.5 w-3.5" aria-hidden />
+                      <span className="sr-only">{t.placeFilterClear}</span>
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-5 sm:px-6">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-4 sm:px-6 sm:py-5">
         {favoritesOnly ? (
           <h2 className="mb-4 font-display text-lg font-semibold text-barrete sm:text-xl">
             {t.favoritesOnly}

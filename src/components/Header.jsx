@@ -1,10 +1,78 @@
-import { Contrast } from 'lucide-react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { Contrast, Globe } from 'lucide-react'
 import { LANGS } from '../data/i18n'
 import { useLang } from '../context/LangContext'
 import { useA11y } from '../context/A11yContext'
 
-export default function Header() {
+function LangGlobe() {
   const { lang, setLang, t } = useLang()
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef(null)
+  const menuId = useId()
+  const current = LANGS.find((l) => l.code === lang) || LANGS[0]
+
+  useEffect(() => {
+    if (!open) return
+    const onPointer = (e) => {
+      if (!rootRef.current?.contains(e.target)) setOpen(false)
+    }
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointer)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onPointer)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-controls={menuId}
+        aria-label={t.langMenu || 'Language'}
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1.5 text-xs font-semibold text-white/90 backdrop-blur-sm transition hover:bg-white/25"
+      >
+        <Globe className="h-3.5 w-3.5" aria-hidden />
+        <span className="tracking-wide">{current.label}</span>
+      </button>
+      {open ? (
+        <ul
+          id={menuId}
+          role="listbox"
+          className="absolute right-0 z-30 mt-1.5 min-w-[7.5rem] overflow-hidden rounded-xl bg-white py-1 shadow-lg ring-1 ring-barrete/10"
+        >
+          {LANGS.map(({ code, label }) => (
+            <li key={code} role="option" aria-selected={lang === code}>
+              <button
+                type="button"
+                onClick={() => {
+                  setLang(code)
+                  setOpen(false)
+                }}
+                className={`flex w-full px-3 py-2 text-left text-sm font-semibold transition ${
+                  lang === code
+                    ? 'bg-barrete/10 text-barrete'
+                    : 'text-ink/80 hover:bg-barrete/5'
+                }`}
+              >
+                {label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  )
+}
+
+export default function Header() {
+  const { t } = useLang()
   const { a11y, toggleA11y } = useA11y()
 
   return (
@@ -28,12 +96,12 @@ export default function Header() {
         }}
       />
 
-      <div className="relative mx-auto max-w-3xl px-4 pb-8 pt-5 sm:px-6">
-        <div className="mb-6 flex flex-wrap items-center justify-end gap-2">
+      <div className="relative mx-auto max-w-3xl px-4 pb-4 pt-3 sm:px-6 sm:pb-5 sm:pt-4">
+        <div className="mb-3 flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={toggleA11y}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold transition ${
               a11y
                 ? 'bg-dourado text-ink shadow-sm'
                 : 'bg-white/15 text-white/90 backdrop-blur-sm hover:bg-white/25'
@@ -44,47 +112,25 @@ export default function Header() {
             <Contrast className="h-3.5 w-3.5" aria-hidden />
             {a11y ? t.a11yShortOn : t.a11yShort}
           </button>
-          <div
-            className="inline-flex rounded-full bg-white/15 p-1 backdrop-blur-sm"
-            role="group"
-            aria-label="Language"
-          >
-            {LANGS.map(({ code, label }) => (
-              <button
-                key={code}
-                type="button"
-                onClick={() => setLang(code)}
-                className={`rounded-full px-2.5 py-1.5 text-xs font-semibold tracking-wide transition-all duration-200 sm:px-3 ${
-                  lang === code
-                    ? 'bg-white text-barrete shadow-sm'
-                    : 'text-white/85 hover:text-white'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <LangGlobe />
         </div>
 
         <div className="animate-fade-up text-center">
           <img
             src="/mark.svg"
             alt=""
-            width={72}
-            height={72}
-            className="mx-auto mb-4 h-[4.5rem] w-[4.5rem] rounded-2xl shadow-lg shadow-black/20 ring-2 ring-dourado/40"
+            width={52}
+            height={52}
+            className="mx-auto mb-2 h-12 w-12 rounded-xl shadow-md shadow-black/20 ring-2 ring-dourado/40 sm:h-14 sm:w-14"
             decoding="async"
           />
-          <p className="mb-2 text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-dourado">
-            Alcochete · 2026
-          </p>
-          <h1 className="font-display text-[1.65rem] font-bold leading-tight text-white sm:text-3xl md:text-4xl">
+          <h1 className="font-display text-[1.35rem] font-bold leading-tight text-white sm:text-2xl md:text-3xl">
             {t.title}
           </h1>
-          <p className="mt-3 text-sm font-medium text-white/85 sm:text-base">
+          <p className="mt-1.5 text-xs font-medium text-white/85 sm:text-sm">
             {t.subtitle}
           </p>
-          <div className="mx-auto mt-5 h-1 w-16 rounded-full bg-dourado" />
+          <div className="mx-auto mt-3 h-0.5 w-12 rounded-full bg-dourado" />
         </div>
       </div>
     </header>

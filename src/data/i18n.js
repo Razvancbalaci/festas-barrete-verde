@@ -4,6 +4,8 @@ export const translations = {
     subtitle: 'Alcochete · 7 a 13 de Agosto 2026',
     filterAll: 'Todas',
     filterCategory: 'Filtrar por categoria',
+    filtersOpen: 'Filtrar',
+    langMenu: 'Idioma',
     loading: 'A carregar o programa…',
     noEvents: 'Ainda não há eventos neste dia.',
     noEventsFilter: 'Nenhum evento nesta categoria.',
