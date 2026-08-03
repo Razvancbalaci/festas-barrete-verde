@@ -320,17 +320,16 @@ export default function PublicProgram() {
         selectedDate={placeFilter || favoritesOnly ? null : selectedDate}
         onSelect={selectDay}
       />
-      <CategoryFilter
-        selected={category}
-        available={categoriesInDay}
-        onSelect={(cat) => {
-          track('filter_category', { category: cat || 'all' })
-          setCategory(cat)
-        }}
-      />
-
       <div className="border-b border-barrete/10 bg-creme/80">
-        <div className="mx-auto flex max-w-3xl flex-col gap-2.5 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-3xl flex-col gap-2.5 px-4 pb-3 pt-4 sm:px-6">
+          <CategoryFilter
+            selected={category}
+            available={categoriesInDay}
+            onSelect={(cat) => {
+              track('filter_category', { category: cat || 'all' })
+              setCategory(cat)
+            }}
+          />
           <label className="relative block">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35"
