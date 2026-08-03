@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
-import { Loader2 } from 'lucide-react'
 import { FESTIVAL_DAYS } from '../data/days'
 import { useLang } from '../context/LangContext'
 import EventCard from './EventCard'
+import { EventListSkeleton } from './ProgramSkeleton'
 
 function groupEventsByDay(events) {
   const order = FESTIVAL_DAYS.map((d) => d.date)
@@ -48,9 +48,9 @@ export default function EventList({
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-16 text-barrete/70">
-        <Loader2 className="h-8 w-8 animate-spin" aria-hidden />
-        <p className="text-sm font-medium">{t.loading}</p>
+      <div role="status" aria-live="polite" aria-busy="true">
+        <span className="sr-only">{t.loading}</span>
+        <EventListSkeleton count={3} />
       </div>
     )
   }
@@ -74,7 +74,7 @@ export default function EventList({
   if (groups) {
     let cardIndex = 0
     return (
-      <div className="flex flex-col gap-7">
+      <div className="animate-fade-in flex flex-col gap-7">
         {groups.map(({ date, meta, events: dayEvents }) => {
           const label = meta
             ? `${t.weekdaysFull[meta.weekdayKey]} ${meta.dayNum}`
@@ -114,7 +114,7 @@ export default function EventList({
   }
 
   return (
-    <ul className="flex flex-col gap-3">
+    <ul className="animate-fade-in flex flex-col gap-3">
       {events.map((event, i) => (
         <li key={event.id} id={`evento-${event.id}`}>
           <EventCard

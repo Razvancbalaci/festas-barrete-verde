@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { Contrast, Globe } from 'lucide-react'
+import { Check, Contrast, Globe } from 'lucide-react'
 import { LANGS } from '../data/i18n'
 import { useLang } from '../context/LangContext'
 import { useA11y } from '../context/A11yContext'
@@ -55,13 +55,18 @@ function LangGlobe() {
                   setLang(code)
                   setOpen(false)
                 }}
-                className={`flex w-full px-3 py-2 text-left text-sm font-semibold transition ${
+                className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition ${
                   lang === code
-                    ? 'bg-barrete/10 text-barrete'
-                    : 'text-ink/80 hover:bg-barrete/5'
+                    ? 'bg-barrete/10 font-bold text-barrete'
+                    : 'font-medium text-ink/80 hover:bg-barrete/5'
                 }`}
               >
-                {label}
+                <span>{label}</span>
+                {lang === code ? (
+                  <Check className="h-4 w-4 shrink-0" aria-hidden />
+                ) : (
+                  <span className="w-4 shrink-0" aria-hidden />
+                )}
               </button>
             </li>
           ))}

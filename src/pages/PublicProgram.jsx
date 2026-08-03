@@ -20,6 +20,7 @@ import DayTabs from '../components/DayTabs'
 import CategoryFilter from '../components/CategoryFilter'
 import EventList from '../components/EventList'
 import Footer from '../components/Footer'
+import { ProgramPageSkeleton } from '../components/ProgramSkeleton'
 
 function eventMatchesQuery(event, q) {
   if (!q) return true
@@ -63,6 +64,7 @@ export default function PublicProgram() {
     () => !(paramEvento && !paramDia)
   )
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [bootstrapped, setBootstrapped] = useState(false)
   const fetchGen = useRef(0)
 
   const needsEventDayResolve = Boolean(
@@ -263,6 +265,10 @@ export default function PublicProgram() {
   }, [fetchEvents])
 
   useEffect(() => {
+    if (!loading) setBootstrapped(true)
+  }, [loading])
+
+  useEffect(() => {
     if (!paramEvento || loading) return
     const el = document.getElementById(`evento-${paramEvento}`)
     if (el) {
@@ -318,8 +324,17 @@ export default function PublicProgram() {
     ? t.map?.places?.[placeFilter.nameKey] || placeFilter.name
     : null
 
+  if (!bootstrapped && loading) {
+    return (
+      <>
+        <ProgramPageSkeleton />
+        <span className="sr-only">{t.loading}</span>
+      </>
+    )
+  }
+
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="animate-fade-in flex min-h-screen flex-col">
       <Header />
       <DayTabs
         selectedDate={placeFilter || favoritesOnly ? null : selectedDate}
