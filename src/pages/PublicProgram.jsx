@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { MapPin, Search, Star, X } from 'lucide-react'
+import { Filter, MapPin, Search, Star, X } from 'lucide-react'
 import { FESTIVAL_DAYS, programDayIso } from '../data/days'
 import {
   eventMatchesPlace,
@@ -62,6 +62,7 @@ export default function PublicProgram() {
   const [eventDiaResolved, setEventDiaResolved] = useState(
     () => !(paramEvento && !paramDia)
   )
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const fetchGen = useRef(0)
 
   const needsEventDayResolve = Boolean(
@@ -309,9 +310,137 @@ export default function PublicProgram() {
     category || favoritesOnly || query.trim() || showNow || placeFilter
   )
 
+  const panelFilterCount = [
+    category,
+    query.trim(),
+    showNow,
+    favoritesOnly,
+  ].filter(Boolean).length
+
   const placeLabel = placeFilter
     ? t.map?.places?.[placeFilter.nameKey] || placeFilter.name
     : null
+
+  useEffect(() => {
+    if (!filtersOpen) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') setFiltersOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [filtersOpen])
+
+  function clearPanelFilters() {
+    setCategory(null)
+    setQuery('')
+    setShowNow(false)
+    setFavoritesOnly(false)
+    setHighlightId(null)
+  }
+
+  const quickFilters = (
+    <div className="flex flex-wrap gap-2">
+      {todayInFestival ? (
+        <button
+          type="button"
+          onClick={goToday}
+          className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+            selectedDate === todayIso &&
+            !showNow &&
+            !favoritesOnly &&
+            !placeFilter
+              ? 'bg-barrete text-white'
+              : 'bg-white text-ink/70 ring-1 ring-barrete/10 hover:bg-barrete/5'
+          }`}
+        >
+          {t.today}
+        </button>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => {
+          if (showNow) {
+            setShowNow(false)
+            setHighlightId(null)
+          } else {
+            goNow()
+          }
+        }}
+        className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+          showNow
+            ? 'bg-vermelho text-white'
+            : 'bg-white text-ink/70 ring-1 ring-barrete/10 hover:bg-barrete/5'
+        }`}
+      >
+        {t.now}
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          const enabling = !favoritesOnly
+          if (enabling) track('filter_favorites')
+          setFavoritesOnly((v) => !v)
+          setShowNow(false)
+          setHighlightId(null)
+          if (!favoritesOnly) clearPlaceFilter()
+        }}
+        className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+          favoritesOnly
+            ? 'bg-dourado text-ink'
+            : 'bg-white text-ink/70 ring-1 ring-barrete/10 hover:bg-barrete/5'
+        }`}
+      >
+        <Star className="h-3.5 w-3.5" aria-hidden />
+        {t.favoritesOnly}
+        {favCount > 0 ? (
+          <span className="tabular-nums opacity-80">({favCount})</span>
+        ) : null}
+      </button>
+      {placeFilter ? (
+        <button
+          type="button"
+          onClick={clearPlaceFilter}
+          className="inline-flex items-center gap-1 rounded-full bg-tejo/15 px-3 py-1.5 text-xs font-semibold text-tejo ring-1 ring-tejo/20"
+        >
+          <MapPin className="h-3.5 w-3.5" aria-hidden />
+          {placeLabel}
+          <X className="h-3.5 w-3.5" aria-hidden />
+          <span className="sr-only">{t.placeFilterClear}</span>
+        </button>
+      ) : null}
+    </div>
+  )
+
+  const searchField = (
+    <label className="relative block">
+      <Search
+        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35"
+        aria-hidden
+      />
+      <input
+        type="search"
+        value={query}
+        onChange={(e) => {
+          const value = e.target.value
+          setQuery(value)
+          if (value.trim().length === 1) track('search')
+        }}
+        placeholder={t.searchPlaceholder}
+        className="w-full rounded-xl border-0 bg-white py-2.5 pl-9 pr-3 text-sm text-ink shadow-sm ring-1 ring-barrete/10 placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-barrete/30"
+      />
+    </label>
+  )
+
+  const categoryBlock = (
+    <CategoryFilter
+      selected={category}
+      available={categoriesInDay}
+      onSelect={(cat) => {
+        track('filter_category', { category: cat || 'all' })
+        setCategory(cat)
+      }}
+    />
+  )
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -320,107 +449,116 @@ export default function PublicProgram() {
         selectedDate={placeFilter || favoritesOnly ? null : selectedDate}
         onSelect={selectDay}
       />
-      <div className="border-b border-barrete/10 bg-creme/80">
-        <div className="mx-auto flex max-w-3xl flex-col gap-2.5 px-4 pb-3 pt-4 sm:px-6">
-          <CategoryFilter
-            selected={category}
-            available={categoriesInDay}
-            onSelect={(cat) => {
-              track('filter_category', { category: cat || 'all' })
-              setCategory(cat)
-            }}
-          />
-          <label className="relative block">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35"
-              aria-hidden
-            />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => {
-                const value = e.target.value
-                setQuery(value)
-                if (value.trim().length === 1) track('search')
-              }}
-              placeholder={t.searchPlaceholder}
-              className="w-full rounded-xl border-0 bg-white py-2.5 pl-9 pr-3 text-sm text-ink shadow-sm ring-1 ring-barrete/10 placeholder:text-ink/35 focus:outline-none focus:ring-2 focus:ring-barrete/30"
-            />
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {todayInFestival ? (
-              <button
-                type="button"
-                onClick={goToday}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                  selectedDate === todayIso &&
-                  !showNow &&
-                  !favoritesOnly &&
-                  !placeFilter
-                    ? 'bg-barrete text-white'
-                    : 'bg-white text-ink/70 ring-1 ring-barrete/10 hover:bg-barrete/5'
-                }`}
-              >
-                {t.today}
-              </button>
+
+      {/* Mobile: botão Filtrar + chip de local (se vier do mapa) */}
+      <div className="border-b border-barrete/10 bg-creme/80 sm:hidden">
+        <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-2.5">
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            className={`inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold shadow-sm transition ${
+              panelFilterCount > 0
+                ? 'bg-barrete text-white'
+                : 'bg-white text-ink/80 ring-1 ring-barrete/10'
+            }`}
+            aria-expanded={filtersOpen}
+          >
+            <Filter className="h-4 w-4" aria-hidden />
+            {t.filtersOpen}
+            {panelFilterCount > 0 ? (
+              <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[0.7rem] tabular-nums">
+                {panelFilterCount}
+              </span>
             ) : null}
+          </button>
+          {placeFilter ? (
             <button
               type="button"
-              onClick={() => {
-                if (showNow) {
-                  setShowNow(false)
-                  setHighlightId(null)
-                } else {
-                  goNow()
-                }
-              }}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                showNow
-                  ? 'bg-vermelho text-white'
-                  : 'bg-white text-ink/70 ring-1 ring-barrete/10 hover:bg-barrete/5'
-              }`}
+              onClick={clearPlaceFilter}
+              className="inline-flex max-w-[45%] items-center gap-1 truncate rounded-xl bg-tejo/15 px-3 py-2.5 text-xs font-semibold text-tejo ring-1 ring-tejo/20"
             >
-              {t.now}
+              <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="truncate">{placeLabel}</span>
+              <X className="h-3.5 w-3.5 shrink-0" aria-hidden />
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                const enabling = !favoritesOnly
-                if (enabling) track('filter_favorites')
-                setFavoritesOnly((v) => !v)
-                setShowNow(false)
-                setHighlightId(null)
-                if (!favoritesOnly) clearPlaceFilter()
-              }}
-              className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                favoritesOnly
-                  ? 'bg-dourado text-ink'
-                  : 'bg-white text-ink/70 ring-1 ring-barrete/10 hover:bg-barrete/5'
-              }`}
-            >
-              <Star className="h-3.5 w-3.5" aria-hidden />
-              {t.favoritesOnly}
-              {favCount > 0 ? (
-                <span className="tabular-nums opacity-80">({favCount})</span>
-              ) : null}
-            </button>
-            {placeFilter ? (
-              <button
-                type="button"
-                onClick={clearPlaceFilter}
-                className="inline-flex items-center gap-1 rounded-full bg-tejo/15 px-3 py-1.5 text-xs font-semibold text-tejo ring-1 ring-tejo/20"
-              >
-                <MapPin className="h-3.5 w-3.5" aria-hidden />
-                {placeLabel}
-                <X className="h-3.5 w-3.5" aria-hidden />
-                <span className="sr-only">{t.placeFilterClear}</span>
-              </button>
-            ) : null}
-          </div>
+          ) : null}
         </div>
       </div>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-5 sm:px-6">
+      {/* Desktop: filtros sempre visíveis */}
+      <div className="hidden border-b border-barrete/10 bg-creme/80 sm:block">
+        <div className="mx-auto flex max-w-3xl flex-col gap-2.5 px-4 pb-3 pt-4 sm:px-6">
+          {categoryBlock}
+          {searchField}
+          {quickFilters}
+        </div>
+      </div>
+
+      {filtersOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/45 sm:hidden"
+          role="presentation"
+          onClick={() => setFiltersOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={t.filtersTitle}
+            className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-t-3xl bg-creme px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-ink/15" />
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="font-display text-lg font-semibold text-barrete">
+                {t.filtersTitle}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                className="rounded-full bg-ink/5 p-2 text-ink/60 hover:bg-ink/10"
+                aria-label={t.filtersClose}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <CategoryFilter
+                selected={category}
+                available={categoriesInDay}
+                showLabel
+                onSelect={(cat) => {
+                  track('filter_category', { category: cat || 'all' })
+                  setCategory(cat)
+                }}
+              />
+              {searchField}
+              {quickFilters}
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              {panelFilterCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={clearPanelFilters}
+                  className="flex-1 rounded-xl bg-ink/5 px-4 py-2.5 text-sm font-semibold text-ink/70"
+                >
+                  {t.filtersClear}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                className="flex-1 rounded-xl bg-barrete px-4 py-2.5 text-sm font-semibold text-white"
+              >
+                {t.filtersDone}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-4 sm:px-6 sm:py-5">
         {favoritesOnly ? (
           <h2 className="mb-4 font-display text-lg font-semibold text-barrete sm:text-xl">
             {t.favoritesOnly}

@@ -1,7 +1,12 @@
 import { CATEGORIES, CATEGORY_COLORS } from '../data/categories'
 import { useLang } from '../context/LangContext'
 
-export default function CategoryFilter({ selected, onSelect, available }) {
+export default function CategoryFilter({
+  selected,
+  onSelect,
+  available,
+  showLabel = true,
+}) {
   const { t } = useLang()
   const cats =
     available === undefined
@@ -10,9 +15,11 @@ export default function CategoryFilter({ selected, onSelect, available }) {
 
   return (
     <div className="w-full text-left">
-      <p className="mb-2 text-left text-xs font-semibold uppercase tracking-wider text-ink/45">
-        {t.filterCategory}
-      </p>
+      {showLabel ? (
+        <p className="mb-2 text-left text-xs font-semibold uppercase tracking-wider text-ink/45">
+          {t.filterCategory}
+        </p>
+      ) : null}
       <div className="flex w-full flex-wrap justify-start gap-2">
         <button
           type="button"
