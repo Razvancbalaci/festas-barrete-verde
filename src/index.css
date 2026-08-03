@@ -147,3 +147,18 @@ body {
 .fbv-bull-marker .fbv-pin-face {
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
 }
+
+@keyframes fbv-pin-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+  }
+  50% {
+    transform: scale(1.14);
+    filter: drop-shadow(0 0 10px rgba(27, 94, 63, 0.55));
+  }
+}
+.fbv-map-marker-hl .fbv-pin-face {
+  animation: fbv-pin-pulse 1.1s ease-in-out infinite;
+}

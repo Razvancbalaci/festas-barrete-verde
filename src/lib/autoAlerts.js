@@ -115,7 +115,7 @@ export function buildAutoAlertJobs(events, now = new Date()) {
       pushJob(
         'corrida',
         AUTO_ALERT_OFFSETS.corridaMinutes,
-        'Corrida de toiros em 1 hora!',
+        corridaAlertTitle(event),
       )
     }
 
@@ -148,12 +148,26 @@ export function buildAutoAlertJobs(events, now = new Date()) {
   return jobs
 }
 
-/** Título do push para toiros de rua (entrada / largada / outros). */
+/** Título do push para toiros de rua (entrada / largada / recolha / outros). */
 export function streetBullAlertTitle(event) {
   const title = String(event?.titulo || '')
+  if (/vacas/i.test(title)) return 'Largada de vacas em 15 minutos!'
+  if (/recolha/i.test(title)) return 'Recolha de toiros em 15 minutos!'
   if (/entrada/i.test(title)) return 'Entrada de toiros em 15 minutos!'
   if (/largada/i.test(title)) return 'Largada de toiros em 15 minutos!'
+  if (/boi da guia/i.test(title)) return 'Prova do Boi da Guia em 15 minutos!'
+  if (/pegar/i.test(title)) return 'Demonstração de forcados em 15 minutos!'
+  if (/bezerros/i.test(title)) return 'Brincadeira com bezerros em 15 minutos!'
   return 'Toiros na rua em 15 minutos!'
+}
+
+/** Título do push para eventos na praça (corrida / recortadores). */
+export function corridaAlertTitle(event) {
+  const title = String(event?.titulo || '')
+  if (/recortadores/i.test(title)) {
+    return 'Concurso de recortadores em 1 hora!'
+  }
+  return 'Corrida de toiros em 1 hora!'
 }
 
 /** Remove campos internos antes de gravar na BD. */

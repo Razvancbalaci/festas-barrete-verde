@@ -121,6 +121,16 @@ export const MAP_PLACES = [
     matchTerms: ['Palco Coreto'],
   },
   {
+    id: 'passeio-tejo',
+    nameKey: 'passeioTejo',
+    name: 'Passeio do Tejo',
+    lat: 38.75685,
+    lng: -8.95795,
+    kind: 'local',
+    emoji: '🎆',
+    matchTerms: ['Passeio do Tejo', 'Piromusical', 'Pirotecnia'],
+  },
+  {
     id: 'praca',
     nameKey: 'pracaTouros',
     name: 'Praça de Touros',

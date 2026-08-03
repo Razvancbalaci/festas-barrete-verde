@@ -13,6 +13,7 @@ const PLACE_ALIASES = {
   'Palco São João': '38.756038,-8.960828',
   'Palco S.João': '38.756038,-8.960828',
   'Palco Coreto': '38.756493,-8.959684',
+  'Passeio do Tejo': '38.75685,-8.95795',
   'Praça de Touros': '38.75558936727605,-8.95583129462169',
   'Praça de Touros de Alcochete': '38.75558936727605,-8.95583129462169',
   'Feira dos Carrosséis': '38.750396,-8.968931',

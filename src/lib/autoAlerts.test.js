@@ -83,6 +83,44 @@ describe('buildAutoAlertJobs — timing precision', () => {
     expect(jobs[0].title).toBe('Entrada de toiros em 15 minutos!')
   })
 
+  it('recolha keeps street alert with recolha title', () => {
+    const event = {
+      id: 'rec-1',
+      dia: '2026-08-07',
+      hora: '19:15',
+      titulo: 'Recolha de Touros por campinos e cavaleiros amadores',
+      categoria: 'Toiros',
+    }
+    const jobs = buildAutoAlertJobs([event], now)
+    expect(jobs).toHaveLength(1)
+    expect(jobs[0].title).toBe('Recolha de toiros em 15 minutos!')
+  })
+
+  it('largada de vacas does not say toiros', () => {
+    const event = {
+      id: 'vacas-1',
+      dia: '2026-08-10',
+      hora: '18:00',
+      titulo: 'Largada de vacas pelas ruas da Vila',
+      categoria: 'Toiros',
+    }
+    const jobs = buildAutoAlertJobs([event], now)
+    expect(jobs[0].title).toBe('Largada de vacas em 15 minutos!')
+  })
+
+  it('recortadores uses concurso title not corrida', () => {
+    const event = {
+      id: 'recort-1',
+      dia: '2026-08-13',
+      hora: '22:00',
+      titulo: 'Grande Concurso Ibérico de Recortadores',
+      categoria: 'Toiros',
+      bilhetes_url: 'https://tickets',
+    }
+    const jobs = buildAutoAlertJobs([event], now)
+    expect(jobs[0].title).toBe('Concurso de recortadores em 1 hora!')
+  })
+
   it('corrida: exactly 60 minutes before, never 15', () => {
     const event = {
       id: 'corrida-1',
