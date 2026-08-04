@@ -104,6 +104,7 @@ export default function MapPlacesPanel({ t, mapT }) {
     if (kind === 'local' || kind === 'ponto') return mapT?.legendPlace || kind
     if (kind === 'toiros') return mapT?.legendBulls || kind
     if (kind === 'feira') return mapT?.legendFair || kind
+    if (kind === 'comercio') return mapT?.legendCommerce || kind
     if (kind === 'wc') return mapT?.legendWc || kind
     if (kind === 'estacionamentoPublico' || kind === 'estacionamento')
       return mapT?.legendParkingPublic || kind

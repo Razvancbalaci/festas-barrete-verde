@@ -28,13 +28,16 @@ import { track } from '../lib/analytics'
 import { sanitizeHttpUrl } from '../lib/safeUrl'
 import {
   isCorridaEvent,
+  isEntradaGpsRouteEvent,
   isRouteMapEvent,
   isStreetBullEvent,
+  mapsDirectionsFromLatLngs,
   mapsDirectionsUrl,
   mapsUrl,
   parseLocations,
   displayPlace,
 } from '../lib/locations'
+import { ENTRADA_ROUTE } from '../data/mapPlaces'
 
 /** Divide a descrição em secções (título em MAIÚSCULAS + linhas) */
 function parseDescricao(text) {
@@ -75,7 +78,7 @@ function parseDescricao(text) {
   }))
 }
 
-function LocationBlock({ local, t, asRoute }) {
+function LocationBlock({ local, t, asRoute, useGpsRoute }) {
   const streets = parseLocations(local)
 
   if (streets.length === 0) {
@@ -105,13 +108,16 @@ function LocationBlock({ local, t, asRoute }) {
     )
   }
 
-  // Entradas: um percurso início → fim no Maps
+  // Entradas: um percurso início → fim no Maps (GPS do ENTRADA_ROUTE)
   if (asRoute) {
+    const routeHref = useGpsRoute
+      ? mapsDirectionsFromLatLngs(ENTRADA_ROUTE)
+      : mapsDirectionsUrl(streets)
     return (
       <div className="space-y-2">
         <p className="text-xs leading-snug text-ink/55">{t.routePathNote}</p>
         <a
-          href={mapsDirectionsUrl(streets)}
+          href={routeHref}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 rounded-full bg-tejo/10 px-3 py-1.5 text-xs font-semibold text-tejo transition hover:bg-tejo/15"
@@ -165,6 +171,7 @@ export default function EventCard({ event, index, highlighted }) {
   const isCorrida = isCorridaEvent(event)
   const isStreetBull = isStreetBullEvent(event)
   const asRoute = isRouteMapEvent(event)
+  const useGpsRoute = isEntradaGpsRouteEvent(event)
   const ticketsUrl = sanitizeHttpUrl(event.bilhetes_url)
   const [open, setOpen] = useState(false)
   const [safetyOpen, setSafetyOpen] = useState(false)
@@ -366,7 +373,12 @@ export default function EventCard({ event, index, highlighted }) {
             </div>
 
             {event.local ? (
-              <LocationBlock local={event.local} t={t} asRoute={asRoute} />
+              <LocationBlock
+                local={event.local}
+                t={t}
+                asRoute={asRoute}
+                useGpsRoute={useGpsRoute}
+              />
             ) : null}
 
             <div className="mt-3 flex flex-wrap gap-2">

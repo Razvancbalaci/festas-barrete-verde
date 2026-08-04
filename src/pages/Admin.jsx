@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Check, Loader2, LogOut, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Check, Loader2, LogOut, Pencil, Plus, Star, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LangContext'
 import { FESTIVAL_DAYS } from '../data/days'
@@ -516,8 +516,34 @@ export default function Admin() {
 
   async function handleSaveBusiness(payload, id) {
     let { error } = await supabase.from('negocios').update(payload).eq('id', id)
+    if (error && /destaque|column/i.test(error.message || '')) {
+      const { destaque: _d, ...withoutFeatured } = payload
+      ;({ error } = await supabase
+        .from('negocios')
+        .update(withoutFeatured)
+        .eq('id', id))
+      if (!error) {
+        setMessage({
+          type: 'err',
+          text:
+            a.bizFeaturedSqlMissing ||
+            'Corre negocios-destaque.sql no Supabase para activar destaques.',
+        })
+        setBizEditing(null)
+        await fetchNegocios(false)
+        return { error: null }
+      }
+    }
+    if (error && /lat|lng|column/i.test(error.message || '')) {
+      const { lat: _la, lng: _ln, ...withoutCoords } = payload
+      ;({ error } = await supabase
+        .from('negocios')
+        .update(withoutCoords)
+        .eq('id', id))
+    }
     if (error && /nota_admin|column/i.test(error.message || '')) {
-      const { nota_admin: _n, ...rest } = payload
+      const { nota_admin: _n, lat: _la, lng: _ln, destaque: _d, ...rest } =
+        payload
       ;({ error } = await supabase.from('negocios').update(rest).eq('id', id))
       setBizStatusSqlMissing(true)
     }
@@ -527,6 +553,31 @@ export default function Admin() {
       await fetchNegocios(false)
     }
     return { error }
+  }
+
+  async function toggleBusinessFeatured(n) {
+    const next = !n.destaque
+    const { error } = await supabase
+      .from('negocios')
+      .update({ destaque: next })
+      .eq('id', n.id)
+    if (error) {
+      setMessage({
+        type: 'err',
+        text: /destaque|column/i.test(error.message || '')
+          ? a.bizFeaturedSqlMissing ||
+            'Corre negocios-destaque.sql no Supabase para activar destaques.'
+          : a.errorGeneric,
+      })
+      return
+    }
+    setMessage({
+      type: 'ok',
+      text: next
+        ? a.bizFeaturedOn || 'Destaque activado.'
+        : a.bizFeaturedOff || 'Destaque removido.',
+    })
+    await fetchNegocios(false)
   }
 
   function requestTest5Min() {
@@ -1750,6 +1801,12 @@ export default function Admin() {
                         <span className="rounded-full bg-dourado/25 px-2 py-0.5 text-[0.65rem] font-semibold">
                           {t.businesses.types[n.tipo] || n.tipo}
                         </span>
+                        {n.destaque ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-dourado px-2 py-0.5 text-[0.65rem] font-bold text-ink">
+                            <Star className="h-3 w-3 fill-current" aria-hidden />
+                            {a.bizFeatured || 'Destaque'}
+                          </span>
+                        ) : null}
                         <span
                           className={`rounded-full px-2 py-0.5 text-[0.65rem] font-semibold ${
                             status === 'pending'
@@ -1784,6 +1841,29 @@ export default function Admin() {
                           <Pencil className="h-3.5 w-3.5" />
                           {a.edit}
                         </button>
+                        {status === 'approved' ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleBusinessFeatured(n)}
+                            className={`inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold ${
+                              n.destaque
+                                ? 'bg-dourado text-ink'
+                                : 'bg-dourado/20 text-ink/80'
+                            }`}
+                            title={
+                              n.destaque
+                                ? a.bizFeaturedOffHint || 'Remover destaque'
+                                : a.bizFeaturedOnHint || 'Destacar no topo'
+                            }
+                          >
+                            <Star
+                              className={`h-3.5 w-3.5 ${n.destaque ? 'fill-current' : ''}`}
+                            />
+                            {n.destaque
+                              ? a.bizFeatured || 'Destaque'
+                              : a.bizFeature || 'Destacar'}
+                          </button>
+                        ) : null}
                         {status !== 'approved' ? (
                           <button
                             type="button"

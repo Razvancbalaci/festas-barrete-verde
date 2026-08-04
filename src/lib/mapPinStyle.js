@@ -12,6 +12,7 @@ export const MAP_PIN_KINDS = {
   local: { border: '#1B5E3F', glyph: '📍' },
   toiros: { border: '#C0392B', glyph: '🐂' },
   feira: { border: '#E8A13A', glyph: '🎠' },
+  comercio: { border: '#C45C26', glyph: '🍽️' },
   wc: { border: '#5B7C8A', glyph: '🚻' },
   /** Público — sinal clássico azul + P branco */
   estacionamento: {

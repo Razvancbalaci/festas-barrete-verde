@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Contrast, Navigation } from 'lucide-react'
+import { ArrowLeft, Contrast, Navigation, Store } from 'lucide-react'
 import { useLang } from '../context/LangContext'
 import { useA11y } from '../context/A11yContext'
 import {
@@ -20,9 +20,18 @@ import { track } from '../lib/analytics'
 import { getMapLayers } from '../lib/mapTiles'
 import {
   makeMapPinIcon,
+  pinIconForKind,
   pinIconForPlace,
   resolveMapPinStyle,
 } from '../lib/mapPinIcon'
+import { supabase } from '../lib/supabase'
+import {
+  BUSINESS_TYPES,
+  businessTypeStyle,
+  commerceLegendKey,
+  commerceTipoFromLegendKey,
+  isCommerceLegendKey,
+} from '../data/businessTypes'
 import LiveBullLayer, {
   LiveNowBanners,
   useLiveStreetBull,
@@ -44,6 +53,10 @@ function placeMatchesLegend(place, legendKey) {
   return place.kind === legendKey
 }
 
+function isFestivalPlace(place) {
+  return place?.kind !== 'comercio'
+}
+
 function highlightedPinIcon(place) {
   const hasCustomIcon = Boolean(
     place?.iconSrc || place?.iconKey || place?.iconHtml,
@@ -63,9 +76,12 @@ function highlightedPinIcon(place) {
 }
 
 /** Mini-pin igual ao do mapa (creme + borda + glyph). */
-function LegendPin({ kind }) {
+function LegendPin({ kind, glyph: glyphOverride, border: borderOverride }) {
   const { border, glyph, text, fill, color, radius, fontSize } =
-    resolveMapPinStyle(kind)
+    resolveMapPinStyle(kind, {
+      glyph: glyphOverride,
+      pinColor: borderOverride,
+    })
   return (
     <span
       className="inline-flex h-6 w-6 shrink-0 items-center justify-center border-2 leading-none shadow-sm"
@@ -82,6 +98,37 @@ function LegendPin({ kind }) {
       {glyph}
     </span>
   )
+}
+
+function commercePinOverrides(tipo, { featured = false } = {}) {
+  const { glyph, border } = businessTypeStyle(tipo)
+  return {
+    glyph,
+    pinColor: featured ? '#C9A227' : border,
+  }
+}
+
+function commercePinIcon(tipo, { featured = false } = {}) {
+  return makeMapPinIcon({
+    ...resolveMapPinStyle('comercio', commercePinOverrides(tipo, { featured })),
+    size: featured ? 36 : 32,
+  })
+}
+
+function highlightedCommercePinIcon(tipo, { featured = false } = {}) {
+  return makeMapPinIcon({
+    ...resolveMapPinStyle('comercio', commercePinOverrides(tipo, { featured })),
+    size: featured ? 44 : 40,
+    className: 'fbv-map-marker fbv-map-marker-hl',
+  })
+}
+
+function commercePinMatchesLegend(tipo, legendKey) {
+  if (!legendKey) return false
+  if (legendKey === 'comercio') return true
+  const legendTipo = commerceTipoFromLegendKey(legendKey)
+  if (!legendTipo) return false
+  return (tipo || 'Outro') === legendTipo
 }
 
 function LegendRecinto() {
@@ -144,7 +191,7 @@ function FitBounds({ places, extraLatLngs = [], enabled }) {
 }
 
 /** Zoom/foco nos elementos da legenda seleccionada. */
-function FocusLegendHighlight({ legendKey, places }) {
+function FocusLegendHighlight({ legendKey, places, commercePts = [] }) {
   const map = useMap()
   useEffect(() => {
     if (!legendKey) return
@@ -153,6 +200,18 @@ function FocusLegendHighlight({ legendKey, places }) {
       pts = ENTRADA_ROUTE.map(([lat, lng]) => [lat, lng])
     } else if (legendKey === 'recinto') {
       pts = LARGADA_RECINTO_LATLNGS.map(([lat, lng]) => [lat, lng])
+    } else if (isCommerceLegendKey(legendKey)) {
+      pts = [
+        ...places
+          .filter((p) => {
+            if (p.kind !== 'comercio') return false
+            const tipo = commerceTipoFromLegendKey(legendKey)
+            if (!tipo) return true
+            return (p.tipo || 'Outro') === tipo
+          })
+          .map((p) => [p.lat, p.lng]),
+        ...commercePts,
+      ]
     } else {
       pts = places
         .filter((p) => placeMatchesLegend(p, legendKey))
@@ -167,7 +226,7 @@ function FocusLegendHighlight({ legendKey, places }) {
       duration: 0.55,
       maxZoom: 17,
     })
-  }, [map, legendKey, places])
+  }, [map, legendKey, places, commercePts])
   return null
 }
 
@@ -185,6 +244,34 @@ export default function FestivalMap() {
   )
   const [places, setPlaces] = useState(() => visibleMapPlaces())
   const [legendKey, setLegendKey] = useState(null)
+  const [showCommerce, setShowCommerce] = useState(false)
+  const [commerceTypeFilter, setCommerceTypeFilter] = useState(null)
+  const [commerceBiz, setCommerceBiz] = useState([])
+  const [commerceLoading, setCommerceLoading] = useState(false)
+
+  const festivalPlaces = useMemo(
+    () => places.filter(isFestivalPlace),
+    [places],
+  )
+  const commerceManualPlaces = useMemo(
+    () => places.filter((p) => p.kind === 'comercio'),
+    [places],
+  )
+  const filteredCommerceManualPlaces = useMemo(() => {
+    if (!commerceTypeFilter) return commerceManualPlaces
+    return commerceManualPlaces.filter((p) => p.tipo === commerceTypeFilter)
+  }, [commerceManualPlaces, commerceTypeFilter])
+  const filteredCommerceBiz = useMemo(() => {
+    if (!commerceTypeFilter) return commerceBiz
+    return commerceBiz.filter((n) => n.tipo === commerceTypeFilter)
+  }, [commerceBiz, commerceTypeFilter])
+  const commerceBizPts = useMemo(
+    () =>
+      filteredCommerceBiz
+        .filter((n) => Number.isFinite(Number(n.lat)) && Number.isFinite(Number(n.lng)))
+        .map((n) => [Number(n.lat), Number(n.lng)]),
+    [filteredCommerceBiz],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -197,8 +284,52 @@ export default function FestivalMap() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!showCommerce) {
+      setCommerceBiz([])
+      setCommerceLoading(false)
+      setCommerceTypeFilter(null)
+      return
+    }
+    let cancelled = false
+    setCommerceLoading(true)
+    ;(async () => {
+      const { data, error } = await supabase
+        .from('negocios')
+        .select('id, nome, tipo, morada, lat, lng, destaque')
+        .eq('aprovado', true)
+        .not('lat', 'is', null)
+        .not('lng', 'is', null)
+      if (cancelled) return
+      if (error) {
+        console.warn(error)
+        setCommerceBiz([])
+      } else {
+        setCommerceBiz(data || [])
+      }
+      setCommerceLoading(false)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [showCommerce])
+
   function toggleLegend(key) {
-    setLegendKey((prev) => (prev === key ? null : key))
+    setLegendKey((prev) => {
+      const next = prev === key ? null : key
+      if (isCommerceLegendKey(next)) {
+        setShowCommerce(true)
+        setCommerceTypeFilter(commerceTipoFromLegendKey(next))
+      } else if (next === null && isCommerceLegendKey(prev)) {
+        setCommerceTypeFilter(null)
+      }
+      return next
+    })
+  }
+
+  function setCommerceFilter(tipo) {
+    setCommerceTypeFilter(tipo)
+    setLegendKey(tipo ? commerceLegendKey(tipo) : null)
   }
 
   const legendItems = [
@@ -243,6 +374,29 @@ export default function FestivalMap() {
       icon: <LegendPin kind="estacionamentoPublico" />,
     },
   ]
+  if (showCommerce) {
+    const typesTLegend = t.businesses?.types
+    const wcIdx = legendItems.findIndex((i) => i.key === 'wc')
+    const insertAt = wcIdx >= 0 ? wcIdx : legendItems.length
+    legendItems.splice(
+      insertAt,
+      0,
+      ...BUSINESS_TYPES.map((tipo) => {
+        const style = businessTypeStyle(tipo)
+        return {
+          key: commerceLegendKey(tipo),
+          label: typesTLegend?.[tipo] || tipo,
+          icon: (
+            <LegendPin
+              kind="comercio"
+              glyph={style.glyph}
+              border={style.border}
+            />
+          ),
+        }
+      }),
+    )
+  }
   if (MAP_SHOW_PRIVATE_PARKING) {
     legendItems.push({
       key: 'estacionamentoPrivado',
@@ -254,6 +408,18 @@ export default function FestivalMap() {
   const highlightActive = Boolean(legendKey)
   const routeHighlighted = legendKey === 'route'
   const recintoHighlighted = legendKey === 'recinto'
+  const typesT = t.businesses?.types
+
+  const commercePinCount =
+    (showCommerce ? filteredCommerceManualPlaces.length : 0) +
+    (showCommerce ? filteredCommerceBiz.length : 0)
+  const commercePinCountAll =
+    (showCommerce ? commerceManualPlaces.length : 0) +
+    (showCommerce ? commerceBiz.length : 0)
+  const showCommerceEmpty =
+    showCommerce && !commerceLoading && commercePinCount === 0
+  const showCommerceEmptyFilter =
+    showCommerceEmpty && commerceTypeFilter && commercePinCountAll > 0
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -307,29 +473,97 @@ export default function FestivalMap() {
 
       <div className="relative z-0 mx-auto w-full max-w-3xl flex-1 px-0 sm:px-6 sm:py-4">
         <div className="relative h-[min(70vh,560px)] w-full overflow-hidden sm:rounded-2xl sm:shadow-sm sm:ring-1 sm:ring-barrete/10">
-          <div className="absolute right-3 top-3 z-[1000] flex overflow-hidden rounded-xl bg-white/95 text-xs font-bold shadow-md ring-1 ring-barrete/10 backdrop-blur">
+          <div className="absolute right-3 top-3 z-[1000] flex flex-col items-end gap-2">
+            <div className="flex overflow-hidden rounded-xl bg-white/95 text-xs font-bold shadow-md ring-1 ring-barrete/10 backdrop-blur">
+              <button
+                type="button"
+                onClick={() => setBasemap('streets')}
+                className={`px-3 py-2 transition ${
+                  basemap === 'streets'
+                    ? 'bg-barrete text-white'
+                    : 'text-ink/70 hover:bg-barrete/5'
+                }`}
+              >
+                {m.layerMap}
+              </button>
+              <button
+                type="button"
+                onClick={() => setBasemap('satellite')}
+                className={`px-3 py-2 transition ${
+                  basemap === 'satellite'
+                    ? 'bg-barrete text-white'
+                    : 'text-ink/70 hover:bg-barrete/5'
+                }`}
+              >
+                {m.layerSatellite}
+              </button>
+            </div>
             <button
               type="button"
-              onClick={() => setBasemap('streets')}
-              className={`px-3 py-2 transition ${
-                basemap === 'streets'
-                  ? 'bg-barrete text-white'
-                  : 'text-ink/70 hover:bg-barrete/5'
+              onClick={() => {
+                setShowCommerce((v) => {
+                  const next = !v
+                  if (!next && isCommerceLegendKey(legendKey)) setLegendKey(null)
+                  return next
+                })
+              }}
+              aria-pressed={showCommerce}
+              title={m.commerceToggleHint}
+              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold shadow-md ring-1 backdrop-blur transition ${
+                showCommerce
+                  ? 'bg-dourado text-ink ring-dourado/40'
+                  : 'bg-white/95 text-ink/75 ring-barrete/10 hover:bg-barrete/5'
               }`}
             >
-              {m.layerMap}
+              <Store className="h-3.5 w-3.5" aria-hidden />
+              {showCommerce
+                ? m.commerceToggleOn || m.commerceToggle || 'Comércio'
+                : m.commerceToggle || 'Comércio'}
             </button>
-            <button
-              type="button"
-              onClick={() => setBasemap('satellite')}
-              className={`px-3 py-2 transition ${
-                basemap === 'satellite'
-                  ? 'bg-barrete text-white'
-                  : 'text-ink/70 hover:bg-barrete/5'
-              }`}
-            >
-              {m.layerSatellite}
-            </button>
+            {showCommerce ? (
+              <div
+                className="flex max-w-[min(92vw,18rem)] flex-wrap justify-end gap-1"
+                role="group"
+                aria-label={
+                  t.businesses?.filterType || m.commerceFilterType || 'Filtrar por tipo'
+                }
+              >
+                <button
+                  type="button"
+                  onClick={() => setCommerceFilter(null)}
+                  aria-pressed={!commerceTypeFilter}
+                  className={`rounded-lg px-2 py-1 text-[0.65rem] font-bold shadow-md ring-1 backdrop-blur transition ${
+                    !commerceTypeFilter
+                      ? 'bg-barrete text-white ring-barrete/40'
+                      : 'bg-white/95 text-ink/70 ring-barrete/10 hover:bg-barrete/5'
+                  }`}
+                >
+                  {t.businesses?.filterAll || m.commerceFilterAll || 'Todos'}
+                </button>
+                {BUSINESS_TYPES.map((tipo) => {
+                  const active = commerceTypeFilter === tipo
+                  const style = businessTypeStyle(tipo)
+                  return (
+                    <button
+                      key={tipo}
+                      type="button"
+                      onClick={() =>
+                        setCommerceFilter(active ? null : tipo)
+                      }
+                      aria-pressed={active}
+                      className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[0.65rem] font-bold shadow-md ring-1 backdrop-blur transition ${
+                        active
+                          ? 'bg-barrete text-white ring-barrete/40'
+                          : 'bg-white/95 text-ink/70 ring-barrete/10 hover:bg-barrete/5'
+                      }`}
+                    >
+                      <span aria-hidden>{style.glyph}</span>
+                      {typesT?.[tipo] || tipo}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : null}
           </div>
 
           <LiveNowBanners labels={m} items={live.liveNow} />
@@ -351,11 +585,19 @@ export default function FestivalMap() {
                 : {})}
             />
             <FitBounds
-              places={places}
+              places={festivalPlaces}
               extraLatLngs={fitExtra}
               enabled={!highlightActive}
             />
-            <FocusLegendHighlight legendKey={legendKey} places={places} />
+            <FocusLegendHighlight
+              legendKey={legendKey}
+              places={
+                isCommerceLegendKey(legendKey)
+                  ? filteredCommerceManualPlaces
+                  : festivalPlaces
+              }
+              commercePts={showCommerce ? commerceBizPts : []}
+            />
             <LocateMeControl labels={m} />
             <LiveBullLayer labels={m} live={live} />
             <Polyline
@@ -416,7 +658,7 @@ export default function FestivalMap() {
                 </Popup>
               </Polygon>
             ))}
-            {places.map((p) => {
+            {festivalPlaces.map((p) => {
               const isParking =
                 p.kind === 'estacionamento' ||
                 p.kind === 'estacionamentoPublico' ||
@@ -477,11 +719,130 @@ export default function FestivalMap() {
                 </Marker>
               )
             })}
+            {showCommerce
+              ? filteredCommerceManualPlaces.map((p) => {
+                  const tipo = p.tipo || 'Outro'
+                  const matched = commercePinMatchesLegend(tipo, legendKey)
+                  const dimmed = highlightActive && !matched
+                  return (
+                    <Marker
+                      key={`com-place-${p.id}`}
+                      position={[p.lat, p.lng]}
+                      icon={
+                        matched
+                          ? highlightedCommercePinIcon(tipo)
+                          : commercePinIcon(tipo)
+                      }
+                      opacity={dimmed ? 0.28 : 1}
+                      zIndexOffset={matched ? 650 : 100}
+                    >
+                      <Popup>
+                        <div className="min-w-[10rem] space-y-2 text-sm">
+                          <strong className="block text-ink">
+                            {p.name || m.legendCommerce}
+                          </strong>
+                          {p.tipo ? (
+                            <p className="text-xs text-ink/60">
+                              {businessTypeStyle(tipo).glyph}{' '}
+                              {typesT?.[tipo] || tipo}
+                            </p>
+                          ) : null}
+                          <a
+                            href={mapsWalkToUrl(p.lat, p.lng)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 font-semibold text-barrete underline-offset-2 hover:underline"
+                          >
+                            <Navigation
+                              className="h-3.5 w-3.5 shrink-0"
+                              aria-hidden
+                            />
+                            {m.goThere}
+                          </a>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )
+                })
+              : null}
+            {showCommerce
+              ? filteredCommerceBiz.map((n) => {
+                  const lat = Number(n.lat)
+                  const lng = Number(n.lng)
+                  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+                  const tipo = n.tipo || 'Outro'
+                  const featured = Boolean(n.destaque)
+                  const matched = commercePinMatchesLegend(tipo, legendKey)
+                  const dimmed = highlightActive && !matched
+                  return (
+                    <Marker
+                      key={`com-biz-${n.id}`}
+                      position={[lat, lng]}
+                      icon={
+                        matched
+                          ? highlightedCommercePinIcon(tipo, { featured })
+                          : commercePinIcon(tipo, { featured })
+                      }
+                      opacity={dimmed ? 0.28 : 1}
+                      zIndexOffset={matched ? 650 : featured ? 200 : 100}
+                    >
+                      <Popup>
+                        <div className="min-w-[10rem] space-y-2 text-sm">
+                          <strong className="block text-ink">{n.nome}</strong>
+                          {featured ? (
+                            <p className="text-xs font-semibold text-ink/70">
+                              ⭐ {t.businesses?.featured || 'Destaque'}
+                            </p>
+                          ) : null}
+                          {n.tipo ? (
+                            <p className="text-xs text-ink/60">
+                              {businessTypeStyle(tipo).glyph}{' '}
+                              {typesT?.[tipo] || n.tipo}
+                            </p>
+                          ) : null}
+                          {n.morada ? (
+                            <p className="text-xs leading-relaxed text-ink/65">
+                              {n.morada}
+                            </p>
+                          ) : null}
+                          <div className="flex flex-col gap-1.5">
+                            <a
+                              href={mapsWalkToUrl(lat, lng)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 font-semibold text-barrete underline-offset-2 hover:underline"
+                            >
+                              <Navigation
+                                className="h-3.5 w-3.5 shrink-0"
+                                aria-hidden
+                              />
+                              {m.goThere}
+                            </a>
+                            <Link
+                              to="/comercio"
+                              className="inline-flex font-semibold text-tejo underline-offset-2 hover:underline"
+                            >
+                              {m.commerceOpenList || 'Ver comércio'}
+                            </Link>
+                          </div>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )
+                })
+              : null}
           </MapContainer>
         </div>
         <p className="px-4 pt-3 text-center text-xs text-ink/50 sm:px-0">
           {m.hint}
         </p>
+        {showCommerceEmpty ? (
+          <p className="mx-4 mt-2 rounded-xl bg-dourado/15 px-3 py-2 text-center text-xs text-ink/70 ring-1 ring-dourado/30 sm:mx-0">
+            {showCommerceEmptyFilter
+              ? m.commerceEmptyFilter || m.commerceEmpty
+              : m.commerceEmpty}
+          </p>
+        ) : null}
         <p className="mx-4 mt-2 rounded-xl bg-barrete/5 px-3 py-2.5 text-center text-xs leading-relaxed text-ink/65 ring-1 ring-barrete/10 sm:mx-0">
           {m.portableWcSoon}
         </p>

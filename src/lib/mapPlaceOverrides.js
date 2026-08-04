@@ -22,6 +22,7 @@ export const MAP_PLACE_KIND_OPTIONS = [
   'feira',
   'wc',
   'estacionamentoPublico',
+  'comercio',
 ]
 
 const SELECT_COLS =

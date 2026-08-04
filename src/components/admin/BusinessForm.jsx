@@ -17,9 +17,26 @@ export default function BusinessForm({ business, onSave, onCancel, t, typesT }) 
     website: business?.website || '',
     horario: business?.horario || '',
     nota_admin: business?.nota_admin || '',
+    destaque: Boolean(business?.destaque),
+    lat:
+      business?.lat != null && business.lat !== ''
+        ? String(business.lat)
+        : '',
+    lng:
+      business?.lng != null && business.lng !== ''
+        ? String(business.lng)
+        : '',
   })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+
+  function parseCoord(raw) {
+    const s = String(raw ?? '').trim().replace(',', '.')
+    if (!s) return null
+    const n = Number(s)
+    if (!Number.isFinite(n)) return NaN
+    return n
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -40,6 +57,19 @@ export default function BusinessForm({ business, onSave, onCancel, t, typesT }) 
       setError(t.errorInvalidUrl)
       return
     }
+    const lat = parseCoord(form.lat)
+    const lng = parseCoord(form.lng)
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+      setError(t.bizCoordsInvalid || 'Latitude/longitude inválidas.')
+      return
+    }
+    if ((lat == null) !== (lng == null)) {
+      setError(
+        t.bizCoordsPair ||
+          'Preenche latitude e longitude em conjunto, ou deixa ambas vazias.',
+      )
+      return
+    }
     setBusy(true)
     const payload = {
       nome: form.nome.trim(),
@@ -51,6 +81,9 @@ export default function BusinessForm({ business, onSave, onCancel, t, typesT }) 
       website,
       horario: form.horario.trim() || null,
       nota_admin: form.nota_admin.trim() || null,
+      destaque: Boolean(form.destaque),
+      lat,
+      lng,
     }
     const { error: err } = await onSave(payload, business.id)
     setBusy(false)
@@ -62,6 +95,13 @@ export default function BusinessForm({ business, onSave, onCancel, t, typesT }) 
 
   const inputClass =
     'w-full rounded-xl border border-barrete/15 bg-white px-3 py-2.5 text-sm outline-none focus:border-barrete focus:ring-2 focus:ring-barrete/20'
+
+  const previewLat = parseCoord(form.lat)
+  const previewLng = parseCoord(form.lng)
+  const mapsPreview =
+    Number.isFinite(previewLat) && Number.isFinite(previewLng)
+      ? `https://www.google.com/maps?q=${previewLat},${previewLng}`
+      : null
 
   return (
     <div
@@ -115,6 +155,25 @@ export default function BusinessForm({ business, onSave, onCancel, t, typesT }) 
               ))}
             </select>
           </label>
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-dourado/15 px-3 py-3 ring-1 ring-dourado/35">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 accent-barrete"
+              checked={form.destaque}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, destaque: e.target.checked }))
+              }
+            />
+            <span>
+              <span className="block text-sm font-semibold text-ink">
+                {t.bizFeatured || 'Destaque'}
+              </span>
+              <span className="mt-0.5 block text-xs text-ink/60">
+                {t.bizFeaturedHint ||
+                  'Aparece no topo da lista de comércio e com destaque visual.'}
+              </span>
+            </span>
+          </label>
           <label className="block">
             <span className="mb-1 block text-sm font-medium">{t.bizDescription}</span>
             <textarea
@@ -135,6 +194,55 @@ export default function BusinessForm({ business, onSave, onCancel, t, typesT }) 
               required
             />
           </label>
+          <fieldset className="rounded-xl bg-white/60 p-3 ring-1 ring-barrete/10">
+            <legend className="px-1 text-sm font-medium text-ink/80">
+              {t.bizMapCoords || 'Pin no mapa (opcional)'}
+            </legend>
+            <p className="mb-2 text-xs text-ink/50">
+              {t.bizMapCoordsHint ||
+                'Latitude e longitude para aparecer no mapa das festas (botão Comércio).'}
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-ink/45">
+                  {t.bizLat || 'Latitude'}
+                </span>
+                <input
+                  className={inputClass}
+                  inputMode="decimal"
+                  placeholder="38.7554"
+                  value={form.lat}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, lat: e.target.value }))
+                  }
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-ink/45">
+                  {t.bizLng || 'Longitude'}
+                </span>
+                <input
+                  className={inputClass}
+                  inputMode="decimal"
+                  placeholder="-8.9615"
+                  value={form.lng}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, lng: e.target.value }))
+                  }
+                />
+              </label>
+            </div>
+            {mapsPreview ? (
+              <a
+                href={mapsPreview}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block text-xs font-semibold text-barrete underline-offset-2 hover:underline"
+              >
+                {t.bizOpenMaps || 'Abrir no Google Maps'}
+              </a>
+            ) : null}
+          </fieldset>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
               <span className="mb-1 block text-sm font-medium">{t.bizPhone}</span>

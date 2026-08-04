@@ -223,7 +223,7 @@ export function eventMatchesPlace(event, place) {
   })
 }
 
-/** Percurso das entradas (GPS do projecto → Praça de Touros). */
+/** Percurso das entradas (GPS do projecto → portão na Av. 5 de Outubro). */
 export const ENTRADA_ROUTE = [
   [38.753653, -8.965251],
   [38.755386, -8.963838],
@@ -237,6 +237,9 @@ export const ENTRADA_ROUTE = [
   [38.756038, -8.956092],
   [38.755795489178034, -8.9557509571414],
 ]
+
+/** Chegada da entrada (portão na avenida — não o centro OSM da praça). */
+export const ENTRADA_DEST = ENTRADA_ROUTE[ENTRADA_ROUTE.length - 1]
 
 /**
  * Recintos das largadas — GeoJSON do utilizador + match ao `local` do cartaz.

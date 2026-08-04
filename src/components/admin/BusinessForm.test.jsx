@@ -75,6 +75,7 @@ describe('BusinessForm', () => {
     expect(onSave.mock.calls[0][0]).toMatchObject({
       nome: 'Tasca',
       website: 'https://example.com/',
+      destaque: false,
     })
     expect(onSave.mock.calls[0][1]).toBe('b1')
   })

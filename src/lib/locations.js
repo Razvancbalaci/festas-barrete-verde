@@ -5,7 +5,12 @@ const STREET_START =
 /**
  * Nomes do cartaz → sítio que o Google Maps encontra bem em Alcochete.
  * Coordenadas: lat,lng (sem acrescentar ", Alcochete").
+ *
+ * Nacional 119 / fim de entradas: portão na Av. 5 de Outubro (não o centro
+ * OSM da praça — esse faz o Maps dar a volta pelo cemitério).
  */
+const ENTRADA_GATE = '38.755795489178034,-8.9557509571414'
+
 const PLACE_ALIASES = {
   'Palco Salineiro': '38.755822,-8.962264',
   'Palco Forcado': '38.755314,-8.962095',
@@ -40,10 +45,10 @@ const PLACE_ALIASES = {
   'Jardim do Rossio': '38.754176,-8.964545',
   'Antigo Armazém das Filmagens': '38.755190,-8.963924',
   'Instalações Sanitárias Públicas': '38.756166,-8.959483',
-  'Nacional 119': '38.75558936727605,-8.95583129462169',
-  'EN 119': '38.75558936727605,-8.95583129462169',
-  'N 119': '38.75558936727605,-8.95583129462169',
-  N119: '38.75558936727605,-8.95583129462169',
+  'Nacional 119': ENTRADA_GATE,
+  'EN 119': ENTRADA_GATE,
+  'N 119': ENTRADA_GATE,
+  N119: ENTRADA_GATE,
 }
 
 /** Rótulos amigáveis no ecrã (o Maps continua a usar PLACE_ALIASES) */
@@ -160,9 +165,58 @@ export function mapsDirectionsUrl(streets) {
   return `https://www.google.com/maps/dir/?${params.toString()}`
 }
 
+/** Máximo de waypoints intermédios na URL do Google Maps Directions. */
+const MAPS_MAX_WAYPOINTS = 8
+
+function subsamplePoints(points, max) {
+  if (points.length <= max) return points
+  if (max <= 1) return [points[Math.floor(points.length / 2)]]
+  const out = []
+  for (let i = 0; i < max; i++) {
+    const idx = Math.round((i * (points.length - 1)) / (max - 1))
+    const p = points[idx]
+    if (!out.length || out[out.length - 1] !== p) out.push(p)
+  }
+  return out
+}
+
+function formatLatLng(point) {
+  const [lat, lng] = point
+  return `${lat},${lng}`
+}
+
+/**
+ * Percurso Google Maps a partir de pontos GPS [lat, lng]
+ * (ex. ENTRADA_ROUTE — evita geocode errado de nomes de rua).
+ */
+export function mapsDirectionsFromLatLngs(points) {
+  if (!points?.length) return mapsUrl('Alcochete')
+  if (points.length === 1) return mapsUrl(formatLatLng(points[0]))
+
+  const origin = formatLatLng(points[0])
+  const destination = formatLatLng(points[points.length - 1])
+  const middle = subsamplePoints(points.slice(1, -1), MAPS_MAX_WAYPOINTS)
+
+  const params = new URLSearchParams({
+    api: '1',
+    origin,
+    destination,
+    travelmode: 'walking',
+  })
+  if (middle.length) {
+    params.set('waypoints', middle.map(formatLatLng).join('|'))
+  }
+  return `https://www.google.com/maps/dir/?${params.toString()}`
+}
+
+/** Eventos que devem usar o GPS do percurso das entradas no Maps. */
+export function isEntradaGpsRouteEvent(event) {
+  return /entrada|boi da guia/i.test(event?.titulo || '')
+}
+
 /** Percurso no Maps: entradas, prova do boi, ou 3+ vias no `local`. */
 export function isRouteMapEvent(event) {
-  if (/entrada|boi da guia/i.test(event.titulo || '')) return true
+  if (isEntradaGpsRouteEvent(event)) return true
   return parseLocations(event.local).length >= 3
 }
 

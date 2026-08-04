@@ -54,7 +54,15 @@ async function pushOne(sub, title, body, url = '/', tag = null) {
 
 const PUSH_CATEGORIES = ['street', 'corrida', 'sjoao', 'fogos', 'inicio', 'broadcast']
 
-async function sendToAll(admin, title, body, url = '/', category = 'broadcast', tag = null) {
+async function sendToAll(
+  admin,
+  title,
+  body,
+  url = '/',
+  category = 'broadcast',
+  tag = null,
+  { excludeForEventId = null } = {},
+) {
   vapidReady()
 
   const cat = PUSH_CATEGORIES.includes(category) ? category : 'broadcast'
@@ -71,21 +79,34 @@ async function sendToAll(admin, title, body, url = '/', category = 'broadcast', 
               ? 'pref_inicio'
               : 'pref_broadcast'
 
-  let query = admin
+  const { data: subs, error: subError } = await admin
     .from('push_subscriptions')
     .select('id, endpoint, p256dh, auth')
     .eq('active', true)
     .eq(prefCol, true)
 
-  const { data: subs, error: subError } = await query
-
   if (subError) throw subError
+
+  let targets = subs || []
+  let skippedReminders = 0
+  if (excludeForEventId && targets.length) {
+    const exclude = await endpointsWithPersonalReminder(
+      admin,
+      excludeForEventId,
+      targets.map((s) => s.endpoint).filter(Boolean),
+    )
+    if (exclude.size) {
+      const before = targets.length
+      targets = targets.filter((s) => !exclude.has(s.endpoint))
+      skippedReminders = before - targets.length
+    }
+  }
 
   let sent = 0
   const stale = []
 
   await Promise.all(
-    (subs || []).map(async (sub) => {
+    targets.map(async (sub) => {
       try {
         await pushOne(sub, title, body, url, tag)
         sent += 1
@@ -101,7 +122,13 @@ async function sendToAll(admin, title, body, url = '/', category = 'broadcast', 
     await admin.from('push_subscriptions').delete().in('id', stale)
   }
 
-  return { sent, total: subs?.length || 0, removed: stale.length, category: cat }
+  return {
+    sent,
+    total: targets.length,
+    removed: stale.length,
+    category: cat,
+    skippedReminders,
+  }
 }
 
 function categoryFromSchedule(job) {
@@ -111,6 +138,32 @@ function categoryFromSchedule(job) {
   const m = String(job?.dedupe_key || '').match(/^auto:([a-z]+):/)
   if (m && ['street', 'corrida', 'sjoao', 'fogos', 'inicio'].includes(m[1])) return m[1]
   return 'broadcast'
+}
+
+/** `auto:street:<eventId>:15` → eventId (só avisos pré-definidos). */
+function eventIdFromAutoDedupe(dedupeKey) {
+  const m = String(dedupeKey || '').match(/^auto:[a-z]+:(.+):(\d+)$/)
+  return m?.[1] || null
+}
+
+/**
+ * Quem marcou lembrete (campainha) neste evento — não recebe o aviso automático.
+ * Inclui pending e sent (já avisados / vão ser avisados pelo lembrete).
+ */
+async function endpointsWithPersonalReminder(admin, eventId, endpoints) {
+  if (!eventId || !endpoints?.length) return new Set()
+  const { data, error } = await admin
+    .from('event_reminders')
+    .select('endpoint')
+    .eq('event_id', eventId)
+    .in('status', ['pending', 'sent'])
+    .in('endpoint', endpoints)
+
+  if (error) {
+    console.error('reminder suppress query', error)
+    return new Set()
+  }
+  return new Set((data || []).map((r) => r.endpoint).filter(Boolean))
 }
 
 /** Lembretes por evento → um push por subscrição (app pode estar fechada). */
@@ -190,19 +243,21 @@ async function processBroadcastSchedules(admin) {
   const results = []
   for (const job of due || []) {
     try {
+      const eventId = eventIdFromAutoDedupe(job.dedupe_key)
       const r = await sendToAll(
         admin,
         job.title,
         job.body,
         '/',
         categoryFromSchedule(job),
-        job.dedupe_key || `schedule:${job.id}`
+        job.dedupe_key || `schedule:${job.id}`,
+        { excludeForEventId: eventId },
       )
       await admin
         .from('push_schedules')
         .update({ status: 'sent', sent_at: new Date().toISOString() })
         .eq('id', job.id)
-      results.push({ id: job.id, ...r })
+      results.push({ id: job.id, eventId, ...r })
     } catch (err) {
       results.push({ id: job.id, error: String(err?.message || err) })
     }
@@ -266,8 +321,10 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
-      const results = await processBroadcastSchedules(admin)
+      // Lembretes primeiro: quem marcou campainha fica já notificado / pending
+      // antes do broadcast, e o auto skip via event_reminders.
       const rem = await processEventReminders(admin)
+      const results = await processBroadcastSchedules(admin)
       return new Response(
         JSON.stringify({
           ok: true,

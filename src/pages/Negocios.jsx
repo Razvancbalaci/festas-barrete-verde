@@ -8,11 +8,12 @@ import {
   Loader2,
   MapPin,
   Phone,
+  Star,
   Store,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useLang } from '../context/LangContext'
-import { BUSINESS_TYPES } from '../data/businessTypes'
+import { BUSINESS_TYPES, businessTypeStyle } from '../data/businessTypes'
 import Footer from '../components/Footer'
 import { mapsUrl } from '../lib/locations'
 import { track } from '../lib/analytics'
@@ -68,7 +69,17 @@ export default function Negocios() {
           console.error(err)
           setList([])
         } else {
-          setList(data || [])
+          const rows = data || []
+          rows.sort((a, b) => {
+            const da = a.destaque ? 1 : 0
+            const db = b.destaque ? 1 : 0
+            if (db !== da) return db - da
+            return String(a.nome || '').localeCompare(
+              String(b.nome || ''),
+              'pt',
+            )
+          })
+          setList(rows)
         }
         setLoading(false)
       }
@@ -225,17 +236,19 @@ export default function Negocios() {
           </button>
           {BUSINESS_TYPES.map((tipo) => {
             const active = typeFilter === tipo
+            const style = businessTypeStyle(tipo)
             return (
               <button
                 key={tipo}
                 type="button"
                 onClick={() => setTypeFilter(active ? null : tipo)}
-                className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
                   active
                     ? 'bg-barrete text-white shadow-sm'
                     : 'bg-white text-ink/70 shadow-sm hover:bg-barrete/5'
                 }`}
               >
+                <span aria-hidden>{style.glyph}</span>
                 {b.types[tipo] || tipo}
               </button>
             )
@@ -257,13 +270,24 @@ export default function Negocios() {
               return (
               <li
                 key={n.id}
-                className="animate-fade-up rounded-2xl bg-white p-4 shadow-sm ring-1 ring-barrete/5"
+                className={`animate-fade-up rounded-2xl bg-white p-4 shadow-sm ring-1 ${
+                  n.destaque
+                    ? 'ring-2 ring-dourado/70 shadow-md'
+                    : 'ring-barrete/5'
+                }`}
               >
                 <div className="mb-1 flex flex-wrap items-center gap-2">
                   <h2 className="font-display text-lg font-semibold text-barrete">
                     {n.nome}
                   </h2>
+                  {n.destaque ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-dourado px-2.5 py-0.5 text-[0.7rem] font-bold text-ink">
+                      <Star className="h-3 w-3 fill-current" aria-hidden />
+                      {b.featured || 'Destaque'}
+                    </span>
+                  ) : null}
                   <span className="rounded-full bg-dourado/20 px-2.5 py-0.5 text-[0.7rem] font-semibold text-ink/80">
+                    {businessTypeStyle(n.tipo).glyph}{' '}
                     {b.types[n.tipo] || n.tipo}
                   </span>
                 </div>
