@@ -34,11 +34,11 @@ export default defineConfig({
         'robots.txt',
         'sitemap.xml',
         'google6eb5c1ba2c31c81f.html',
-        'splash/*.png',
       ],
       manifest: false,
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,ico,svg,webmanifest}', 'icon-*.png', 'favicon.png', 'apple-touch-icon.png', 'og-image.png'],
+        globIgnores: ['**/splash/**'],
       },
       devOptions: {
         enabled: false,

@@ -319,6 +319,7 @@ export default function FestivalMap() {
       const next = prev === key ? null : key
       if (isCommerceLegendKey(next)) {
         setShowCommerce(true)
+        // Legenda "Comércio" = todos; comercio:Tipo = filtro
         setCommerceTypeFilter(commerceTipoFromLegendKey(next))
       } else if (next === null && isCommerceLegendKey(prev)) {
         setCommerceTypeFilter(null)
@@ -329,7 +330,8 @@ export default function FestivalMap() {
 
   function setCommerceFilter(tipo) {
     setCommerceTypeFilter(tipo)
-    setLegendKey(tipo ? commerceLegendKey(tipo) : null)
+    // Destacar no mapa sem inchá-lo a legenda do header
+    setLegendKey(tipo ? commerceLegendKey(tipo) : showCommerce ? 'comercio' : null)
   }
 
   const legendItems = [
@@ -374,29 +376,6 @@ export default function FestivalMap() {
       icon: <LegendPin kind="estacionamentoPublico" />,
     },
   ]
-  if (showCommerce) {
-    const typesTLegend = t.businesses?.types
-    const wcIdx = legendItems.findIndex((i) => i.key === 'wc')
-    const insertAt = wcIdx >= 0 ? wcIdx : legendItems.length
-    legendItems.splice(
-      insertAt,
-      0,
-      ...BUSINESS_TYPES.map((tipo) => {
-        const style = businessTypeStyle(tipo)
-        return {
-          key: commerceLegendKey(tipo),
-          label: typesTLegend?.[tipo] || tipo,
-          icon: (
-            <LegendPin
-              kind="comercio"
-              glyph={style.glyph}
-              border={style.border}
-            />
-          ),
-        }
-      }),
-    )
-  }
   if (MAP_SHOW_PRIVATE_PARKING) {
     legendItems.push({
       key: 'estacionamentoPrivado',
@@ -464,7 +443,8 @@ export default function FestivalMap() {
                 onClick={() => toggleLegend(item.key)}
                 label={item.label}
               >
-                {item.icon} {item.label}
+                {item.icon}{' '}
+                <span className="max-sm:sr-only">{item.label}</span>
               </LegendItem>
             ))}
           </ul>
@@ -472,8 +452,39 @@ export default function FestivalMap() {
       </header>
 
       <div className="relative z-0 mx-auto w-full max-w-3xl flex-1 px-0 sm:px-6 sm:py-4">
-        <div className="relative h-[min(70vh,560px)] w-full overflow-hidden sm:rounded-2xl sm:shadow-sm sm:ring-1 sm:ring-barrete/10">
-          <div className="absolute right-3 top-3 z-[1000] flex flex-col items-end gap-2">
+        <div
+          className={`relative h-[min(70vh,560px)] w-full overflow-hidden sm:shadow-sm sm:ring-1 sm:ring-barrete/10 ${
+            showCommerce ? 'sm:rounded-t-2xl' : 'sm:rounded-2xl'
+          }`}
+        >
+          <div className="absolute right-3 top-3 z-[1000] flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCommerce((v) => {
+                  const next = !v
+                  if (!next && isCommerceLegendKey(legendKey)) {
+                    setLegendKey(null)
+                    setCommerceTypeFilter(null)
+                  } else if (next) {
+                    setLegendKey('comercio')
+                  }
+                  return next
+                })
+              }}
+              aria-pressed={showCommerce}
+              title={m.commerceToggleHint}
+              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold shadow-md ring-1 backdrop-blur transition ${
+                showCommerce
+                  ? 'bg-dourado text-ink ring-dourado/40'
+                  : 'bg-white/95 text-ink/75 ring-barrete/10 hover:bg-barrete/5'
+              }`}
+            >
+              <Store className="h-3.5 w-3.5" aria-hidden />
+              {showCommerce
+                ? m.commerceToggleOn || m.commerceToggle || 'Comércio'
+                : m.commerceToggle || 'Comércio'}
+            </button>
             <div className="flex overflow-hidden rounded-xl bg-white/95 text-xs font-bold shadow-md ring-1 ring-barrete/10 backdrop-blur">
               <button
                 type="button"
@@ -498,72 +509,6 @@ export default function FestivalMap() {
                 {m.layerSatellite}
               </button>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setShowCommerce((v) => {
-                  const next = !v
-                  if (!next && isCommerceLegendKey(legendKey)) setLegendKey(null)
-                  return next
-                })
-              }}
-              aria-pressed={showCommerce}
-              title={m.commerceToggleHint}
-              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold shadow-md ring-1 backdrop-blur transition ${
-                showCommerce
-                  ? 'bg-dourado text-ink ring-dourado/40'
-                  : 'bg-white/95 text-ink/75 ring-barrete/10 hover:bg-barrete/5'
-              }`}
-            >
-              <Store className="h-3.5 w-3.5" aria-hidden />
-              {showCommerce
-                ? m.commerceToggleOn || m.commerceToggle || 'Comércio'
-                : m.commerceToggle || 'Comércio'}
-            </button>
-            {showCommerce ? (
-              <div
-                className="flex max-w-[min(92vw,18rem)] flex-wrap justify-end gap-1"
-                role="group"
-                aria-label={
-                  t.businesses?.filterType || m.commerceFilterType || 'Filtrar por tipo'
-                }
-              >
-                <button
-                  type="button"
-                  onClick={() => setCommerceFilter(null)}
-                  aria-pressed={!commerceTypeFilter}
-                  className={`rounded-lg px-2 py-1 text-[0.65rem] font-bold shadow-md ring-1 backdrop-blur transition ${
-                    !commerceTypeFilter
-                      ? 'bg-barrete text-white ring-barrete/40'
-                      : 'bg-white/95 text-ink/70 ring-barrete/10 hover:bg-barrete/5'
-                  }`}
-                >
-                  {t.businesses?.filterAll || m.commerceFilterAll || 'Todos'}
-                </button>
-                {BUSINESS_TYPES.map((tipo) => {
-                  const active = commerceTypeFilter === tipo
-                  const style = businessTypeStyle(tipo)
-                  return (
-                    <button
-                      key={tipo}
-                      type="button"
-                      onClick={() =>
-                        setCommerceFilter(active ? null : tipo)
-                      }
-                      aria-pressed={active}
-                      className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[0.65rem] font-bold shadow-md ring-1 backdrop-blur transition ${
-                        active
-                          ? 'bg-barrete text-white ring-barrete/40'
-                          : 'bg-white/95 text-ink/70 ring-barrete/10 hover:bg-barrete/5'
-                      }`}
-                    >
-                      <span aria-hidden>{style.glyph}</span>
-                      {typesT?.[tipo] || tipo}
-                    </button>
-                  )
-                })}
-              </div>
-            ) : null}
           </div>
 
           <LiveNowBanners labels={m} items={live.liveNow} />
@@ -833,6 +778,57 @@ export default function FestivalMap() {
               : null}
           </MapContainer>
         </div>
+        {showCommerce ? (
+          <div className="border-y border-barrete/10 bg-white px-3 py-2.5 sm:rounded-b-2xl sm:border sm:border-t-0 sm:border-barrete/10 sm:shadow-sm">
+            <p className="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-ink/45">
+              {t.businesses?.filterType ||
+                m.commerceFilterType ||
+                'Filtrar por tipo'}
+            </p>
+            <div
+              className="flex flex-wrap gap-1.5"
+              role="group"
+              aria-label={
+                t.businesses?.filterType ||
+                m.commerceFilterType ||
+                'Filtrar por tipo'
+              }
+            >
+              <button
+                type="button"
+                onClick={() => setCommerceFilter(null)}
+                aria-pressed={!commerceTypeFilter}
+                className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold ring-1 transition ${
+                  !commerceTypeFilter
+                    ? 'bg-barrete text-white ring-barrete/40'
+                    : 'bg-creme text-ink/70 ring-barrete/10 hover:bg-barrete/5'
+                }`}
+              >
+                {t.businesses?.filterAll || m.commerceFilterAll || 'Todos'}
+              </button>
+              {BUSINESS_TYPES.map((tipo) => {
+                const active = commerceTypeFilter === tipo
+                const style = businessTypeStyle(tipo)
+                return (
+                  <button
+                    key={tipo}
+                    type="button"
+                    onClick={() => setCommerceFilter(active ? null : tipo)}
+                    aria-pressed={active}
+                    className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold ring-1 transition ${
+                      active
+                        ? 'bg-barrete text-white ring-barrete/40'
+                        : 'bg-creme text-ink/70 ring-barrete/10 hover:bg-barrete/5'
+                    }`}
+                  >
+                    <span aria-hidden>{style.glyph}</span>
+                    {typesT?.[tipo] || tipo}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ) : null}
         <p className="px-4 pt-3 text-center text-xs text-ink/50 sm:px-0">
           {m.hint}
         </p>

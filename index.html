@@ -61,10 +61,19 @@
     <link rel="apple-touch-startup-image" href="/splash/apple-splash-1136-640.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Não bloqueia o first paint: carrega as fontes em paralelo. -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Outfit:wght@400;500;600;700&display=swap"
       rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Outfit:wght@400;500;600;700&display=swap"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Outfit:wght@400;500;600;700&display=swap"
+      />
+    </noscript>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <title>Festas do Barrete Verde e das Salinas | Alcochete · Programa 2026</title>
@@ -111,8 +120,67 @@
     />
     <meta name="twitter:image" content="https://www.festasbarreteverde.pt/og-image.png" />
 
-    <!-- Evita flash do shell SEO antes do React montar (o HTML mantém-se para crawlers). -->
+    <!-- Shell de arranque (visível) + SEO oculto para crawlers. -->
     <style>
+      html {
+        background-color: #1b5e3f;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background-color: #faf8f2;
+        color: #1a2e24;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #root {
+        min-height: 100vh;
+      }
+      .boot-shell {
+        display: flex;
+        min-height: 100vh;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        padding: 1.5rem;
+        padding-top: max(1.5rem, env(safe-area-inset-top, 0px));
+        box-sizing: border-box;
+        background-color: #faf8f2;
+        text-align: center;
+      }
+      .boot-shell__mark {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        box-shadow: 0 4px 16px rgba(27, 94, 63, 0.18);
+      }
+      .boot-shell__title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #1b5e3f;
+        letter-spacing: -0.01em;
+      }
+      .boot-shell__sub {
+        margin: 0;
+        font-size: 0.8rem;
+        color: #1a2e24;
+        opacity: 0.55;
+      }
+      .boot-shell__spinner {
+        width: 28px;
+        height: 28px;
+        margin-top: 0.35rem;
+        border: 2.5px solid rgba(27, 94, 63, 0.2);
+        border-top-color: #1b5e3f;
+        border-radius: 50%;
+        animation: boot-spin 0.7s linear infinite;
+      }
+      @keyframes boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
       #root > .seo-shell {
         position: absolute;
         width: 1px;
@@ -186,6 +254,18 @@
   </head>
   <body>
     <div id="root">
+      <div class="boot-shell" role="status" aria-live="polite" aria-busy="true">
+        <img
+          class="boot-shell__mark"
+          src="/mark.svg"
+          width="64"
+          height="64"
+          alt=""
+        />
+        <p class="boot-shell__title">Festas do Barrete Verde</p>
+        <p class="boot-shell__sub">A carregar o programa…</p>
+        <div class="boot-shell__spinner" aria-hidden="true"></div>
+      </div>
       <!-- Conteúdo estático para motores de busca (substituído pela app React). -->
       <main class="seo-shell">
         <h1>Festas do Barrete Verde e das Salinas</h1>
