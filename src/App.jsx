@@ -2,12 +2,16 @@ import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import { LangProvider, useLang } from './context/LangContext'
 import { A11yProvider } from './context/A11yContext'
+import { AppConfigProvider } from './context/AppConfigContext'
 import { useReminderTicker } from './hooks/useLocalExtras'
 import PublicProgram from './pages/PublicProgram'
 import Privacy from './pages/Privacy'
 import NotFound from './pages/NotFound'
 import InstallPrompt from './components/InstallPrompt'
 import NotifyPrompt from './components/NotifyPrompt'
+import InAppBrowserBanner from './components/InAppBrowserBanner'
+import LiveSmokeBanner from './components/LiveSmokeBanner'
+import AdminSessionGuard from './components/AdminSessionGuard'
 import OfflineBanner from './components/OfflineBanner'
 import AnalyticsTracker from './components/AnalyticsTracker'
 import { track } from './lib/analytics'
@@ -50,7 +54,10 @@ function AppExtras() {
   return (
     <>
       <ScrollToTop />
+      <AdminSessionGuard />
       <AnalyticsTracker />
+      <LiveSmokeBanner />
+      <InAppBrowserBanner />
       <OfflineBanner />
       <InstallPrompt />
       <NotifyPrompt />
@@ -62,21 +69,23 @@ export default function App() {
   return (
     <LangProvider>
       <A11yProvider>
-        <BrowserRouter>
-          <Suspense fallback={<RouteFallback />}>
-            <Routes>
-              <Route path="/" element={<PublicProgram />} />
-              <Route path="/mapa" element={<FestivalMap />} />
-              <Route path="/comercio" element={<Negocios />} />
-              <Route path="/negocios" element={<Navigate to="/comercio" replace />} />
-              <Route path="/privacidade" element={<Privacy />} />
-              <Route path="/privacy" element={<Navigate to="/privacidade" replace />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-          <AppExtras />
-        </BrowserRouter>
+        <AppConfigProvider>
+          <BrowserRouter>
+            <Suspense fallback={<RouteFallback />}>
+              <Routes>
+                <Route path="/" element={<PublicProgram />} />
+                <Route path="/mapa" element={<FestivalMap />} />
+                <Route path="/comercio" element={<Negocios />} />
+                <Route path="/negocios" element={<Navigate to="/comercio" replace />} />
+                <Route path="/privacidade" element={<Privacy />} />
+                <Route path="/privacy" element={<Navigate to="/privacidade" replace />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+            <AppExtras />
+          </BrowserRouter>
+        </AppConfigProvider>
       </A11yProvider>
     </LangProvider>
   )

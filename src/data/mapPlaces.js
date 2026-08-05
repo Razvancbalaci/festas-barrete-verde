@@ -241,6 +241,21 @@ export const ENTRADA_ROUTE = [
 /** Chegada da entrada (portão na avenida — não o centro OSM da praça). */
 export const ENTRADA_DEST = ENTRADA_ROUTE[ENTRADA_ROUTE.length - 1]
 
+/** Ruas do percurso típico das entradas (cartaz → portão da Praça). */
+export const ENTRADA_ROUTE_STREETS = [
+  'Av. D. Manuel I',
+  'Rua da Quebrada',
+  'Rua José André dos Santos',
+  'Rua João de Deus',
+  'Largo da Revolução de 1910',
+  'Largo de S. João',
+  'Av. 5 de Outubro',
+  'Nacional 119',
+]
+
+/** Campo `local` completo para entradas no programa / smoke test. */
+export const ENTRADA_ROUTE_LOCAL = ENTRADA_ROUTE_STREETS.join(', ')
+
 /**
  * Recintos das largadas — GeoJSON do utilizador + match ao `local` do cartaz.
  * O percurso do toiro (ida/volta) deriva do GPS do polígono.

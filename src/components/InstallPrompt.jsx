@@ -8,7 +8,18 @@ import { track } from '../lib/analytics'
 export const INSTALL_DISMISS_KEY = 'fbv-install-dismissed'
 /** NotifyPrompt espera por isto antes de aparecer (no telemóvel). */
 export const INSTALL_SETTLED_EVENT = 'fbv-install-settled'
+/** Pedido externo (ex. lembrete) para mostrar o guia de instalação. */
+export const INSTALL_REQUEST_EVENT = 'fbv-install-request'
 const SHOW_DELAY_MS = 2500
+
+/** Abre o InstallPrompt (se ainda não estiver em standalone). */
+export function requestInstallPrompt() {
+  try {
+    window.dispatchEvent(new CustomEvent(INSTALL_REQUEST_EVENT))
+  } catch {
+    /* ignore */
+  }
+}
 
 function isStandalone() {
   return (
@@ -70,6 +81,7 @@ export default function InstallPrompt() {
   const { pathname } = useLocation()
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [visible, setVisible] = useState(false)
+  const [forced, setForced] = useState(false)
   const [iosMode, setIosMode] = useState(false)
   const [androidMode, setAndroidMode] = useState(false)
   const readyRef = useRef(false)
@@ -86,16 +98,16 @@ export default function InstallPrompt() {
       return
     }
 
-    if (isStandalone() || wasDismissedThisVisit()) {
-      setVisible(false)
-      emitInstallSettled()
-      return
-    }
-
     const ios = isIos()
     const android = isAndroid()
     setIosMode(ios)
     setAndroidMode(android)
+
+    const skipAutoShow = isStandalone() || wasDismissedThisVisit()
+    if (skipAutoShow) {
+      setVisible(false)
+      emitInstallSettled()
+    }
 
     // Desktop / sem ritual mobile: não bloquear o notify
     if (!ios && !android) {
@@ -105,22 +117,36 @@ export default function InstallPrompt() {
     const onBeforeInstall = (e) => {
       e.preventDefault()
       setDeferredPrompt(e)
-      if (readyRef.current) setVisible(true)
+      if (readyRef.current && !skipAutoShow) setVisible(true)
     }
 
     window.addEventListener('beforeinstallprompt', onBeforeInstall)
 
+    const onInstallRequest = () => {
+      if (isStandalone()) return
+      try {
+        sessionStorage.removeItem(INSTALL_DISMISS_KEY)
+      } catch {
+        /* ignore */
+      }
+      setForced(true)
+      setVisible(true)
+      readyRef.current = true
+    }
+    window.addEventListener(INSTALL_REQUEST_EVENT, onInstallRequest)
+
     const timer = window.setTimeout(() => {
       readyRef.current = true
-      if (ios || android) setVisible(true)
+      if (!skipAutoShow && (ios || android)) setVisible(true)
       setDeferredPrompt((current) => {
-        if (current) setVisible(true)
+        if (current && !skipAutoShow) setVisible(true)
         return current
       })
     }, SHOW_DELAY_MS)
 
     return () => {
       window.removeEventListener('beforeinstallprompt', onBeforeInstall)
+      window.removeEventListener(INSTALL_REQUEST_EVENT, onInstallRequest)
       window.clearTimeout(timer)
       readyRef.current = false
     }
@@ -136,10 +162,11 @@ export default function InstallPrompt() {
   }, [visible, pathname])
 
   if (!visible || pathname.startsWith('/admin')) return null
-  if (!iosMode && !androidMode && !deferredPrompt) return null
+  if (!forced && !iosMode && !androidMode && !deferredPrompt) return null
 
   const dismiss = () => {
     setVisible(false)
+    setForced(false)
     track('install_prompt_dismiss')
     markDismissedThisVisit()
     emitInstallSettled()
@@ -156,6 +183,7 @@ export default function InstallPrompt() {
     }
     setDeferredPrompt(null)
     setVisible(false)
+    setForced(false)
     markDismissedThisVisit()
     emitInstallSettled()
   }

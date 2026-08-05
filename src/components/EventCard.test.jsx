@@ -18,10 +18,28 @@ vi.mock('../lib/reminders', () => ({
   scheduleServerReminder: vi.fn(),
 }))
 
+vi.mock('./InstallPrompt', async () => {
+  const actual = await vi.importActual('./InstallPrompt')
+  return {
+    ...actual,
+    requestInstallPrompt: vi.fn(),
+  }
+})
+
+import {
+  ensurePushForReminders,
+  scheduleServerReminder,
+} from '../lib/reminders'
+import { requestInstallPrompt } from './InstallPrompt'
+
 describe('EventCard', () => {
   beforeEach(() => {
     track.mockClear()
     localStorage.clear()
+    vi.mocked(ensurePushForReminders).mockReset()
+    vi.mocked(scheduleServerReminder).mockReset()
+    vi.mocked(requestInstallPrompt).mockReset()
+    vi.spyOn(window, 'alert').mockImplementation(() => {})
   })
 
   it('renders title, time and category', () => {
@@ -83,5 +101,28 @@ describe('EventCard', () => {
       'href',
       'https://tickets.example/x',
     )
+  })
+
+  it('opens install prompt when reminder requires install', async () => {
+    const user = userEvent.setup()
+    vi.mocked(ensurePushForReminders).mockResolvedValue({
+      ok: false,
+      reason: 'needInstall',
+    })
+
+    const start = new Date(Date.now() + 3 * 60 * 60 * 1000)
+    const dia = start.toLocaleDateString('en-CA', { timeZone: 'Europe/Lisbon' })
+    const hora = `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`
+
+    renderApp(
+      <EventCard event={sampleEvent({ dia, hora })} index={0} />,
+    )
+    await user.click(
+      screen.getByRole('button', { name: /lembrar|remind|rappel|recordar/i }),
+    )
+    await waitFor(() => {
+      expect(requestInstallPrompt).toHaveBeenCalled()
+    })
+    expect(scheduleServerReminder).not.toHaveBeenCalled()
   })
 })

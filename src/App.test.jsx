@@ -19,8 +19,15 @@ vi.mock('./pages/Privacy', () => ({
 vi.mock('./pages/NotFound', () => ({
   default: () => <div>not-found-page</div>,
 }))
-vi.mock('./components/InstallPrompt', () => ({ default: () => null }))
+vi.mock('./components/InstallPrompt', () => ({
+  default: () => null,
+  requestInstallPrompt: () => {},
+  installBlocksNotify: () => false,
+  INSTALL_SETTLED_EVENT: 'fbv-install-settled',
+}))
 vi.mock('./components/NotifyPrompt', () => ({ default: () => null }))
+vi.mock('./components/LiveSmokeBanner', () => ({ default: () => null }))
+vi.mock('./components/AdminSessionGuard', () => ({ default: () => null }))
 vi.mock('./components/OfflineBanner', () => ({ default: () => null }))
 vi.mock('./components/AnalyticsTracker', () => ({ default: () => null }))
 vi.mock('./hooks/useLocalExtras', async () => {

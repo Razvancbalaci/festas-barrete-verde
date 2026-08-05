@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import NotifyConfirmModal from './NotifyConfirmModal'
-import { translations } from '../../data/i18n'
+import en from '../../data/i18n/en.js'
 
-const t = translations.en.admin
+const t = en.admin
 
 describe('NotifyConfirmModal', () => {
   it('renders nothing when closed', () => {

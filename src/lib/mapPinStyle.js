@@ -10,7 +10,7 @@ export const MAP_PIN_KINDS = {
   palco: { border: '#1B6CA8', glyph: '🎤' },
   ponto: { border: '#1B5E3F', glyph: '📍' }, // alias legado
   local: { border: '#1B5E3F', glyph: '📍' },
-  toiros: { border: '#C0392B', glyph: '🐂' },
+  toiros: { border: '#C0392B', glyph: '🐂', iconKey: 'plaza' },
   feira: { border: '#E8A13A', glyph: '🎠' },
   comercio: { border: '#C45C26', glyph: '🍽️' },
   wc: { border: '#5B7C8A', glyph: '🚻' },
@@ -50,6 +50,8 @@ export const MAP_PIN_KINDS = {
 
 /** Ícones SVG inline (não dependem de /public). */
 export const PIN_ICON_HTML = {
+  /** Praça de touros — anel visto de cima (arena + bancadas). */
+  plaza: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="20" height="20" fill="none" aria-hidden="true"><circle cx="32" cy="32" r="28" fill="#7A1F16" stroke="#4A1812" stroke-width="2"/><circle cx="32" cy="32" r="21" fill="#B85C50"/><circle cx="32" cy="32" r="13" fill="#E8C872" stroke="#C0392B" stroke-width="1.5"/><path d="M26 54 Q32 48 38 54" stroke="#4A1812" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg>`,
   barrete: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="20" height="20" fill="none" aria-hidden="true"><path d="M12 56 L50 14" stroke="#2C1A0C" stroke-width="3.8" stroke-linecap="round"/><path d="M44 10 C50 14 52 20 48 24" stroke="#E8B84A" stroke-width="3.6" stroke-linecap="round" fill="none"/><path d="M48 10 C54 14 56 20 52 24" stroke="#E8B84A" stroke-width="3.6" stroke-linecap="round" fill="none"/><path d="M20 42 C18 30 26 18 40 20 C48 21 50 30 47 40 C46 42 22 44 20 42Z" fill="#1FA64A" stroke="#0E6B2E" stroke-width="1.6" stroke-linejoin="round"/><path d="M26 26 C14 20 8 28 14 36 C18 40 26 34 26 26Z" fill="#1FA64A" stroke="#0E6B2E" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="36" r="3.2" fill="#1FA64A" stroke="#0E6B2E" stroke-width="1.4"/><rect x="21" y="39" width="26" height="9" rx="2.2" fill="#D0212A" stroke="#8F141C" stroke-width="1.3"/></svg>`,
 }
 

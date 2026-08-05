@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -17,8 +17,14 @@ import { BUSINESS_TYPES, businessTypeStyle } from '../data/businessTypes'
 import Footer from '../components/Footer'
 import { mapsUrl } from '../lib/locations'
 import { track } from '../lib/analytics'
+import { negocioHasMapCoords, negocioMapPath } from '../lib/comercioMap'
 import { sanitizeHttpUrl } from '../lib/safeUrl'
 import HoneypotField from '../components/HoneypotField'
+import LoadErrorPanel from '../components/LoadErrorPanel'
+import {
+  cacheApprovedBusinesses,
+  getCachedApprovedBusinesses,
+} from '../lib/dataCache'
 import {
   FORM_COOLDOWN_MS,
   FORM_SUBMIT_KEYS,
@@ -45,6 +51,8 @@ export default function Negocios() {
   const b = t.businesses
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [fromCache, setFromCache] = useState(false)
   const [typeFilter, setTypeFilter] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ ...emptyForm })
@@ -55,39 +63,49 @@ export default function Negocios() {
     getCooldownRemainingMs(FORM_SUBMIT_KEYS.negocios),
   )
 
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      setLoading(true)
-      const { data, error: err } = await supabase
-        .from('negocios')
-        .select('*')
-        .eq('aprovado', true)
-        .order('nome')
-      if (!cancelled) {
-        if (err) {
-          console.error(err)
-          setList([])
-        } else {
-          const rows = data || []
-          rows.sort((a, b) => {
-            const da = a.destaque ? 1 : 0
-            const db = b.destaque ? 1 : 0
-            if (db !== da) return db - da
-            return String(a.nome || '').localeCompare(
-              String(b.nome || ''),
-              'pt',
-            )
-          })
-          setList(rows)
-        }
-        setLoading(false)
+  const sortBusinesses = (rows) => {
+    const sorted = [...(rows || [])]
+    sorted.sort((a, b) => {
+      const da = a.destaque ? 1 : 0
+      const db = b.destaque ? 1 : 0
+      if (db !== da) return db - da
+      return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt')
+    })
+    return sorted
+  }
+
+  const fetchList = useCallback(async () => {
+    setLoading(true)
+    const { data, error: err } = await supabase
+      .from('negocios')
+      .select('*')
+      .eq('aprovado', true)
+      .order('nome')
+    if (err) {
+      console.error(err)
+      const cached = getCachedApprovedBusinesses()
+      if (cached != null && cached.length > 0) {
+        setList(sortBusinesses(cached))
+        setLoadError(true)
+        setFromCache(true)
+      } else {
+        setList([])
+        setLoadError(true)
+        setFromCache(false)
       }
-    })()
-    return () => {
-      cancelled = true
+    } else {
+      const rows = sortBusinesses(data || [])
+      cacheApprovedBusinesses(rows)
+      setList(rows)
+      setLoadError(false)
+      setFromCache(false)
     }
+    setLoading(false)
   }, [])
+
+  useEffect(() => {
+    fetchList()
+  }, [fetchList])
 
   useEffect(() => {
     if (cooldownMs <= 0) return
@@ -255,10 +273,36 @@ export default function Negocios() {
           })}
         </div>
 
+        {loadError && fromCache && list.length > 0 ? (
+          <div className="mb-3 rounded-xl bg-dourado/15 px-3 py-2 text-center text-xs text-ink/70 ring-1 ring-dourado/30">
+            {t.loadErrorCached ||
+              b.loadErrorCached ||
+              'A mostrar dados guardados neste aparelho (podem não estar actualizados).'}
+            <button
+              type="button"
+              onClick={() => fetchList()}
+              className="ml-2 font-semibold text-barrete underline-offset-2 hover:underline"
+            >
+              {t.retry || b.retry || 'Tentar de novo'}
+            </button>
+          </div>
+        ) : null}
+
         {loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-barrete" />
           </div>
+        ) : loadError && !fromCache ? (
+          <LoadErrorPanel
+            title={
+              b.loadError ||
+              t.loadError ||
+              'Não foi possível carregar o comércio. Verifica a ligação.'
+            }
+            retryLabel={t.retry || b.retry || 'Tentar de novo'}
+            onRetry={() => fetchList()}
+            retrying={loading}
+          />
         ) : filtered.length === 0 ? (
           <p className="rounded-2xl bg-white px-6 py-12 text-center text-sm text-ink/50 ring-1 ring-barrete/5">
             {b.empty}
@@ -302,6 +346,18 @@ export default function Negocios() {
                     <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
                     {n.morada}
                   </a>
+                  {negocioHasMapCoords(n) ? (
+                    <Link
+                      to={negocioMapPath(n.id)}
+                      onClick={() =>
+                        track('comercio_open_map', { negocio_id: n.id })
+                      }
+                      className="inline-flex items-center gap-1.5 font-semibold text-barrete hover:underline"
+                    >
+                      <Store className="h-4 w-4 shrink-0" aria-hidden />
+                      {b.maps || 'Ver no mapa'}
+                    </Link>
+                  ) : null}
                   {n.horario ? (
                     <p className="inline-flex items-center gap-1.5 text-ink/60">
                       <Clock className="h-4 w-4 shrink-0" />

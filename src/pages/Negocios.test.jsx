@@ -5,6 +5,8 @@ import { MemoryRouter } from 'react-router-dom'
 import Negocios from './Negocios'
 import { LangProvider } from '../context/LangContext'
 import { FORM_SUBMIT_KEYS } from '../lib/formSpamGuard'
+import { cacheApprovedBusinesses } from '../lib/dataCache'
+import { track } from '../lib/analytics'
 
 const insertMock = vi.fn()
 const orderMock = vi.fn()
@@ -136,6 +138,115 @@ describe('Negocios form spam guards', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent(/demasiados pedidos/i)
+    })
+  })
+})
+
+describe('Negocios list load / cache / map link', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    insertMock.mockReset()
+    orderMock.mockReset()
+    orderMock.mockResolvedValue({ data: [], error: null })
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.mocked(track).mockClear()
+  })
+
+  afterEach(() => {
+    cleanup()
+  })
+
+  it('shows LoadErrorPanel when list fetch fails without cache', async () => {
+    orderMock.mockResolvedValue({ data: null, error: { message: 'down' } })
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        /não foi possível carregar o comércio/i,
+      )
+    })
+  })
+
+  it('uses cached businesses and shows cached hint on error', async () => {
+    cacheApprovedBusinesses([
+      {
+        id: 'n-cache',
+        nome: 'Tasca Cache',
+        tipo: 'Restaurante',
+        morada: 'Rua 1',
+        aprovado: true,
+        lat: 38.75,
+        lng: -8.96,
+      },
+    ])
+    orderMock.mockResolvedValue({ data: null, error: { message: 'down' } })
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText(/tasca cache/i)).toBeInTheDocument()
+    })
+    expect(screen.getByText(/dados guardados neste aparelho/i)).toBeInTheDocument()
+  })
+
+  it('shows Ver no mapa deep link when coords exist', async () => {
+    orderMock.mockResolvedValue({
+      data: [
+        {
+          id: 'biz-1',
+          nome: 'Café Tejo',
+          tipo: 'Café / Bar',
+          morada: 'Rua Nova 2',
+          aprovado: true,
+          lat: 38.75,
+          lng: -8.96,
+        },
+      ],
+      error: null,
+    })
+    renderPage()
+    const link = await screen.findByRole('link', { name: /ver no mapa/i })
+    expect(link).toHaveAttribute('href', '/mapa?comercio=1&negocio=biz-1')
+  })
+
+  it('hides Ver no mapa when coords are missing', async () => {
+    orderMock.mockResolvedValue({
+      data: [
+        {
+          id: 'biz-2',
+          nome: 'Loja Sem Pin',
+          tipo: 'Loja',
+          morada: 'Rua Sem GPS',
+          aprovado: true,
+        },
+      ],
+      error: null,
+    })
+    renderPage()
+    await screen.findByText(/loja sem pin/i)
+    expect(
+      screen.queryByRole('link', { name: /ver no mapa/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('tracks comercio_open_map when map link is clicked', async () => {
+    const user = userEvent.setup()
+    orderMock.mockResolvedValue({
+      data: [
+        {
+          id: 'biz-3',
+          nome: 'Bar Mapa',
+          tipo: 'Café / Bar',
+          morada: 'Praça',
+          aprovado: true,
+          lat: 38.7,
+          lng: -8.9,
+        },
+      ],
+      error: null,
+    })
+    renderPage()
+    const link = await screen.findByRole('link', { name: /ver no mapa/i })
+    await user.click(link)
+    expect(track).toHaveBeenCalledWith('comercio_open_map', {
+      negocio_id: 'biz-3',
     })
   })
 })

@@ -46,4 +46,27 @@ describe('LoginForm', () => {
     await waitFor(() => expect(onLogin).toHaveBeenCalled())
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
+
+  it('shows session-expired notice when provided', () => {
+    render(
+      <LoginForm
+        onLogin={vi.fn()}
+        t={t}
+        notice="Sessão terminada por inactividade."
+      />,
+    )
+    expect(screen.getByRole('status')).toHaveTextContent(/inactividade/i)
+  })
+
+  it('trims email before login', async () => {
+    const user = userEvent.setup()
+    const onLogin = vi.fn().mockResolvedValue({})
+    render(<LoginForm onLogin={onLogin} t={t} />)
+    await user.type(screen.getByRole('textbox', { name: /^email$/i }), '  a@b.com  ')
+    await user.type(screen.getByLabelText(/^password$/i), 'secret')
+    await user.click(screen.getByRole('button', { name: /entrar/i }))
+    await waitFor(() => {
+      expect(onLogin).toHaveBeenCalledWith('a@b.com', 'secret')
+    })
+  })
 })

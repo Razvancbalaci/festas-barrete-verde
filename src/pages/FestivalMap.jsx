@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap } from 'react-leaflet'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap, ZoomControl } from 'react-leaflet'
 import L from 'leaflet'
-import { Link } from 'react-router-dom'
-import { ArrowLeft, Contrast, Navigation, Store } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, Contrast, Store } from 'lucide-react'
 import { useLang } from '../context/LangContext'
 import { useA11y } from '../context/A11yContext'
 import {
@@ -36,8 +36,13 @@ import LiveBullLayer, {
   LiveNowBanners,
   useLiveStreetBull,
 } from '../components/map/LiveBullLayer'
+import MapDirectionsCta from '../components/map/MapDirectionsCta'
 import LocateMeControl from '../components/map/LocateMeControl'
 import Footer from '../components/Footer'
+import {
+  parseMapComercioParams,
+  resolveNegocioFocusLatLng,
+} from '../lib/comercioMap'
 import 'leaflet/dist/leaflet.css'
 
 function placeMatchesLegend(place, legendKey) {
@@ -95,7 +100,14 @@ function LegendPin({ kind, glyph: glyphOverride, border: borderOverride }) {
       }}
       aria-hidden
     >
-      {glyph}
+      {typeof glyph === 'string' && glyph.includes('<svg') ? (
+        <span
+          className="inline-flex items-center justify-center [&>svg]:h-3.5 [&>svg]:w-3.5"
+          dangerouslySetInnerHTML={{ __html: glyph }}
+        />
+      ) : (
+        glyph
+      )}
     </span>
   )
 }
@@ -129,6 +141,16 @@ function commercePinMatchesLegend(tipo, legendKey) {
   const legendTipo = commerceTipoFromLegendKey(legendKey)
   if (!legendTipo) return false
   return (tipo || 'Outro') === legendTipo
+}
+
+function scrollToCommerceFilters(el) {
+  el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+}
+
+function scrollToMapLegend(el, offset = 72) {
+  if (!el || typeof window === 'undefined') return
+  const y = el.getBoundingClientRect().top + window.scrollY - offset
+  window.scrollTo({ top: Math.max(0, y), behavior: 'auto' })
 }
 
 function LegendRecinto() {
@@ -175,6 +197,56 @@ function LegendItem({ active, onClick, children, label }) {
   )
 }
 
+/** Filtros de comércio por baixo do mapa. */
+function CommerceFiltersBar({
+  filterLabel,
+  filterAllLabel,
+  typesT,
+  commerceTypeFilter,
+  onFilter,
+}) {
+  return (
+    <div
+      className="flex flex-wrap gap-1.5"
+      role="group"
+      aria-label={filterLabel}
+    >
+      <button
+        type="button"
+        onClick={() => onFilter(null)}
+        aria-pressed={!commerceTypeFilter}
+        className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold ring-1 transition ${
+          !commerceTypeFilter
+            ? 'bg-barrete text-white ring-barrete/40'
+            : 'bg-creme text-ink/70 ring-barrete/10 hover:bg-barrete/5'
+        }`}
+      >
+        {filterAllLabel}
+      </button>
+      {BUSINESS_TYPES.map((tipo) => {
+        const active = commerceTypeFilter === tipo
+        const style = businessTypeStyle(tipo)
+        return (
+          <button
+            key={tipo}
+            type="button"
+            onClick={() => onFilter(active ? null : tipo)}
+            aria-pressed={active}
+            className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold ring-1 transition ${
+              active
+                ? 'bg-barrete text-white ring-barrete/40'
+                : 'bg-creme text-ink/70 ring-barrete/10 hover:bg-barrete/5'
+            }`}
+          >
+            <span aria-hidden>{style.glyph}</span>
+            {typesT?.[tipo] || tipo}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 function FitBounds({ places, extraLatLngs = [], enabled }) {
   const map = useMap()
   useEffect(() => {
@@ -187,6 +259,17 @@ function FitBounds({ places, extraLatLngs = [], enabled }) {
     const bounds = L.latLngBounds(pts)
     map.fitBounds(bounds.pad(0.15))
   }, [map, places, extraLatLngs, enabled])
+  return null
+}
+
+/** Deep link `/mapa?negocio=` — centra no pin do comércio. */
+function FocusNegocio({ negocioId, businesses }) {
+  const map = useMap()
+  useEffect(() => {
+    const target = resolveNegocioFocusLatLng(businesses, negocioId)
+    if (!target) return
+    map.flyTo(target, Math.max(map.getZoom(), 17), { duration: 0.6 })
+  }, [map, negocioId, businesses])
   return null
 }
 
@@ -233,6 +316,7 @@ function FocusLegendHighlight({ legendKey, places, commercePts = [] }) {
 export default function FestivalMap() {
   const { t } = useLang()
   const { a11y, toggleA11y } = useA11y()
+  const [searchParams] = useSearchParams()
   const m = t.map
   const layers = useMemo(() => getMapLayers(), [])
   const [basemap, setBasemap] = useState('streets')
@@ -244,10 +328,38 @@ export default function FestivalMap() {
   )
   const [places, setPlaces] = useState(() => visibleMapPlaces())
   const [legendKey, setLegendKey] = useState(null)
-  const [showCommerce, setShowCommerce] = useState(false)
+  const { showCommerce: paramComercio, negocioId: paramNegocio } =
+    parseMapComercioParams(searchParams)
+  const [showCommerce, setShowCommerce] = useState(paramComercio)
   const [commerceTypeFilter, setCommerceTypeFilter] = useState(null)
   const [commerceBiz, setCommerceBiz] = useState([])
   const [commerceLoading, setCommerceLoading] = useState(false)
+  const [focusNegocioId, setFocusNegocioId] = useState(paramNegocio)
+  const commerceFiltersRef = useRef(null)
+  const mapLegendRef = useRef(null)
+  const prevShowCommerceRef = useRef(showCommerce)
+
+  useEffect(() => {
+    if (!paramComercio) return
+    setShowCommerce(true)
+    setLegendKey('comercio')
+  }, [paramComercio])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      if (showCommerce) {
+        scrollToCommerceFilters(commerceFiltersRef.current)
+      } else if (prevShowCommerceRef.current) {
+        scrollToMapLegend(mapLegendRef.current)
+      }
+      prevShowCommerceRef.current = showCommerce
+    }, 120)
+    return () => window.clearTimeout(timer)
+  }, [showCommerce])
+
+  useEffect(() => {
+    if (paramNegocio) setFocusNegocioId(paramNegocio)
+  }, [paramNegocio])
 
   const festivalPlaces = useMemo(
     () => places.filter(isFestivalPlace),
@@ -388,6 +500,10 @@ export default function FestivalMap() {
   const routeHighlighted = legendKey === 'route'
   const recintoHighlighted = legendKey === 'recinto'
   const typesT = t.businesses?.types
+  const commerceFilterLabel =
+    t.businesses?.filterType || m.commerceFilterType || 'Filtrar por tipo'
+  const commerceFilterAllLabel =
+    t.businesses?.filterAll || m.commerceFilterAll || 'Todos'
 
   const commercePinCount =
     (showCommerce ? filteredCommerceManualPlaces.length : 0) +
@@ -432,22 +548,24 @@ export default function FestivalMap() {
           </div>
           <h1 className="font-display text-2xl font-bold">{m.title}</h1>
           <p className="mt-1 text-sm text-white/80">{m.subtitle}</p>
-          <p className="mt-2 text-[0.7rem] text-white/65">
-            {m.legendTapHint || 'Toca numa legenda para destacar no mapa.'}
-          </p>
-          <ul className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-xs font-medium">
-            {legendItems.map((item) => (
-              <LegendItem
-                key={item.key}
-                active={legendKey === item.key}
-                onClick={() => toggleLegend(item.key)}
-                label={item.label}
-              >
-                {item.icon}{' '}
-                <span className="max-sm:sr-only">{item.label}</span>
-              </LegendItem>
-            ))}
-          </ul>
+          <div ref={mapLegendRef} className="scroll-mt-2">
+            <p className="mt-2 text-[0.7rem] text-white/65">
+              {m.legendTapHint || 'Toca numa legenda para destacar no mapa.'}
+            </p>
+            <ul className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-xs font-medium">
+              {legendItems.map((item) => (
+                <LegendItem
+                  key={item.key}
+                  active={legendKey === item.key}
+                  onClick={() => toggleLegend(item.key)}
+                  label={item.label}
+                >
+                  {item.icon}{' '}
+                  <span className="max-sm:sr-only">{item.label}</span>
+                </LegendItem>
+              ))}
+            </ul>
+          </div>
         </div>
       </header>
 
@@ -463,10 +581,12 @@ export default function FestivalMap() {
               onClick={() => {
                 setShowCommerce((v) => {
                   const next = !v
-                  if (!next && isCommerceLegendKey(legendKey)) {
-                    setLegendKey(null)
-                    setCommerceTypeFilter(null)
-                  } else if (next) {
+                  if (!next) {
+                    if (isCommerceLegendKey(legendKey)) {
+                      setLegendKey(null)
+                      setCommerceTypeFilter(null)
+                    }
+                  } else {
                     setLegendKey('comercio')
                   }
                   return next
@@ -518,7 +638,9 @@ export default function FestivalMap() {
             zoom={MAP_ZOOM}
             className="h-full w-full"
             scrollWheelZoom
+            zoomControl={false}
           >
+            <ZoomControl position="bottomright" />
             <TileLayer
               key={active.url}
               url={active.url}
@@ -532,10 +654,14 @@ export default function FestivalMap() {
             <FitBounds
               places={festivalPlaces}
               extraLatLngs={fitExtra}
-              enabled={!highlightActive}
+              enabled={!highlightActive && !focusNegocioId}
+            />
+            <FocusNegocio
+              negocioId={focusNegocioId}
+              businesses={commerceBiz}
             />
             <FocusLegendHighlight
-              legendKey={legendKey}
+              legendKey={focusNegocioId ? null : legendKey}
               places={
                 isCommerceLegendKey(legendKey)
                   ? filteredCommerceManualPlaces
@@ -630,30 +756,23 @@ export default function FestivalMap() {
                         {m.places?.[p.nameKey] || p.name}
                       </strong>
                       <div className="flex flex-col gap-1.5">
-                        <a
+                        <MapDirectionsCta
                           href={directionsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          label={directionsLabel}
+                          variant={isParking ? 'drive' : 'walk'}
                           onClick={() =>
                             track(isParking ? 'map_drive' : 'map_walk', {
                               place_id: p.id,
                             })
                           }
-                          className="inline-flex items-center gap-1 font-semibold text-barrete underline-offset-2 hover:underline"
-                        >
-                          <Navigation
-                            className="h-3.5 w-3.5 shrink-0"
-                            aria-hidden
-                          />
-                          {directionsLabel}
-                        </a>
+                        />
                         {p.matchTerms?.length ? (
                           <Link
                             to={`/?local=${encodeURIComponent(p.id)}`}
                             onClick={() =>
                               track('map_place_view', { place_id: p.id })
                             }
-                            className="inline-flex font-semibold text-tejo underline-offset-2 hover:underline"
+                            className="inline-flex justify-center py-1 text-xs font-semibold text-tejo underline-offset-2 hover:underline"
                           >
                             {m.seeEvents}
                           </Link>
@@ -692,18 +811,13 @@ export default function FestivalMap() {
                               {typesT?.[tipo] || tipo}
                             </p>
                           ) : null}
-                          <a
+                          <MapDirectionsCta
                             href={mapsWalkToUrl(p.lat, p.lng)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 font-semibold text-barrete underline-offset-2 hover:underline"
-                          >
-                            <Navigation
-                              className="h-3.5 w-3.5 shrink-0"
-                              aria-hidden
-                            />
-                            {m.goThere}
-                          </a>
+                            label={m.goThere}
+                            onClick={() =>
+                              track('map_walk', { place_id: p.id })
+                            }
+                          />
                         </div>
                       </Popup>
                     </Marker>
@@ -717,8 +831,11 @@ export default function FestivalMap() {
                   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
                   const tipo = n.tipo || 'Outro'
                   const featured = Boolean(n.destaque)
-                  const matched = commercePinMatchesLegend(tipo, legendKey)
-                  const dimmed = highlightActive && !matched
+                  const focused = focusNegocioId === n.id
+                  const matched =
+                    focused || commercePinMatchesLegend(tipo, legendKey)
+                  const dimmed =
+                    !focused && highlightActive && !matched
                   return (
                     <Marker
                       key={`com-biz-${n.id}`}
@@ -729,7 +846,22 @@ export default function FestivalMap() {
                           : commercePinIcon(tipo, { featured })
                       }
                       opacity={dimmed ? 0.28 : 1}
-                      zIndexOffset={matched ? 650 : featured ? 200 : 100}
+                      zIndexOffset={
+                        focused ? 900 : matched ? 650 : featured ? 200 : 100
+                      }
+                      eventHandlers={
+                        focused
+                          ? {
+                              add: (e) => {
+                                try {
+                                  e.target.openPopup()
+                                } catch {
+                                  /* ignore */
+                                }
+                              },
+                            }
+                          : undefined
+                      }
                     >
                       <Popup>
                         <div className="min-w-[10rem] space-y-2 text-sm">
@@ -751,21 +883,13 @@ export default function FestivalMap() {
                             </p>
                           ) : null}
                           <div className="flex flex-col gap-1.5">
-                            <a
+                            <MapDirectionsCta
                               href={mapsWalkToUrl(lat, lng)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 font-semibold text-barrete underline-offset-2 hover:underline"
-                            >
-                              <Navigation
-                                className="h-3.5 w-3.5 shrink-0"
-                                aria-hidden
-                              />
-                              {m.goThere}
-                            </a>
+                              label={m.goThere}
+                            />
                             <Link
                               to="/comercio"
-                              className="inline-flex font-semibold text-tejo underline-offset-2 hover:underline"
+                              className="inline-flex justify-center py-1 text-xs font-semibold text-tejo underline-offset-2 hover:underline"
                             >
                               {m.commerceOpenList || 'Ver comércio'}
                             </Link>
@@ -779,54 +903,20 @@ export default function FestivalMap() {
           </MapContainer>
         </div>
         {showCommerce ? (
-          <div className="border-y border-barrete/10 bg-white px-3 py-2.5 sm:rounded-b-2xl sm:border sm:border-t-0 sm:border-barrete/10 sm:shadow-sm">
+          <div
+            ref={commerceFiltersRef}
+            className="border-y border-barrete/10 bg-white px-3 py-2.5 sm:rounded-b-2xl sm:border sm:border-t-0 sm:border-barrete/10 sm:shadow-sm"
+          >
             <p className="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-ink/45">
-              {t.businesses?.filterType ||
-                m.commerceFilterType ||
-                'Filtrar por tipo'}
+              {commerceFilterLabel}
             </p>
-            <div
-              className="flex flex-wrap gap-1.5"
-              role="group"
-              aria-label={
-                t.businesses?.filterType ||
-                m.commerceFilterType ||
-                'Filtrar por tipo'
-              }
-            >
-              <button
-                type="button"
-                onClick={() => setCommerceFilter(null)}
-                aria-pressed={!commerceTypeFilter}
-                className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold ring-1 transition ${
-                  !commerceTypeFilter
-                    ? 'bg-barrete text-white ring-barrete/40'
-                    : 'bg-creme text-ink/70 ring-barrete/10 hover:bg-barrete/5'
-                }`}
-              >
-                {t.businesses?.filterAll || m.commerceFilterAll || 'Todos'}
-              </button>
-              {BUSINESS_TYPES.map((tipo) => {
-                const active = commerceTypeFilter === tipo
-                const style = businessTypeStyle(tipo)
-                return (
-                  <button
-                    key={tipo}
-                    type="button"
-                    onClick={() => setCommerceFilter(active ? null : tipo)}
-                    aria-pressed={active}
-                    className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold ring-1 transition ${
-                      active
-                        ? 'bg-barrete text-white ring-barrete/40'
-                        : 'bg-creme text-ink/70 ring-barrete/10 hover:bg-barrete/5'
-                    }`}
-                  >
-                    <span aria-hidden>{style.glyph}</span>
-                    {typesT?.[tipo] || tipo}
-                  </button>
-                )
-              })}
-            </div>
+            <CommerceFiltersBar
+              filterLabel={commerceFilterLabel}
+              filterAllLabel={commerceFilterAllLabel}
+              typesT={typesT}
+              commerceTypeFilter={commerceTypeFilter}
+              onFilter={setCommerceFilter}
+            />
           </div>
         ) : null}
         <p className="px-4 pt-3 text-center text-xs text-ink/50 sm:px-0">

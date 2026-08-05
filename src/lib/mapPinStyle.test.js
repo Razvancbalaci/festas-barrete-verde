@@ -54,4 +54,12 @@ describe('mapPinStyle', () => {
     expect(style.glyph).toContain('#1FA64A')
     expect(style.text).toBe(false)
   })
+
+  it('uses plaza SVG for toiros kind', () => {
+    const style = resolveMapPinStyle('toiros')
+    expect(style.iconKey).toBe('plaza')
+    expect(style.glyph).toContain('<svg')
+    expect(style.glyph).toContain('#E8C872')
+    expect(style.text).toBe(false)
+  })
 })

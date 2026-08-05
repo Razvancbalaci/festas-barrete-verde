@@ -21,6 +21,19 @@ import CategoryFilter from '../components/CategoryFilter'
 import EventList from '../components/EventList'
 import Footer from '../components/Footer'
 import { ProgramPageSkeleton } from '../components/ProgramSkeleton'
+import LoadErrorPanel from '../components/LoadErrorPanel'
+import NowHappeningBanner from '../components/NowHappeningBanner'
+import {
+  cacheEventsForDay,
+  cacheFestivalEvents,
+  getCachedEventsByIds,
+  getCachedEventsForDay,
+  getCachedFestivalEvents,
+} from '../lib/dataCache'
+import {
+  isLiveSmokeTest,
+  mergeLiveSmokeEvents,
+} from '../lib/liveSmokeTest'
 
 function eventMatchesQuery(event, q) {
   if (!q) return true
@@ -59,6 +72,9 @@ export default function PublicProgram() {
   const [favoritesOnly, setFavoritesOnly] = useState(false)
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [fromCache, setFromCache] = useState(false)
+  const [todayEvents, setTodayEvents] = useState([])
   const [highlightId, setHighlightId] = useState(paramEvento)
   const [eventDiaResolved, setEventDiaResolved] = useState(
     () => !(paramEvento && !paramDia)
@@ -71,7 +87,8 @@ export default function PublicProgram() {
     paramEvento && !paramDia && !placeFilter && !favoritesOnly
   )
 
-  const todayInFestival = FESTIVAL_DAYS.some((d) => d.date === todayIso)
+  const todayInFestival =
+    isLiveSmokeTest() || FESTIVAL_DAYS.some((d) => d.date === todayIso)
 
   const dayMeta = useMemo(
     () => FESTIVAL_DAYS.find((d) => d.date === selectedDate),
@@ -191,6 +208,23 @@ export default function PublicProgram() {
     setSearchParams(next, { replace: true })
   }, [todayInFestival, todayIso, selectedDate, searchParams, setSearchParams])
 
+  const openHappeningEvent = useCallback(
+    (event) => {
+      if (!event?.id || !event?.dia) return
+      track('happening_banner_open', { event_id: event.id })
+      setFavoritesOnly(false)
+      setShowNow(false)
+      setSelectedDate(event.dia)
+      setHighlightId(event.id)
+      const next = new URLSearchParams(searchParams)
+      next.set('dia', event.dia)
+      next.set('evento', event.id)
+      next.delete('local')
+      setSearchParams(next, { replace: true })
+    },
+    [searchParams, setSearchParams],
+  )
+
   const favKey = favIds.join(',')
 
   const fetchEvents = useCallback(async () => {
@@ -202,9 +236,11 @@ export default function PublicProgram() {
     const gen = ++fetchGen.current
     setLoading(true)
 
-    const apply = (list) => {
+    const apply = (list, { error = false, cached = false } = {}) => {
       if (gen !== fetchGen.current) return
-      setEvents(sortEvents(list))
+      setEvents(sortEvents(mergeLiveSmokeEvents(list)))
+      setLoadError(error)
+      setFromCache(cached)
       setLoading(false)
     }
 
@@ -216,7 +252,8 @@ export default function PublicProgram() {
       const { data, error } = await supabase.from('eventos').select('*').in('id', favIds)
       if (error) {
         console.error(error)
-        apply([])
+        const cached = getCachedEventsByIds(favIds)
+        apply(cached, { error: true, cached: cached.length > 0 })
       } else {
         apply(data)
       }
@@ -232,8 +269,17 @@ export default function PublicProgram() {
         .in('dia', days)
       if (error) {
         console.error(error)
-        apply([])
+        const cached = getCachedFestivalEvents()
+        if (cached?.length) {
+          apply(
+            cached.filter((e) => eventMatchesPlace(e, placeFilter)),
+            { error: true, cached: true },
+          )
+        } else {
+          apply([], { error: true, cached: false })
+        }
       } else {
+        cacheFestivalEvents(data || [])
         apply((data || []).filter((e) => eventMatchesPlace(e, placeFilter)))
       }
       return
@@ -246,9 +292,15 @@ export default function PublicProgram() {
 
     if (error) {
       console.error(error)
-      apply([])
+      const cached = getCachedEventsForDay(selectedDate)
+      if (cached != null && cached.length > 0) {
+        apply(cached, { error: true, cached: true })
+      } else {
+        apply([], { error: true, cached: false })
+      }
     } else {
-      apply(data)
+      cacheEventsForDay(selectedDate, data || [])
+      apply(data || [])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- favIds via favKey
   }, [
@@ -263,6 +315,52 @@ export default function PublicProgram() {
   useEffect(() => {
     fetchEvents()
   }, [fetchEvents])
+
+  // Eventos de hoje (faixa «A decorrer / A seguir») — independente do dia seleccionado
+  useEffect(() => {
+    if (!todayInFestival) {
+      setTodayEvents([])
+      return
+    }
+    if (
+      selectedDate === todayIso &&
+      !favoritesOnly &&
+      !placeFilter &&
+      !loading
+    ) {
+      setTodayEvents(events)
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      const cached = getCachedEventsForDay(todayIso)
+      if (cached?.length) {
+        if (!cancelled) setTodayEvents(cached)
+      }
+      const { data, error } = await supabase
+        .from('eventos')
+        .select('*')
+        .eq('dia', todayIso)
+      if (cancelled) return
+      if (!error && data) {
+        cacheEventsForDay(todayIso, data)
+        setTodayEvents(data)
+      } else if (!cached?.length) {
+        setTodayEvents([])
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [
+    todayInFestival,
+    todayIso,
+    selectedDate,
+    favoritesOnly,
+    placeFilter,
+    loading,
+    events,
+  ])
 
   useEffect(() => {
     if (!loading) setBootstrapped(true)
@@ -340,6 +438,16 @@ export default function PublicProgram() {
         selectedDate={placeFilter || favoritesOnly ? null : selectedDate}
         onSelect={selectDay}
       />
+      {todayInFestival ? (
+        <NowHappeningBanner
+          events={mergeLiveSmokeEvents(todayEvents)}
+          labels={{
+            happeningNow: t.happeningNow,
+            happeningNext: t.happeningNext,
+          }}
+          onOpen={openHappeningEvent}
+        />
+      ) : null}
       <div className="border-b border-barrete/10 bg-creme/80">
         <div className="mx-auto flex max-w-3xl flex-col gap-2 px-4 py-2.5 sm:px-6">
           <div className="flex items-center gap-2">
@@ -514,21 +622,46 @@ export default function PublicProgram() {
             ) : null}
           </h2>
         ) : null}
-        <EventList
-          events={filtered}
-          loading={loading}
-          hasFilter={hasExtraFilter}
-          favoritesEmpty={favoritesOnly && favIds.length === 0}
-          placeEmpty={
-            Boolean(placeFilter) &&
-            !loading &&
-            filtered.length === 0 &&
-            !query.trim() &&
-            !category
-          }
-          highlightId={highlightId}
-          groupByDay={Boolean(placeFilter || favoritesOnly)}
-        />
+        {loadError && fromCache && events.length > 0 ? (
+          <div className="mb-3 rounded-xl bg-dourado/15 px-3 py-2 text-center text-xs text-ink/70 ring-1 ring-dourado/30">
+            {t.loadErrorCached ||
+              'A mostrar dados guardados neste aparelho (podem não estar actualizados).'}
+            <button
+              type="button"
+              onClick={() => fetchEvents()}
+              className="ml-2 font-semibold text-barrete underline-offset-2 hover:underline"
+            >
+              {t.retry || 'Tentar de novo'}
+            </button>
+          </div>
+        ) : null}
+        {loadError && !fromCache ? (
+          <LoadErrorPanel
+            title={
+              t.loadError ||
+              'Não foi possível carregar o programa. Verifica a ligação.'
+            }
+            retryLabel={t.retry || 'Tentar de novo'}
+            onRetry={() => fetchEvents()}
+            retrying={loading}
+          />
+        ) : (
+          <EventList
+            events={filtered}
+            loading={loading}
+            hasFilter={hasExtraFilter}
+            favoritesEmpty={favoritesOnly && favIds.length === 0}
+            placeEmpty={
+              Boolean(placeFilter) &&
+              !loading &&
+              filtered.length === 0 &&
+              !query.trim() &&
+              !category
+            }
+            highlightId={highlightId}
+            groupByDay={Boolean(placeFilter || favoritesOnly)}
+          />
+        )}
       </main>
 
       <Footer />

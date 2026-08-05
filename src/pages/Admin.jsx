@@ -10,6 +10,7 @@ import LoginForm from '../components/admin/LoginForm'
 import EventForm from '../components/admin/EventForm'
 import BusinessForm from '../components/admin/BusinessForm'
 import MapPlacesPanel from '../components/admin/MapPlacesPanel'
+import DevToolsPanel from '../components/admin/DevToolsPanel'
 import AnalyticsPanel from '../components/admin/AnalyticsPanel'
 import NotifyConfirmModal from '../components/admin/NotifyConfirmModal'
 import {
@@ -17,6 +18,13 @@ import {
   defaultAdminTab,
   resolveAdminRole,
 } from '../lib/adminRole'
+import { consumeAdminSessionExpired } from '../lib/adminSessionIdle'
+import {
+  filterAdminBusinesses,
+  isBizApproved,
+  isBizPending,
+  isBizRejected,
+} from '../lib/adminBusinessFilters'
 
 const ADMIN_TABS = new Set([
   'events',
@@ -34,18 +42,6 @@ function timeSortKey(hora) {
   const m = parseInt(match[2], 10)
   if (h >= 0 && h < 6) h += 24
   return h * 60 + m
-}
-
-function isBizRejected(n) {
-  return Boolean(n?.rejeitado)
-}
-
-function isBizPending(n) {
-  return !n?.aprovado && !isBizRejected(n)
-}
-
-function isBizApproved(n) {
-  return Boolean(n?.aprovado) && !isBizRejected(n)
 }
 
 export default function Admin() {
@@ -97,6 +93,9 @@ export default function Admin() {
   const [eventQuery, setEventQuery] = useState('')
   const [feedbackFilter, setFeedbackFilter] = useState('unread') // unread | all | problema | sugestao
   const [message, setMessage] = useState(null)
+  const [sessionExpiredNotice, setSessionExpiredNotice] = useState(() =>
+    consumeAdminSessionExpired(),
+  )
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [subCount, setSubCount] = useState(null)
@@ -137,6 +136,9 @@ export default function Admin() {
     })
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s)
+      if (!s && consumeAdminSessionExpired()) {
+        setSessionExpiredNotice(true)
+      }
     })
     return () => sub.subscription.unsubscribe()
   }, [])
@@ -368,33 +370,24 @@ export default function Admin() {
     () => negocios.filter(isBizRejected),
     [negocios],
   )
+  const noCoords = useMemo(
+    () =>
+      filterAdminBusinesses(negocios, { filter: 'nocoords' }),
+    [negocios],
+  )
+  const featured = useMemo(
+    () => filterAdminBusinesses(negocios, { filter: 'featured' }),
+    [negocios],
+  )
 
-  const filteredBusinesses = useMemo(() => {
-    const q = bizQuery.trim().toLowerCase()
-    let list =
-      bizFilter === 'pending'
-        ? pending
-        : bizFilter === 'approved'
-          ? approved
-          : bizFilter === 'rejected'
-            ? rejected
-            : negocios
-    if (q) {
-      list = list.filter(
-        (n) =>
-          String(n.nome || '')
-            .toLowerCase()
-            .includes(q) ||
-          String(n.morada || '')
-            .toLowerCase()
-            .includes(q) ||
-          String(n.tipo || '')
-            .toLowerCase()
-            .includes(q),
-      )
-    }
-    return list
-  }, [bizFilter, bizQuery, pending, approved, rejected, negocios])
+  const filteredBusinesses = useMemo(
+    () =>
+      filterAdminBusinesses(negocios, {
+        filter: bizFilter,
+        query: bizQuery,
+      }),
+    [bizFilter, bizQuery, negocios],
+  )
 
   const filteredSchedules = useMemo(() => {
     const today = new Date().toLocaleDateString('en-CA', {
@@ -415,6 +408,7 @@ export default function Admin() {
 
   async function handleLogin(email, password) {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (!error) setSessionExpiredNotice(false)
     return { error }
   }
 
@@ -947,7 +941,11 @@ export default function Admin() {
   if (!session) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
-        <LoginForm onLogin={handleLogin} t={a} />
+        <LoginForm
+          onLogin={handleLogin}
+          t={a}
+          notice={sessionExpiredNotice ? a.sessionExpired : null}
+        />
         <Link
           to="/"
           className="mt-6 text-sm font-medium text-barrete/70 underline-offset-2 hover:underline"
@@ -1720,7 +1718,10 @@ export default function Admin() {
             </div>
           )
         ) : tab === 'map' ? (
-          <MapPlacesPanel t={a} mapT={t.map} />
+          <div className="flex flex-col gap-4">
+            {!isAvisosOnly ? <DevToolsPanel t={a} /> : null}
+            <MapPlacesPanel t={a} mapT={t.map} />
+          </div>
         ) : tab === 'analytics' ? (
           <AnalyticsPanel t={t} events={events} />
         ) : loadingBusinesses ? (
@@ -1740,6 +1741,16 @@ export default function Admin() {
               <div className="flex flex-wrap gap-1.5">
                 {[
                   ['pending', a.pending, pending.length],
+                  [
+                    'nocoords',
+                    a.bizFilterNoCoords || 'Sem coords',
+                    noCoords.length,
+                  ],
+                  [
+                    'featured',
+                    a.bizFeatured || 'Destaque',
+                    featured.length,
+                  ],
                   ['approved', a.approved, approved.length],
                   ['rejected', a.rejected || 'Rejeitados', rejected.length],
                   ['all', a.bizFilterAll || 'Tudo', negocios.length],
@@ -1775,7 +1786,12 @@ export default function Admin() {
                     ? a.noApproved
                     : bizFilter === 'rejected'
                       ? a.noRejected || 'Não há rejeitados.'
-                      : a.noPending}
+                      : bizFilter === 'nocoords'
+                        ? a.bizNoCoordsEmpty ||
+                          'Todos os aprovados têm coordenadas.'
+                        : bizFilter === 'featured'
+                          ? a.bizFeaturedEmpty || 'Nenhum comércio em destaque.'
+                          : a.noPending}
               </p>
             ) : (
               <ul className="flex flex-col gap-2">

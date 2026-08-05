@@ -6,6 +6,7 @@ import {
   fetchPushPreferences,
   savePushPreferences,
 } from '../lib/reminders'
+import { requestInstallPrompt } from './InstallPrompt'
 
 const PREF_KEYS = [
   { key: 'pref_street', labelKey: 'street', hintKey: 'streetHint' },
@@ -79,10 +80,17 @@ export default function NotifyPrefsForm({ open, onClose, onEnabled }) {
     const ready = await ensurePushForReminders()
     if (!ready.ok) {
       setEnabling(false)
-      if (ready.reason === 'needInstall') setMessage({ type: 'err', text: p.needInstall })
-      else if (ready.reason === 'denied') setMessage({ type: 'err', text: p.denied })
+      if (ready.reason === 'needInstall') {
+        requestInstallPrompt()
+        setMessage({ type: 'err', text: p.needInstall })
+      } else if (ready.reason === 'denied') setMessage({ type: 'err', text: p.denied })
       else if (ready.reason === 'timeout' || ready.reason === 'sw')
         setMessage({ type: 'err', text: p.enableTimeout || p.enableError })
+      else if (ready.reason === 'inApp')
+        setMessage({
+          type: 'err',
+          text: t.notify?.androidBrowser || p.enableError,
+        })
       else setMessage({ type: 'err', text: p.enableError })
       return
     }

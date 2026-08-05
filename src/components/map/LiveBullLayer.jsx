@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { supabase } from '../../lib/supabase'
@@ -12,6 +13,8 @@ import {
   isMapLiveBullEvent,
   nextLiveBullWakeAt,
 } from '../../lib/liveStreetBulls'
+import { mergeLiveSmokeEvents } from '../../lib/liveSmokeTest'
+import { eventLocalSummary } from '../../lib/eventLocal'
 import { bullPinIcon } from '../../lib/mapPinIcon'
 
 function makeBullIcon() {
@@ -131,6 +134,7 @@ export function useLiveStreetBull() {
       if (cancelled) return
       if (error) {
         console.error(error)
+        setEvents([])
         return
       }
       setEvents(data || [])
@@ -151,8 +155,9 @@ export function useLiveStreetBull() {
 
     const armTimeout = () => {
       window.clearTimeout(timeoutId)
-      const bullWake = nextLiveBullWakeAt(new Date(), events)
-      const eventWake = nextLiveEventWakeAt(events, new Date())
+      const merged = mergeLiveSmokeEvents(events, new Date())
+      const bullWake = nextLiveBullWakeAt(new Date(), merged)
+      const eventWake = nextLiveEventWakeAt(merged, new Date())
       const candidates = [bullWake, eventWake].filter((t) => t != null)
       if (!candidates.length) return
       const wakeAt = Math.min(...candidates)
@@ -185,12 +190,15 @@ export function useLiveStreetBull() {
   }, [events])
 
   return useMemo(() => {
-    const bullList = findLiveStreetBulls(events, now)
+    const merged = mergeLiveSmokeEvents(events, now)
+    const bullList = findLiveStreetBulls(merged, now)
     const primary = bullList[0] || null
     const anims = primary ? bullAnimsForLive(primary, now) : []
 
-    const liveNow = findLiveEvents(events, now).map((row) => ({
+    const liveNow = findLiveEvents(merged, now).map((row) => ({
       id: row.event.id,
+      dia: row.event.dia,
+      titulo: row.event.titulo,
       title: row.event.titulo,
       categoria: row.event.categoria,
       local: row.event.local || '',
@@ -198,7 +206,8 @@ export function useLiveStreetBull() {
     }))
 
     return {
-      primary,
+      liveBulls: bullList,
+      primary: bullList[0] || null,
       liveTitle: primary?.event?.titulo || null,
       liveNow,
       anims,
@@ -241,81 +250,205 @@ function liveNowStyle(item) {
   return { bg: '#1B5E3F', glyph: '📍' }
 }
 
-/** Banners «a decorrer agora» — painel único com lista + ocultar. */
+const MOBILE_PREVIEW_MAX = 2
+const MOBILE_LIST_MAX_H = 'max-h-[min(42vh,15rem)]'
+
+function liveNowCountLabel(labels, count) {
+  const tpl = labels?.liveNowCount || '{n} a decorrer'
+  return tpl.replace('{n}', String(count))
+}
+
+function liveNowMoreLabel(labels, count) {
+  const tpl = labels?.liveNowMore || '+{n} mais'
+  return tpl.replace('{n}', String(count))
+}
+
+function LiveNowRow({ item, compact = false }) {
+  const { bg, glyph } = liveNowStyle(item)
+  const href =
+    item.id && item.dia
+      ? `/?dia=${encodeURIComponent(item.dia)}&evento=${encodeURIComponent(item.id)}`
+      : item.id
+        ? `/?evento=${encodeURIComponent(item.id)}`
+        : null
+  const rowClass = `flex w-full items-center gap-2 text-left transition hover:bg-white/10 ${
+    compact ? 'px-2.5 py-1.5' : 'gap-2.5 px-3 py-2.5'
+  }`
+  const inner = (
+    <>
+      <span
+        className={`flex shrink-0 items-center justify-center rounded-full border-2 leading-none ${
+          compact ? 'h-6 w-6 text-xs' : 'h-8 w-8 text-sm'
+        }`}
+        style={{
+          background: '#FAF8F2',
+          borderColor: bg,
+        }}
+        aria-hidden
+      >
+        {glyph}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span
+          className={`block truncate font-semibold leading-snug text-white ${
+            compact ? 'text-[0.7rem]' : 'text-xs'
+          }`}
+        >
+          {item.title}
+        </span>
+        {!compact && (item.local || item.kind === 'bull') ? (
+          <span className="mt-0.5 block truncate text-[0.65rem] text-white/65">
+            {eventLocalSummary(item)}
+          </span>
+        ) : null}
+      </span>
+    </>
+  )
+  if (href) {
+    return (
+      <Link to={href} className={rowClass}>
+        {inner}
+      </Link>
+    )
+  }
+  return <div className={rowClass}>{inner}</div>
+}
+
+/** Banners «a decorrer agora» — pill compacto no telemóvel + lista no desktop. */
 export function LiveNowBanners({ labels, items }) {
   const list = items || []
   const [show, setShow] = useState(readLiveNowPref)
+  const [mobileView, setMobileView] = useState('collapsed')
 
   if (!list.length) return null
 
   const prefix = labels?.bullLiveNow || 'A decorrer agora'
+  const count = list.length
+  const previewItems = list.slice(0, MOBILE_PREVIEW_MAX)
+  const hiddenCount = Math.max(0, count - MOBILE_PREVIEW_MAX)
+
+  function closePanel() {
+    setShow(false)
+    setMobileView('collapsed')
+    writeLiveNowPref(false)
+  }
 
   if (!show) {
     return (
-      <div className="pointer-events-none absolute left-3 top-16 z-[1000] sm:top-3 sm:left-14">
+      <div
+        data-testid="live-now-mobile"
+        className="pointer-events-none absolute left-3 top-3 z-[1000] sm:left-14"
+      >
         <button
           type="button"
           onClick={() => {
             setShow(true)
+            setMobileView('preview')
             writeLiveNowPref(true)
           }}
           className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-ink shadow-md ring-1 ring-barrete/15 backdrop-blur hover:bg-white"
           aria-label={labels?.liveNowShowAria || labels?.liveNowShow}
         >
           <span aria-hidden>🐂</span>
-          {labels?.liveNowShow || 'Mostrar a decorrer'}
+          {liveNowCountLabel(labels, count)}
         </button>
       </div>
     )
   }
 
   return (
-    <div className="pointer-events-none absolute left-3 top-16 z-[1000] w-[min(calc(100%-1.5rem),20rem)] sm:top-3 sm:left-14">
+    <>
+      {/* Telefone: pill → pré-visualização → lista completa */}
       <div
-        className="pointer-events-auto overflow-hidden rounded-2xl bg-[#1a1a1a]/88 text-white shadow-lg ring-1 ring-white/15 backdrop-blur-md"
-        role="status"
+        data-testid="live-now-mobile"
+        className="pointer-events-none absolute left-3 top-3 z-[1000] sm:hidden"
       >
-        <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
-          <span className="min-w-0 flex-1 truncate text-[0.7rem] font-bold uppercase tracking-wide text-white/90">
-            {prefix}
-          </span>
+        {mobileView === 'collapsed' ? (
           <button
             type="button"
-            onClick={() => {
-              setShow(false)
-              writeLiveNowPref(false)
-            }}
-            className="shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-wide text-white/90 hover:bg-white/20"
-            aria-label={labels?.liveNowHideAria || labels?.liveNowHide}
-            title={labels?.liveNowHide || 'Ocultar'}
+            onClick={() => setMobileView('preview')}
+            className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-[#1a1a1a]/90 px-3 py-1.5 text-xs font-bold text-white shadow-lg ring-1 ring-white/15 backdrop-blur"
+            aria-expanded="false"
+            aria-label={prefix}
           >
-            {labels?.liveNowHide || 'Ocultar'}
+            <span aria-hidden>🐂</span>
+            {liveNowCountLabel(labels, count)}
           </button>
-        </div>
-        <ul className="divide-y divide-white/10">
-          {list.map((item) => {
-            const { bg, glyph } = liveNowStyle(item)
-            return (
-              <li key={item.id} className="flex items-center gap-2.5 px-3 py-2.5">
-                <span
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-sm leading-none"
-                  style={{
-                    background: '#FAF8F2',
-                    borderColor: bg,
-                  }}
-                  aria-hidden
-                >
-                  {glyph}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-xs font-semibold leading-snug text-white">
-                  {item.title}
-                </span>
-              </li>
-            )
-          })}
-        </ul>
+        ) : (
+          <div
+            className="pointer-events-auto w-[min(calc(100vw-5.5rem),16rem)] overflow-hidden rounded-2xl bg-[#1a1a1a]/90 text-white shadow-lg ring-1 ring-white/15 backdrop-blur-md"
+            role="status"
+          >
+            <div className="flex items-center gap-2 border-b border-white/10 px-2.5 py-1.5">
+              <span className="min-w-0 flex-1 truncate text-[0.65rem] font-bold uppercase tracking-wide text-white/90">
+                {prefix}
+              </span>
+              <button
+                type="button"
+                onClick={closePanel}
+                className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-white/90"
+                aria-label={labels?.liveNowHideAria || labels?.liveNowHide}
+              >
+                {labels?.liveNowHide || 'Ocultar'}
+              </button>
+            </div>
+            <ul
+              className={`divide-y divide-white/10 overflow-y-auto ${
+                mobileView === 'full' ? MOBILE_LIST_MAX_H : ''
+              }`}
+            >
+              {(mobileView === 'full' ? list : previewItems).map((item) => (
+                <li key={item.id}>
+                  <LiveNowRow item={item} compact />
+                </li>
+              ))}
+            </ul>
+            {mobileView === 'preview' && hiddenCount > 0 ? (
+              <button
+                type="button"
+                onClick={() => setMobileView('full')}
+                className="w-full border-t border-white/10 px-2.5 py-2 text-center text-[0.7rem] font-semibold text-dourado hover:bg-white/5"
+              >
+                {liveNowMoreLabel(labels, hiddenCount)}
+              </button>
+            ) : null}
+          </div>
+        )}
       </div>
-    </div>
+
+      {/* Desktop: lista completa */}
+      <div
+        data-testid="live-now-desktop"
+        className="pointer-events-none absolute left-14 top-3 z-[1000] hidden w-[min(calc(100%-1.5rem),20rem)] sm:block"
+      >
+        <div
+          className="pointer-events-auto overflow-hidden rounded-2xl bg-[#1a1a1a]/88 text-white shadow-lg ring-1 ring-white/15 backdrop-blur-md"
+          role="status"
+        >
+          <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
+            <span className="min-w-0 flex-1 truncate text-[0.7rem] font-bold uppercase tracking-wide text-white/90">
+              {prefix}
+            </span>
+            <button
+              type="button"
+              onClick={closePanel}
+              className="shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-wide text-white/90 hover:bg-white/20"
+              aria-label={labels?.liveNowHideAria || labels?.liveNowHide}
+              title={labels?.liveNowHide || 'Ocultar'}
+            >
+              {labels?.liveNowHide || 'Ocultar'}
+            </button>
+          </div>
+          <ul className="divide-y divide-white/10">
+            {list.map((item) => (
+              <li key={item.id}>
+                <LiveNowRow item={item} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </>
   )
 }
 
@@ -334,15 +467,26 @@ export function LiveBullBanner({ labels, liveTitle }) {
  * Toiros live nos recintos (sem linhas de percurso — o polígono basta).
  */
 export default function LiveBullLayer({ labels, live }) {
-  const { primary, anims = [] } = live || {}
-  const hasLive = Boolean(primary) && anims.length > 0
+  const liveBulls =
+    live?.liveBulls?.length > 0
+      ? live.liveBulls
+      : live?.primary
+        ? [live.primary]
+        : []
+  const hasLive = liveBulls.length > 0
 
   if (!hasLive) return null
 
   return (
     <>
-      <AnimatedBullMarkers primary={primary} labels={labels} />
-      <FocusLiveBullOnce position={anims[0]?.position} active />
+      {liveBulls.map((entry) => (
+        <AnimatedBullMarkers
+          key={`${entry.event.id}-${entry.start.getTime()}`}
+          primary={entry}
+          labels={labels}
+        />
+      ))}
+      <FocusLiveBullOnce position={live?.anims?.[0]?.position} active />
     </>
   )
 }

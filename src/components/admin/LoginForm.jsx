@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Loader2, LogIn } from 'lucide-react'
 
-export default function LoginForm({ onLogin, t }) {
+export default function LoginForm({ onLogin, t, notice = null }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -29,6 +29,15 @@ export default function LoginForm({ onLogin, t }) {
         <h1 className="font-display text-2xl font-bold text-barrete">{t.title}</h1>
         <p className="mt-1 text-sm text-ink/60">{t.subtitle}</p>
       </div>
+
+      {notice ? (
+        <p
+          className="mb-4 rounded-xl bg-dourado/20 px-3 py-2.5 text-sm text-ink ring-1 ring-dourado/35"
+          role="status"
+        >
+          {notice}
+        </p>
+      ) : null}
 
       <form
         onSubmit={handleSubmit}

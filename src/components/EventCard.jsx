@@ -26,6 +26,8 @@ import {
 } from '../lib/reminders'
 import { track } from '../lib/analytics'
 import { sanitizeHttpUrl } from '../lib/safeUrl'
+import { eventShareText, eventShareUrl } from '../lib/share'
+import { requestInstallPrompt } from './InstallPrompt'
 import {
   isCorridaEvent,
   isEntradaGpsRouteEvent,
@@ -180,9 +182,9 @@ export default function EventCard({ event, index, highlighted }) {
   const sections = parseDescricao(event.descricao)
 
   async function handleShare() {
-    const url = `${window.location.origin}/?dia=${encodeURIComponent(event.dia)}&evento=${encodeURIComponent(event.id)}`
+    const url = eventShareUrl(event)
     const title = event.titulo
-    const text = `${event.hora} · ${event.titulo}${event.local ? ` — ${event.local}` : ''}`
+    const text = eventShareText(event)
     try {
       if (navigator.share) {
         await navigator.share({ title, text, url })
@@ -238,7 +240,7 @@ export default function EventCard({ event, index, highlighted }) {
       const ready = await ensurePushForReminders()
       if (!ready.ok) {
         if (ready.reason === 'needInstall') {
-          window.alert(t.remindNeedInstall || t.remindNeedPermission)
+          requestInstallPrompt()
         } else if (ready.reason === 'inApp') {
           window.alert(t.notify?.androidBrowser || t.remindNeedPermission)
         } else if (ready.reason === 'timeout' || ready.reason === 'sw') {
