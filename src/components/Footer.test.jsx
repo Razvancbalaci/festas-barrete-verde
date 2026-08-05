@@ -34,4 +34,12 @@ describe('Footer', () => {
       '/privacidade',
     )
   })
+
+  it('links RB initials to Instagram', () => {
+    renderApp(<Footer />)
+    expect(screen.getByRole('link', { name: /s_razvancb/i })).toHaveAttribute(
+      'href',
+      'https://instagram.com/s_razvancb',
+    )
+  })
 })

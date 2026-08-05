@@ -81,4 +81,17 @@ describe('appConfig', () => {
     await updateLiveSmokeTestEnabled(true)
     expect(isLiveSmokeGateEnabled()).toBe(true)
   })
+
+  it('does not re-dispatch when gate value is unchanged', () => {
+    const spy = vi.fn()
+    window.addEventListener('fbv-app-config-changed', spy)
+    setLiveSmokeGateEnabled(false)
+    setLiveSmokeGateEnabled(false)
+    expect(spy).not.toHaveBeenCalled()
+    setLiveSmokeGateEnabled(true)
+    expect(spy).toHaveBeenCalledTimes(1)
+    setLiveSmokeGateEnabled(true)
+    expect(spy).toHaveBeenCalledTimes(1)
+    window.removeEventListener('fbv-app-config-changed', spy)
+  })
 })

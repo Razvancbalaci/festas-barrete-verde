@@ -14,10 +14,15 @@ export function isAppConfigLoaded() {
 }
 
 export function setLiveSmokeGateEnabled(value) {
-  liveSmokeTestEnabled = Boolean(value)
+  const next = Boolean(value)
+  const changed = liveSmokeTestEnabled !== next
+  liveSmokeTestEnabled = next
   if (!liveSmokeTestEnabled) {
     setLiveSmokeTest(false)
   }
+  // Só notificar quando muda — senão AppConfigProvider.refresh() cria loop
+  // (fetch → event → fetch) até Out of Memory.
+  if (!changed) return
   try {
     window.dispatchEvent(new CustomEvent('fbv-app-config-changed'))
   } catch {

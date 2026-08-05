@@ -31,8 +31,11 @@ export function AppConfigProvider({ children }) {
     refresh().then(() => {
       if (!cancelled) setReady(true)
     })
+    // O módulo já actualizou o flag — só sincronizar React state (não re-fetch).
     const onChange = () => {
-      refresh()
+      if (cancelled) return
+      setLiveSmokeTestEnabled(isLiveSmokeGateEnabled())
+      setReady(true)
     }
     window.addEventListener('fbv-app-config-changed', onChange)
     const {

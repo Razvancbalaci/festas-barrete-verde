@@ -87,9 +87,15 @@ export default function Footer() {
           </p>
 
           <div className="mt-6 flex items-center justify-center">
-            <span className="select-none text-[0.65rem] tracking-widest text-white/20" aria-hidden>
+            <a
+              href="https://instagram.com/s_razvancb"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="select-none text-[0.65rem] tracking-widest text-white/20 transition-colors hover:text-white/45"
+              aria-label="Instagram @s_razvancb"
+            >
               RB
-            </span>
+            </a>
           </div>
         </div>
       </footer>
