@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap, ZoomControl } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap, useMapEvents, ZoomControl } from 'react-leaflet'
 import L from 'leaflet'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Contrast, Store } from 'lucide-react'
+import { ArrowLeft, Contrast, MapPin, Store, X } from 'lucide-react'
 import { useLang } from '../context/LangContext'
 import { useA11y } from '../context/A11yContext'
 import {
@@ -43,6 +43,10 @@ import {
   parseMapComercioParams,
   resolveNegocioFocusLatLng,
 } from '../lib/comercioMap'
+import {
+  dismissMapPinTapTip,
+  isMapPinTapTipDismissed,
+} from '../lib/mapPinTapTip'
 import 'leaflet/dist/leaflet.css'
 
 function placeMatchesLegend(place, legendKey) {
@@ -313,6 +317,16 @@ function FocusLegendHighlight({ legendKey, places, commercePts = [] }) {
   return null
 }
 
+/** Fecha a dica de toque quando o utilizador abre um pin. */
+function DismissPinTipOnPopup({ enabled, onDismiss }) {
+  useMapEvents({
+    popupopen() {
+      if (enabled) onDismiss()
+    },
+  })
+  return null
+}
+
 export default function FestivalMap() {
   const { t } = useLang()
   const { a11y, toggleA11y } = useA11y()
@@ -335,9 +349,17 @@ export default function FestivalMap() {
   const [commerceBiz, setCommerceBiz] = useState([])
   const [commerceLoading, setCommerceLoading] = useState(false)
   const [focusNegocioId, setFocusNegocioId] = useState(paramNegocio)
+  const [showPinTapTip, setShowPinTapTip] = useState(
+    () => !isMapPinTapTipDismissed(),
+  )
   const commerceFiltersRef = useRef(null)
   const mapLegendRef = useRef(null)
   const prevShowCommerceRef = useRef(showCommerce)
+
+  function dismissPinTapTip() {
+    dismissMapPinTapTip()
+    setShowPinTapTip(false)
+  }
 
   useEffect(() => {
     if (!paramComercio) return
@@ -547,7 +569,7 @@ export default function FestivalMap() {
             </button>
           </div>
           <h1 className="font-display text-2xl font-bold">{m.title}</h1>
-          <p className="mt-1 text-sm text-white/80">{m.subtitle}</p>
+          <p className="mt-1 text-sm font-medium text-white/90">{m.subtitle}</p>
           <div ref={mapLegendRef} className="scroll-mt-2">
             <p className="mt-2 text-[0.7rem] text-white/65">
               {m.legendTapHint || 'Toca numa legenda para destacar no mapa.'}
@@ -570,6 +592,29 @@ export default function FestivalMap() {
       </header>
 
       <div className="relative z-0 mx-auto w-full max-w-3xl flex-1 px-0 sm:px-6 sm:py-4">
+        {showPinTapTip ? (
+          <div
+            className="mx-3 mb-2 flex items-start gap-2 rounded-xl bg-dourado/20 px-3 py-2.5 text-sm text-ink ring-1 ring-dourado/35 sm:mx-0"
+            role="status"
+          >
+            <MapPin
+              className="mt-0.5 h-4 w-4 shrink-0 text-barrete"
+              aria-hidden
+            />
+            <p className="min-w-0 flex-1 text-xs font-semibold leading-snug sm:text-sm">
+              {m.pinTapTip ||
+                'Toca num pin no mapa para abrir detalhes, eventos e direcções.'}
+            </p>
+            <button
+              type="button"
+              onClick={dismissPinTapTip}
+              className="shrink-0 rounded-lg p-1 text-ink/45 transition hover:bg-ink/5 hover:text-ink"
+              aria-label={m.pinTapTipDismiss || 'Fechar dica'}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : null}
         <div
           className={`relative h-[min(70vh,560px)] w-full overflow-hidden sm:shadow-sm sm:ring-1 sm:ring-barrete/10 ${
             showCommerce ? 'sm:rounded-t-2xl' : 'sm:rounded-2xl'
@@ -670,6 +715,10 @@ export default function FestivalMap() {
               commercePts={showCommerce ? commerceBizPts : []}
             />
             <LocateMeControl labels={m} />
+            <DismissPinTipOnPopup
+              enabled={showPinTapTip}
+              onDismiss={dismissPinTapTip}
+            />
             <LiveBullLayer labels={m} live={live} />
             <Polyline
               positions={ENTRADA_ROUTE}

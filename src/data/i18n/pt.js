@@ -136,8 +136,11 @@ export default {
     },
     map: {
       title: 'Mapa das festas',
-      subtitle: 'Palcos, locais e feira — mapa e satélite',
+      subtitle: 'Toca nos pins para ver eventos e como chegar',
       back: 'Voltar ao programa',
+      pinTapTip:
+        'Toca num pin no mapa para abrir detalhes, eventos e direcções.',
+      pinTapTipDismiss: 'Fechar dica',
       legendStage: 'Palcos',
       legendPlace: 'Locais',
       legendBulls: 'Toiros / Praça',
@@ -158,7 +161,7 @@ export default {
       commerceOpenList: 'Ver na página de comércio',
       commerceEmpty: 'Ainda não há pontos de comércio com coordenadas.',
       commerceEmptyFilter: 'Nenhum comércio deste tipo com coordenadas.',
-      hint: 'Podes aproximar, afastar e tocar nos marcadores. Usa Satélite para ver o terreno atual. Em cada pin podes ver os eventos desse local.',
+      hint: 'Podes aproximar e afastar o mapa. Usa Satélite para ver o terreno atual.',
       seeEvents: 'Ver eventos neste local',
       goThere: 'Ir a pé',
       goThereDrive: 'Conduzir',

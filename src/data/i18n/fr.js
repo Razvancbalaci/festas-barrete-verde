@@ -135,8 +135,11 @@ export default {
     },
     map: {
       title: 'Carte des fêtes',
-      subtitle: 'Scènes, lieux et fête foraine — carte et satellite',
+      subtitle: 'Touchez les épingles pour les événements et l’itinéraire',
       back: 'Retour au programme',
+      pinTapTip:
+        'Touchez une épingle sur la carte pour les détails, événements et directions.',
+      pinTapTipDismiss: 'Fermer l’astuce',
       legendStage: 'Scènes',
       legendPlace: 'Lieux',
       legendBulls: 'Taureaux / arène',
@@ -157,7 +160,7 @@ export default {
       commerceOpenList: 'Voir la page commerces',
       commerceEmpty: 'Pas encore de commerces avec coordonnées.',
       commerceEmptyFilter: 'Aucun commerce de ce type avec coordonnées.',
-      hint: 'Zoomez et touchez les marqueurs. Utilisez Satellite pour voir le terrain actuel. Chaque épingle peut ouvrir les événements du lieu.',
+      hint: 'Zoomez sur la carte. Utilisez Satellite pour voir le terrain actuel.',
       seeEvents: 'Voir les événements ici',
       goThere: 'À pied',
       goThereDrive: 'En voiture',
