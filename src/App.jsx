@@ -13,6 +13,7 @@ import InAppBrowserBanner from './components/InAppBrowserBanner'
 import LiveSmokeBanner from './components/LiveSmokeBanner'
 import AdminSessionGuard from './components/AdminSessionGuard'
 import OfflineBanner from './components/OfflineBanner'
+import AppUpdateBanner from './components/AppUpdateBanner'
 import AnalyticsTracker from './components/AnalyticsTracker'
 import { track } from './lib/analytics'
 
@@ -56,6 +57,7 @@ function AppExtras() {
       <ScrollToTop />
       <AdminSessionGuard />
       <AnalyticsTracker />
+      <AppUpdateBanner />
       <LiveSmokeBanner />
       <InAppBrowserBanner />
       <OfflineBanner />

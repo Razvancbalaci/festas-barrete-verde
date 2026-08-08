@@ -97,6 +97,10 @@ export default {
       ],
     },
     offlineBanner: 'Estás sin conexión — mostrando el programa en caché si está disponible.',
+    appUpdate: {
+      body: 'Hay una versión nueva de la app. Actualiza para correcciones y el mapa al día.',
+      action: 'Actualizar',
+    },
     searchPlaceholder: 'Buscar artista, escenario, evento…',
     today: 'Hoy',
     a11yShort: 'A+',

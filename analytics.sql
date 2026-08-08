@@ -59,6 +59,8 @@ declare
     'ticket_click',
     'map_place_view',
     'map_walk',
+    'map_drive',
+    'map_locate',
     'lang_change',
     'filter_today',
     'filter_now',
@@ -66,7 +68,9 @@ declare
     'filter_category',
     'search',
     'a11y_toggle',
-    'comercio_submit'
+    'comercio_submit',
+    'comercio_open_map',
+    'happening_banner_open'
   ];
   sid text;
   pl jsonb;

@@ -465,27 +465,15 @@ export function LiveBullBanner({ labels, liveTitle }) {
 
 /**
  * Toiros live nos recintos (sem linhas de percurso — o polígono basta).
+ * Só o evento mais recente (primary), para não ficar a entrada por cima da largada.
  */
 export default function LiveBullLayer({ labels, live }) {
-  const liveBulls =
-    live?.liveBulls?.length > 0
-      ? live.liveBulls
-      : live?.primary
-        ? [live.primary]
-        : []
-  const hasLive = liveBulls.length > 0
-
-  if (!hasLive) return null
+  const primary = live?.primary || null
+  if (!primary) return null
 
   return (
     <>
-      {liveBulls.map((entry) => (
-        <AnimatedBullMarkers
-          key={`${entry.event.id}-${entry.start.getTime()}`}
-          primary={entry}
-          labels={labels}
-        />
-      ))}
+      <AnimatedBullMarkers primary={primary} labels={labels} />
       <FocusLiveBullOnce position={live?.anims?.[0]?.position} active />
     </>
   )

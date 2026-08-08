@@ -205,6 +205,30 @@ describe('liveStreetBulls', () => {
     expect(findLiveStreetBulls(events, new Date(2026, 7, 8, 18, 16, 0))).toEqual([])
   })
 
+  it('prefers the most recently started bull when windows overlap', () => {
+    const events = [
+      {
+        id: 'entrada',
+        dia: '2026-08-08',
+        hora: '18:00',
+        titulo: 'Entrada de Toiros',
+        categoria: 'Toiros',
+        local: 'Nacional 119',
+      },
+      {
+        id: 'largada',
+        dia: '2026-08-08',
+        hora: '18:10',
+        titulo: 'Largada de Toiros',
+        categoria: 'Toiros',
+        local: 'Av. 5 de Outubro',
+      },
+    ]
+    const live = findLiveStreetBulls(events, new Date(2026, 7, 8, 18, 12, 0))
+    expect(live).toHaveLength(2)
+    expect(live[0].event.id).toBe('largada')
+  })
+
   it('only appears during scheduled largada window', () => {
     const events = [
       {

@@ -96,6 +96,10 @@ export default {
       ],
     },
     offlineBanner: 'You are offline — showing the cached programme if available.',
+    appUpdate: {
+      body: 'A new app version is available. Update for fixes and the latest map.',
+      action: 'Update',
+    },
     searchPlaceholder: 'Search artist, stage, event…',
     today: 'Today',
     a11yShort: 'A+',

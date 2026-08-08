@@ -97,6 +97,10 @@ export default {
       ],
     },
     offlineBanner: 'Vous êtes hors ligne — affichage du programme en cache si disponible.',
+    appUpdate: {
+      body: 'Une nouvelle version de l’app est disponible. Mettez à jour pour les corrections et la carte.',
+      action: 'Mettre à jour',
+    },
     searchPlaceholder: 'Rechercher artiste, scène, événement…',
     today: 'Aujourd’hui',
     a11yShort: 'A+',

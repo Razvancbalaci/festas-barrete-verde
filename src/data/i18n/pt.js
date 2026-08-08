@@ -98,6 +98,10 @@ export default {
       ],
     },
     offlineBanner: 'Estás offline — a mostrar o programa em cache, se disponível.',
+    appUpdate: {
+      body: 'Há uma versão nova da app. Atualiza para corrigir erros e ver o mapa em dia.',
+      action: 'Atualizar',
+    },
     searchPlaceholder: 'Pesquisar artista, palco, evento…',
     today: 'Hoje',
     a11yShort: 'A+',

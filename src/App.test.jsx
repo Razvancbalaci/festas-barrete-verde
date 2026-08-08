@@ -29,6 +29,10 @@ vi.mock('./components/NotifyPrompt', () => ({ default: () => null }))
 vi.mock('./components/LiveSmokeBanner', () => ({ default: () => null }))
 vi.mock('./components/AdminSessionGuard', () => ({ default: () => null }))
 vi.mock('./components/OfflineBanner', () => ({ default: () => null }))
+vi.mock('./components/AppUpdateBanner', () => ({
+  default: () => null,
+  SW_UPDATE_EVENT: 'fbv-sw-update',
+}))
 vi.mock('./components/AnalyticsTracker', () => ({ default: () => null }))
 vi.mock('./hooks/useLocalExtras', async () => {
   const actual = await vi.importActual('./hooks/useLocalExtras')

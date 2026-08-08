@@ -21,6 +21,7 @@ export function isMapLiveBullEvent(event) {
 /**
  * Entradas/largadas actualmente em curso (hora do cartaz → + duração).
  * Fora desse intervalo o toiro não aparece.
+ * Ordenados do mais recente para o mais antigo — o mapa anima só o primeiro.
  */
 export function findLiveStreetBulls(events, now = new Date()) {
   const live = []
@@ -31,7 +32,7 @@ export function findLiveStreetBulls(events, now = new Date()) {
     const end = new Date(start.getTime() + eventDurationMinutes(e) * 60 * 1000)
     if (now >= start && now <= end) live.push({ event: e, start, end })
   }
-  live.sort((a, b) => a.start - b.start)
+  live.sort((a, b) => b.start.getTime() - a.start.getTime())
   return live
 }
 
