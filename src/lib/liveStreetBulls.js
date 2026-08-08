@@ -1,4 +1,4 @@
-import { eventDateTime, eventDurationMinutes } from './datetime'
+import { eventDateTime, eventEffectiveEnd } from './datetime'
 import { isRouteMapEvent, isStreetBullEvent } from './locations'
 import { ENTRADA_ROUTE, LARGADA_STREET_ROUTES } from '../data/mapPlaces'
 import { pointAlongRoute, wanderInPolygon } from './routeGeom'
@@ -29,7 +29,7 @@ export function findLiveStreetBulls(events, now = new Date()) {
     if (!isMapLiveBullEvent(e)) continue
     const start = eventDateTime(e.dia, e.hora)
     if (Number.isNaN(start.getTime())) continue
-    const end = new Date(start.getTime() + eventDurationMinutes(e) * 60 * 1000)
+    const end = eventEffectiveEnd(e, events)
     if (now >= start && now <= end) live.push({ event: e, start, end })
   }
   live.sort((a, b) => b.start.getTime() - a.start.getTime())
@@ -126,7 +126,7 @@ export function nextLiveBullWakeAt(now, events = []) {
     if (!isMapLiveBullEvent(e)) continue
     const start = eventDateTime(e.dia, e.hora)
     if (Number.isNaN(start.getTime())) continue
-    const end = new Date(start.getTime() + eventDurationMinutes(e) * 60 * 1000)
+    const end = eventEffectiveEnd(e, events)
     for (const t of [start.getTime(), end.getTime()]) {
       if (t > now.getTime() && (next == null || t < next)) next = t
     }

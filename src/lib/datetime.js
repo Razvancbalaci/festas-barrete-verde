@@ -60,17 +60,36 @@ export function eventDurationMinutes(event) {
     }
     return 60
   }
-  if (event?.categoria === 'Música') return 120
+  if (event?.categoria === 'Música') return 60
   if (event?.categoria === 'Pirotecnia') return 30
   if (event?.categoria === 'Religioso') return 90
   return 60
+}
+
+/**
+ * Fim efectivo no cartaz: duração estimada, cortada quando começa o próximo evento.
+ * Evita que um concerto «a decorrer» 2 h tape a entrada/largada seguinte.
+ */
+export function eventEffectiveEnd(event, allEvents = [], durationMinutes = null) {
+  const start = eventDateTime(event.dia, event.hora)
+  const mins =
+    durationMinutes != null ? durationMinutes : eventDurationMinutes(event)
+  let endMs = start.getTime() + mins * 60 * 1000
+  const startMs = start.getTime()
+  for (const other of allEvents || []) {
+    if (!other?.dia || !other?.hora) continue
+    if (event?.id != null && other.id != null && other.id === event.id) continue
+    const otherMs = eventDateTime(other.dia, other.hora).getTime()
+    if (otherMs > startMs && otherMs < endMs) endMs = otherMs
+  }
+  return new Date(endMs)
 }
 
 /** Fallback genérico quando não se usa duração por evento. */
 export const LIVE_NOW_DURATION_MINUTES = 60
 
 /**
- * Todos os eventos em curso (duração por tipo; override opcional em minutos).
+ * Todos os eventos em curso (duração por tipo; corta no próximo do cartaz).
  * Ordenados por hora de início.
  */
 export function findLiveEvents(
@@ -83,9 +102,7 @@ export function findLiveEvents(
     if (!e?.dia || !e?.hora) continue
     const start = eventDateTime(e.dia, e.hora)
     if (Number.isNaN(start.getTime())) continue
-    const mins =
-      durationMinutes != null ? durationMinutes : eventDurationMinutes(e)
-    const end = new Date(start.getTime() + mins * 60 * 1000)
+    const end = eventEffectiveEnd(e, events, durationMinutes)
     if (now >= start && now < end) {
       live.push({ event: e, start, end })
     }
@@ -115,9 +132,7 @@ export function nextLiveEventWakeAt(
     if (!e?.dia || !e?.hora) continue
     const start = eventDateTime(e.dia, e.hora)
     if (Number.isNaN(start.getTime())) continue
-    const mins =
-      durationMinutes != null ? durationMinutes : eventDurationMinutes(e)
-    const end = new Date(start.getTime() + mins * 60 * 1000)
+    const end = eventEffectiveEnd(e, events, durationMinutes)
     for (const t of [start.getTime(), end.getTime()]) {
       if (t > now.getTime() && (next == null || t < next)) next = t
     }
@@ -127,8 +142,7 @@ export function nextLiveEventWakeAt(
 
 /**
  * Evento em curso ou o próximo ainda por começar.
- * Se vários estiverem em curso, prefere o que começou mais recentemente
- * (ex. largada a sobrepor-se à janela da entrada).
+ * Janelas cortam no próximo item do cartaz; se vários em curso, o mais recente.
  */
 export function findNextOrCurrentEvent(events, now = new Date()) {
   if (!events?.length) return null
@@ -137,7 +151,7 @@ export function findNextOrCurrentEvent(events, now = new Date()) {
   let next = null
   for (const e of events) {
     const start = eventDateTime(e.dia, e.hora)
-    const end = new Date(start.getTime() + eventDurationMinutes(e) * 60 * 1000)
+    const end = eventEffectiveEnd(e, events)
     if (now >= start && now <= end) {
       const startMs = start.getTime()
       if (startMs >= currentStartMs) {

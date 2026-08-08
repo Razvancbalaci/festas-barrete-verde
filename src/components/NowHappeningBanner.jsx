@@ -1,16 +1,16 @@
 import { Clock } from 'lucide-react'
 import {
   eventDateTime,
-  eventDurationMinutes,
+  eventEffectiveEnd,
   findNextOrCurrentEvent,
 } from '../lib/datetime'
 import { eventLocalSummary } from '../lib/eventLocal'
 import { isEntradaGpsRouteEvent } from '../lib/locations'
 
-function statusFor(event, now) {
+function statusFor(event, events, now) {
   if (!event) return null
   const start = eventDateTime(event.dia, event.hora)
-  const end = new Date(start.getTime() + eventDurationMinutes(event) * 60 * 1000)
+  const end = eventEffectiveEnd(event, events)
   if (now >= start && now <= end) return 'live'
   if (start > now) return 'next'
   return null
@@ -27,7 +27,7 @@ export default function NowHappeningBanner({
 }) {
   const event = findNextOrCurrentEvent(events, now)
   if (!event) return null
-  const status = statusFor(event, now)
+  const status = statusFor(event, events, now)
   if (!status) return null
 
   const statusLabel =

@@ -224,8 +224,9 @@ describe('liveStreetBulls', () => {
         local: 'Av. 5 de Outubro',
       },
     ]
+    // Entrada corta às 18:10 (início da largada)
     const live = findLiveStreetBulls(events, new Date(2026, 7, 8, 18, 12, 0))
-    expect(live).toHaveLength(2)
+    expect(live).toHaveLength(1)
     expect(live[0].event.id).toBe('largada')
   })
 

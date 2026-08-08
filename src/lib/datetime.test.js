@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   eventDateTime,
   eventDurationMinutes,
+  eventEffectiveEnd,
   findLiveEvents,
   findNextOrCurrentEvent,
   formatLocalReminderValue,
@@ -95,6 +96,40 @@ describe('findNextOrCurrentEvent', () => {
     const now = new Date(2026, 7, 7, 18, 12, 0)
     expect(findNextOrCurrentEvent(events, now)?.id).toBe('largada')
   })
+
+  it('ends a long music slot when the next programme item starts', () => {
+    const events = [
+      {
+        id: 'show',
+        dia: '2026-08-08',
+        hora: '17:00',
+        categoria: 'Música',
+        titulo: 'Espetáculo com 4xcap',
+        local: 'Palco S. João',
+      },
+      {
+        id: 'entrada',
+        dia: '2026-08-08',
+        hora: '18:00',
+        categoria: 'Toiros',
+        titulo: '2ª Entrada de Touros na Vila',
+      },
+    ]
+    expect(eventEffectiveEnd(events[0], events).getHours()).toBe(18)
+    expect(eventEffectiveEnd(events[0], events).getMinutes()).toBe(0)
+    // Ainda no concerto, antes da entrada
+    expect(
+      findNextOrCurrentEvent(events, new Date(2026, 7, 8, 17, 30, 0))?.id,
+    ).toBe('show')
+    // À hora da entrada — segue o cartaz
+    expect(
+      findNextOrCurrentEvent(events, new Date(2026, 7, 8, 18, 0, 0))?.id,
+    ).toBe('entrada')
+    // Depois da entrada (15 min) — concerto já não «tapa»
+    expect(
+      findNextOrCurrentEvent(events, new Date(2026, 7, 8, 18, 20, 0))?.id,
+    ).not.toBe('show')
+  })
 })
 
 describe('eventDurationMinutes', () => {
@@ -118,6 +153,15 @@ describe('eventDurationMinutes', () => {
       eventDurationMinutes({
         categoria: 'Toiros',
         titulo: 'Largada de Toiros',
+      }),
+    ).toBe(60)
+  })
+
+  it('uses 60 minutes for music', () => {
+    expect(
+      eventDurationMinutes({
+        categoria: 'Música',
+        titulo: 'Concerto',
       }),
     ).toBe(60)
   })
@@ -154,9 +198,8 @@ describe('findLiveEvents', () => {
     expect(live).toHaveLength(2)
   })
 
-  it('drops largada after 60 min but keeps música (120 min)', () => {
-    const live = findLiveEvents(events, new Date(2026, 7, 2, 20, 30, 0))
-    expect(live.map((r) => r.event.id)).toEqual(['2'])
+  it('drops both after 60 min when nothing truncates them', () => {
+    expect(findLiveEvents(events, new Date(2026, 7, 2, 20, 1, 0))).toEqual([])
   })
 
   it('drops entrada after 15 minutes', () => {
