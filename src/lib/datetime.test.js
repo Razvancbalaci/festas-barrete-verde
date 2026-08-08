@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   eventDateTime,
+  eventDurationMinutes,
   findLiveEvents,
   findNextOrCurrentEvent,
   formatLocalReminderValue,
@@ -72,6 +73,54 @@ describe('findNextOrCurrentEvent', () => {
     const target = findNextOrCurrentEvent(events, now)
     expect(target?.id).toBe('b')
   })
+
+  it('prefers the most recently started event when windows overlap', () => {
+    const events = [
+      {
+        id: 'entrada',
+        dia: '2026-08-07',
+        hora: '18:00',
+        categoria: 'Toiros',
+        titulo: 'Entrada de Toiros',
+      },
+      {
+        id: 'largada',
+        dia: '2026-08-07',
+        hora: '18:10',
+        categoria: 'Toiros',
+        titulo: 'Largada de Toiros',
+      },
+    ]
+    // Entrada = 15 min (até 18:15); largada já começou
+    const now = new Date(2026, 7, 7, 18, 12, 0)
+    expect(findNextOrCurrentEvent(events, now)?.id).toBe('largada')
+  })
+})
+
+describe('eventDurationMinutes', () => {
+  it('gives entradas a 15-minute window', () => {
+    expect(
+      eventDurationMinutes({
+        categoria: 'Toiros',
+        titulo: 'Entrada de Toiros',
+      }),
+    ).toBe(15)
+    expect(
+      eventDurationMinutes({
+        categoria: 'Toiros',
+        titulo: 'Prova do Boi da Guia',
+      }),
+    ).toBe(15)
+  })
+
+  it('keeps street largadas at 60 minutes', () => {
+    expect(
+      eventDurationMinutes({
+        categoria: 'Toiros',
+        titulo: 'Largada de Toiros',
+      }),
+    ).toBe(60)
+  })
 })
 
 describe('findLiveEvents', () => {
@@ -99,14 +148,31 @@ describe('findLiveEvents', () => {
     },
   ]
 
-  it('returns all events in the 1h window, stacked by start', () => {
+  it('returns all events still in their duration window', () => {
     const live = findLiveEvents(events, new Date(2026, 7, 2, 19, 30, 0))
     expect(live.map((r) => r.event.id).sort()).toEqual(['1', '2'])
     expect(live).toHaveLength(2)
   })
 
-  it('excludes events after the 1h window', () => {
-    expect(findLiveEvents(events, new Date(2026, 7, 2, 20, 0, 0))).toEqual([])
+  it('drops largada after 60 min but keeps música (120 min)', () => {
+    const live = findLiveEvents(events, new Date(2026, 7, 2, 20, 30, 0))
+    expect(live.map((r) => r.event.id)).toEqual(['2'])
+  })
+
+  it('drops entrada after 15 minutes', () => {
+    const entrada = [
+      {
+        id: 'e',
+        dia: '2026-08-02',
+        hora: '19:00',
+        titulo: 'Entrada de Toiros',
+        categoria: 'Toiros',
+      },
+    ]
+    expect(findLiveEvents(entrada, new Date(2026, 7, 2, 19, 10, 0))).toHaveLength(
+      1,
+    )
+    expect(findLiveEvents(entrada, new Date(2026, 7, 2, 19, 16, 0))).toEqual([])
   })
 })
 

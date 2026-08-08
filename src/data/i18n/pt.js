@@ -209,6 +209,8 @@ export default {
         pracaTouros: 'Praça de Touros',
         feiraCarrosseis: 'Feira dos Carrosséis',
         wcPublico: 'Instalações sanitárias públicas',
+        wcPortatil1: 'Casas de banho portáteis',
+        wcPortatil2: 'Casas de banho portáteis',
         estacionamento1: 'Estacionamento',
         estacionamentoPublico1: 'Estacionamento público',
       },

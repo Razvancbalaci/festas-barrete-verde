@@ -208,6 +208,8 @@ export default {
         pracaTouros: 'Plaza de Toros',
         feiraCarrosseis: 'Feria de los carruseles',
         wcPublico: 'Aseos públicos',
+        wcPortatil1: 'Aseos portátiles',
+        wcPortatil2: 'Aseos portátiles',
         estacionamento1: 'Aparcamiento',
         estacionamentoPublico1: 'Aparcamiento público',
       },

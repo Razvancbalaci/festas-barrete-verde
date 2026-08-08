@@ -206,6 +206,8 @@ export default {
         pracaTouros: 'Bullring',
         feiraCarrosseis: 'Carousel fair',
         wcPublico: 'Public toilets',
+        wcPortatil1: 'Portable toilets',
+        wcPortatil2: 'Portable toilets',
         estacionamento1: 'Parking',
         estacionamentoPublico1: 'Public parking',
       },

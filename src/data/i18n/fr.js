@@ -208,6 +208,8 @@ export default {
         pracaTouros: 'Arène',
         feiraCarrosseis: 'Fête foraine des carrousels',
         wcPublico: 'Toilettes publiques',
+        wcPortatil1: 'Toilettes portables',
+        wcPortatil2: 'Toilettes portables',
         estacionamento1: 'Parking',
         estacionamentoPublico1: 'Parking public',
       },

@@ -185,6 +185,26 @@ describe('liveStreetBulls', () => {
     expect(moved).toBeGreaterThan(1e-5)
   })
 
+  it('entrada only appears for 15 minutes on the map', () => {
+    const events = [
+      {
+        id: '1',
+        dia: '2026-08-08',
+        hora: '18:00',
+        titulo: 'Entrada de Toiros',
+        categoria: 'Toiros',
+        local: 'Nacional 119',
+      },
+    ]
+    expect(findLiveStreetBulls(events, new Date(2026, 7, 8, 18, 0, 0))).toHaveLength(
+      1,
+    )
+    expect(findLiveStreetBulls(events, new Date(2026, 7, 8, 18, 14, 0))).toHaveLength(
+      1,
+    )
+    expect(findLiveStreetBulls(events, new Date(2026, 7, 8, 18, 16, 0))).toEqual([])
+  })
+
   it('only appears during scheduled largada window', () => {
     const events = [
       {

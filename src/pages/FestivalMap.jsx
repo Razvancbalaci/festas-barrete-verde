@@ -978,9 +978,6 @@ export default function FestivalMap() {
               : m.commerceEmpty}
           </p>
         ) : null}
-        <p className="mx-4 mt-2 rounded-xl bg-barrete/5 px-3 py-2.5 text-center text-xs leading-relaxed text-ink/65 ring-1 ring-barrete/10 sm:mx-0">
-          {m.portableWcSoon}
-        </p>
       </div>
 
       <Footer />

@@ -48,11 +48,15 @@ export function eventDateTime(dia, hora) {
   return d
 }
 
-/** Duração estimada (min) para «Agora» / em curso. */
+/** Duração estimada (min) para «Agora» / em curso / toiro no mapa. */
 export function eventDurationMinutes(event) {
   if (event?.categoria === 'Toiros') {
     if (/corrida|recortadores/i.test(event.titulo || '') || event.bilhetes_url) {
       return 150
+    }
+    // Entrada / Boi da Guia: curtas — senão o toiro e a faixa «agora» ficam 1 h
+    if (/entrada|boi da guia/i.test(event.titulo || '')) {
+      return 15
     }
     return 60
   }
@@ -62,24 +66,26 @@ export function eventDurationMinutes(event) {
   return 60
 }
 
-/** Janela «a decorrer agora» no mapa quando não há hora de fim (min). */
+/** Fallback genérico quando não se usa duração por evento. */
 export const LIVE_NOW_DURATION_MINUTES = 60
 
 /**
- * Todos os eventos em curso (início → +1 h por defeito).
+ * Todos os eventos em curso (duração por tipo; override opcional em minutos).
  * Ordenados por hora de início.
  */
 export function findLiveEvents(
   events,
   now = new Date(),
-  durationMinutes = LIVE_NOW_DURATION_MINUTES,
+  durationMinutes = null,
 ) {
   const live = []
   for (const e of events || []) {
     if (!e?.dia || !e?.hora) continue
     const start = eventDateTime(e.dia, e.hora)
     if (Number.isNaN(start.getTime())) continue
-    const end = new Date(start.getTime() + durationMinutes * 60 * 1000)
+    const mins =
+      durationMinutes != null ? durationMinutes : eventDurationMinutes(e)
+    const end = new Date(start.getTime() + mins * 60 * 1000)
     if (now >= start && now < end) {
       live.push({ event: e, start, end })
     }
@@ -102,14 +108,16 @@ export function findLiveEvents(
 export function nextLiveEventWakeAt(
   events,
   now = new Date(),
-  durationMinutes = LIVE_NOW_DURATION_MINUTES,
+  durationMinutes = null,
 ) {
   let next = null
   for (const e of events || []) {
     if (!e?.dia || !e?.hora) continue
     const start = eventDateTime(e.dia, e.hora)
     if (Number.isNaN(start.getTime())) continue
-    const end = new Date(start.getTime() + durationMinutes * 60 * 1000)
+    const mins =
+      durationMinutes != null ? durationMinutes : eventDurationMinutes(e)
+    const end = new Date(start.getTime() + mins * 60 * 1000)
     for (const t of [start.getTime(), end.getTime()]) {
       if (t > now.getTime() && (next == null || t < next)) next = t
     }
@@ -117,17 +125,26 @@ export function nextLiveEventWakeAt(
   return next
 }
 
-/** Evento em curso ou o próximo ainda por começar. */
+/**
+ * Evento em curso ou o próximo ainda por começar.
+ * Se vários estiverem em curso, prefere o que começou mais recentemente
+ * (ex. largada a sobrepor-se à janela da entrada).
+ */
 export function findNextOrCurrentEvent(events, now = new Date()) {
   if (!events?.length) return null
   let current = null
+  let currentStartMs = -Infinity
   let next = null
   for (const e of events) {
     const start = eventDateTime(e.dia, e.hora)
     const end = new Date(start.getTime() + eventDurationMinutes(e) * 60 * 1000)
     if (now >= start && now <= end) {
-      current = e
-      break
+      const startMs = start.getTime()
+      if (startMs >= currentStartMs) {
+        current = e
+        currentStartMs = startMs
+      }
+      continue
     }
     if (start > now && (!next || start < eventDateTime(next.dia, next.hora))) {
       next = e
